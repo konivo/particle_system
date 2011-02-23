@@ -24,6 +24,8 @@ namespace opentk
 		
 		private static ParticleSystem m_System;
 		
+		private static State m_SystemState;
+		
 		public static void Main (string[] args)
 		{
 			unsafe {
@@ -48,16 +50,12 @@ namespace opentk
 		unsafe static void PrepareState ()
 		{
 			if (m_ParticleRenderingState != null)
-			{	
-				
-							
+			{							
 				m_System.Simulate(DateTime.Now);
+				
 				PositionBuffer.Publish();
-				ColorAndSize.Publish();
-			
-				m_ParticleRenderingState.Activate();
-				m_ParticleRenderingProgram.Activate();
-				m_UniformState.Activate();
+				ColorAndSize.Publish();			
+				m_SystemState.Activate();
 				return;
 			}
 			
@@ -87,31 +85,31 @@ namespace opentk
 				new Vector3 (1, 1, 0), 
 				new Vector3 (1, -1, 0)
 			};
+			
+			var vdata_buffer = new BufferObject<Vector3> (sizeof(Vector3)) { Name = "vdata_buffer", Usage = BufferUsageHint.DynamicDraw, Data = sprite};
 		
 			m_ParticleRenderingState = 
 				new ArrayObject (
-				new BufferObject<Vector3> (sizeof(Vector3)) { Name = "vdata_buffer", Usage = BufferUsageHint.DynamicDraw, Data = sprite},
 				
-				PositionBuffer,
-				ColorAndSize,
-				
-				new BufferObjectBinding {
-					BufferName = "vdata_buffer",
-					TargetIndex = { 0 },
-					Target = BufferTarget.ArrayBuffer },
-				
-				new BufferObjectBinding { BufferName = PositionBuffer.Name, TargetIndex = { 1 }, Target = BufferTarget.ArrayBuffer },
-				new BufferObjectBinding { BufferName = ColorAndSize.Name, TargetIndex = { 2 }, Target = BufferTarget.ArrayBuffer },
-				
-				
-				new AttribArray {
+				new VertexAttribute {
 					AttributeName = "vertex_pos",
-					Index = 0,
+					Buffer = vdata_buffer,
 					Size = 3, 
 					Type = VertexAttribPointerType.Float
 					},
-				new AttribArray { AttributeName = "sprite_pos", Divisor = 1, Index = 1, Size = 4, Stride = 0, Type = VertexAttribPointerType.Float },
-				new AttribArray { AttributeName = "sprite_colorandsize", Divisor = 1, Index = 2, Size = 4, Type = VertexAttribPointerType.Float }
+				new VertexAttribute { 
+					AttributeName = "sprite_pos", 
+					Buffer = PositionBuffer,
+					Divisor = 1,
+					Size = 4, 
+					Stride = 0, 
+					Type = VertexAttribPointerType.Float },
+				new VertexAttribute { 
+					AttributeName = "sprite_colorandsize", 
+					Buffer = ColorAndSize,
+					Divisor = 1,
+					Size = 4, 
+					Type = VertexAttribPointerType.Float }
 				);
 			
 			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames()
@@ -121,14 +119,21 @@ namespace opentk
 			m_ParticleRenderingProgram = new Program(
 				"main_program",
 				shaders.ToArray()
-			)
-			{ 
+			);
 			
-				Attributes = m_ParticleRenderingState.AttribArrays
-			};
+			m_SystemState = new State
+			(
+				null,
+				m_ParticleRenderingState,
+				m_ParticleRenderingProgram,
+				m_UniformState
+				
+			);
 			
-			m_System = new ParticleSystem (PositionBuffer.Data, ColorAndSize.Data );
+			var hnd = PositionBuffer.Handle;
+			hnd = ColorAndSize.Handle;
 			
+			m_System = new ParticleSystem (PositionBuffer.Data, ColorAndSize.Data );			
 			PrepareState ();
 		}
 		

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 
 namespace OpenTK
 {
-	public class UniformState:StateBase
+	public class UniformState:StatePart
 	{
 		private readonly Dictionary<string, object> m_Values = new Dictionary<string, object>();
 	
@@ -41,22 +41,26 @@ namespace OpenTK
 			return this;
 		}
 		
-		protected override void ActivateCore ()
-		{
-			var program = StateEnvironment.GetSingleState<Program>();
-			
-			if(program != null)
+		protected override Tuple<Action, Action> GetActivatorCore (State state)
+		{			
+			return new Tuple<Action, Action> (() =>
 			{
-				foreach (var item in m_Values) {
-					string name = GetValueName(item.Key, item.Value);
-					
-					int uloc = GL.GetUniformLocation (program.Handle, name);
-					if(uloc >= 0)
+				var program = state.GetSingleState<Program> ();
+				
+				if (program != null)
+				{
+					foreach (var item in m_Values)
 					{
-						SetValue(program.Handle, uloc, name, item.Value);
-					}					
-				}		
-			}
+						string name = GetValueName (item.Key, item.Value);
+						
+						int uloc = GL.GetUniformLocation (program.Handle, name);
+						if (uloc >= 0)
+						{
+							SetValue (program.Handle, uloc, name, item.Value);
+						}
+					}
+				}
+			}, null);
 		}
 		
 		private string GetValueName(string prefix, object val)

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "opentk", "opentk.csproj", "{422248DC-FB7C-4252-A76A-A5CB8CD9D2CF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "opentk", "ParticleSystem\opentk.csproj", "{422248DC-FB7C-4252-A76A-A5CB8CD9D2CF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +15,6 @@ Global
 		{422248DC-FB7C-4252-A76A-A5CB8CD9D2CF}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = opentk.csproj
+		StartupItem = ParticleSystem\opentk.csproj
 	EndGlobalSection
 EndGlobal

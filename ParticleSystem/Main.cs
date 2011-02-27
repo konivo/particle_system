@@ -9,7 +9,7 @@ namespace opentk
 {
 	class MainClass
 	{
-		private const int PARTICLES_COUNT = 200;
+		private const int PARTICLES_COUNT = 400;
 		
 		//private static ParticleSystem m_Particles = new ParticleSystem(100000);
 		private static ArrayObject m_ParticleRenderingState;

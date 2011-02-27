@@ -18,7 +18,8 @@ void main () {
 	color += colors2[2];
 	
 	color /= 3.0;
-	float alpha = 1 - length(sprite_coord);
+	float len = length(sprite_coord);
+	float alpha = step(0, 1 - len)* pow(len, 4);
 
 	gl_FragColor = vec4(color.xyz, alpha);
 }	

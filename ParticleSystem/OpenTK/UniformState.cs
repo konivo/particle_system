@@ -10,39 +10,39 @@ using System.Runtime.InteropServices;
 
 namespace OpenTK
 {
-	public class UniformState:StatePart
+	public class UniformState : StatePart
 	{
-		private readonly Dictionary<string, object> m_Values = new Dictionary<string, object>();
-	
+		private readonly Dictionary<string, object> m_Values = new Dictionary<string, object> ();
+
 		public readonly bool Default;
 		public readonly string Name;
-	
+
 		public UniformState ()
 		{
 			Default = true;
 			Name = string.Empty;
 		}
-		
+
 		public UniformState (string name)
 		{
 			Default = false;
 			Name = name;
 		}
-		
-		public UniformState Set<T>(string name, T val)
+
+		public UniformState Set<T> (string name, T val)
 		{
 			m_Values[name] = val;
 			return this;
 		}
-		
+
 		public UniformState Set<T> (string name, IValueProvider<T> val)
 		{
 			m_Values[name] = val;
 			return this;
 		}
-		
+
 		protected override Tuple<Action, Action> GetActivatorCore (State state)
-		{			
+		{
 			return new Tuple<Action, Action> (() =>
 			{
 				var program = state.GetSingleState<Program> ();
@@ -62,52 +62,63 @@ namespace OpenTK
 				}
 			}, null);
 		}
-		
-		private string GetValueName(string prefix, object val)
+
+		private string GetValueName (string prefix, object val)
 		{
 			return prefix;
 		}
-		
-		private void SetValue(int program, int location, string name, object val)
+
+		private void SetValue (int program, int location, string name, object val)
 		{
-			if(val is Matrix4)
+			if (val is Matrix4)
 			{
 				var mat = (Matrix4)val;
-				GL.UniformMatrix4(location, false, ref mat );
+				GL.UniformMatrix4 (location, false, ref mat);
 			}
-			else if (val is Vector4) {
+
+			else if (val is Vector4)
+			{
 				var mat = (Vector4)val;
-				GL.Uniform4(location, ref mat);
+				GL.Uniform4 (location, ref mat);
 			}
-			else if (val is Vector3) {
+			else if (val is Vector3)
+			{
 				var mat = (Vector3)val;
 				GL.Uniform3 (location, ref mat);
 			}
-			else if (val is Vector2) {
+			else if (val is Vector2)
+			{
 				var mat = (Vector2)val;
 				GL.Uniform2 (location, ref mat);
 			}
-			else if (val is float) {
+			else if (val is float)
+			{
 				var mat = (float)val;
 				GL.Uniform1 (location, mat);
 			}
-			else if(val is Array){
-				var elementtype = val.GetType().GetElementType();
+			else if (val is Array)
+			{
+				var elementtype = val.GetType ().GetElementType ();
 				
-				if (elementtype == typeof(float)) {
+				if (elementtype == typeof(float))
+				{
 					GL.Uniform1 (location, ((Array)val).Length, (float[])val);
 				}
-				else{
-					for (int i = 0; i < ((Array)val).Length; i++) {
-						SetValue (program, location, name + "[" + i + "]", ((Array)val).GetValue(i));
+
+				else
+				{
+					for (int i = 0; i < ((Array)val).Length; i++)
+					{
+						SetValue (program, location, name + "[" + i + "]", ((Array)val).GetValue (i));
 					}
-				}				
+				}
 			}
-			else if(val is IValueProvider<Matrix4>)//todo: generate properly and generically
+			//todo: generate properly and generically
+			else if (val is IValueProvider<Matrix4>)
 			{
-				SetValue(program, location, name, ((IValueProvider<Matrix4>)val).Value);
+				SetValue (program, location, name, ((IValueProvider<Matrix4>)val).Value);
 			}
 		}
 	}
-
+	
 }

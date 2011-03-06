@@ -41,6 +41,7 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\usr\lib\mono\OpenTK\OpenTK.dll</HintPath>
     </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -48,18 +49,22 @@
     <Compile Include="OpenTK\BufferObject.cs" />
     <Compile Include="OpenTK\GLExtensions.cs" />
     <Compile Include="ResourcesHelper.cs" />
-    <Compile Include="ParticleSystem.cs" />
     <Compile Include="OpenTK\UniformState.cs" />
     <Compile Include="OpenTK\IValueProvider.cs" />
     <Compile Include="OpenTK\MatrixStack.cs" />
+    <Compile Include="System1\System1.cs" />
+    <Compile Include="System1\System1.State.cs" />
+    <Compile Include="System1\System1.SImulation.cs" />
+    <Compile Include="ParticleSystem.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="OpenTK\" />
-    <Folder Include="Shaders\" />
+    <Folder Include="System1\" />
+    <Folder Include="System1\Shaders\" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Shaders\fragment.glsl" />
-    <EmbeddedResource Include="Shaders\vertex.glsl" />
+    <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
+    <EmbeddedResource Include="System1\Shaders\vertex.glsl" />
   </ItemGroup>
 </Project>

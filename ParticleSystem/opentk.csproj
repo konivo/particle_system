@@ -56,6 +56,9 @@
     <Compile Include="System1\System1.State.cs" />
     <Compile Include="System1\System1.SImulation.cs" />
     <Compile Include="ParticleSystem.cs" />
+    <Compile Include="System2\System2.cs" />
+    <Compile Include="System2\System2.SImulation.cs" />
+    <Compile Include="System2\System2.State.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -66,5 +69,7 @@
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
     <EmbeddedResource Include="System1\Shaders\vertex.glsl" />
+    <EmbeddedResource Include="System2\Shaders\fragment.glsl" />
+    <EmbeddedResource Include="System2\Shaders\vertex.glsl" />
   </ItemGroup>
 </Project>

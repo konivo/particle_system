@@ -9,7 +9,7 @@ namespace opentk.System2
 {
 	public partial class System2
 	{
-		private class QNode<T>
+		public class QNode<T>
 		{
 			public Vector2 Min;
 			public Vector2 Max;
@@ -105,6 +105,8 @@ namespace opentk.System2
 
 		private int InitializedCount;
 
+		private opentk.QnodeDebug.QnodeDebug m_DebugView;
+
 		private void InitializeQtree ()
 		{
 			//compute extents
@@ -125,9 +127,6 @@ namespace opentk.System2
 			}
 			
 			Qtree = new QNode<int> { Min = min - Vector2.One, Max = max + Vector2.One };
-//			Qtree.Payload.AddRange (
-//			  Enumerable.Range (0, Position.Length)
-//			  .Where(x => Position[x].Length < 100));
 		  Qtree.Payload.AddRange (Enumerable.Range (0, Position.Length));
 			Qtree.Split (node => 0.5f * (node.Min + node.Max), (i, node) =>
 			{
@@ -140,6 +139,9 @@ namespace opentk.System2
 
 				return false;
 			}, node => node.Payload.Count == 0 || node.Depth > 20);
+
+			//
+			m_DebugView.Tree = Qtree;
 		}
 
 		private void MakeBubble(int i)
@@ -167,8 +169,15 @@ namespace opentk.System2
 			Bmax = new Vector4[Position.Length];
 		}
 
+		private DateTime m_PrevSimTime = DateTime.MinValue;
+
 		public void Simulate (DateTime simulationTime)
 		{
+			if(simulationTime - m_PrevSimTime < TimeSpan.FromSeconds(2))
+				return;
+
+			m_PrevSimTime = simulationTime;
+
 			PreparePath ();
 
 			for (int i = 0; i < EmittedCount; i++,Processed = (Processed + 1) % Position.Length)

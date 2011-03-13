@@ -1,5 +1,5 @@
 using System;
-using OpenTK.Graphics.OpenGL;
+
 namespace opentk
 {
 	public static class ResourcesHelper
@@ -12,4 +12,5 @@ namespace opentk
 		}
 	}
 }
+
 

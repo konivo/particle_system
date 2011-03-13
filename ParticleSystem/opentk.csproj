@@ -59,17 +59,24 @@
     <Compile Include="System2\System2.cs" />
     <Compile Include="System2\System2.SImulation.cs" />
     <Compile Include="System2\System2.State.cs" />
+    <Compile Include="RenderPass.cs" />
+    <Compile Include="QnodeDebug\QnodeDebug.cs" />
+    <Compile Include="OpenTK\GLHelper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="OpenTK\" />
     <Folder Include="System1\" />
     <Folder Include="System1\Shaders\" />
+    <Folder Include="QnodeDebug\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
     <EmbeddedResource Include="System1\Shaders\vertex.glsl" />
     <EmbeddedResource Include="System2\Shaders\fragment.glsl" />
     <EmbeddedResource Include="System2\Shaders\vertex.glsl" />
+    <EmbeddedResource Include="QnodeDebug\Shaders\fragment.glsl" />
+    <EmbeddedResource Include="QnodeDebug\Shaders\vertex.glsl" />
+    <EmbeddedResource Include="QnodeDebug\Shaders\geometry.glsl" />
   </ItemGroup>
 </Project>

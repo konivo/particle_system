@@ -10,6 +10,9 @@ using System.Runtime.InteropServices;
 
 namespace OpenTK
 {
+	/// <summary>
+	///
+	/// </summary>
 	public class State
 	{
 		private readonly Dictionary<Type, ISet<StatePart>> m_StateSet = new Dictionary<Type, ISet<StatePart>> ();
@@ -85,52 +88,9 @@ namespace OpenTK
 		}
 	}
 
-	public static class StateEnvironment
-	{
-		private static readonly Dictionary<Type, ISet<StatePart>> m_StateSet = new Dictionary<Type, ISet<StatePart>> ();
-	
-		public static IEnumerable<StatePart> CurrentState
-		{
-			get{
-				return m_StateSet.Values.SelectMany(x => x);
-			}
-		}
-	
-		internal static void PutState(StatePart state)
-		{
-			ISet<StatePart> states;
-			
-			if(!m_StateSet.TryGetValue(state.GetType(), out states))
-			{
-				m_StateSet[state.GetType()] = states = new HashSet<StatePart>();
-			}
-			
-			GetSet(state.GetType()).Add(state);
-		}
-		
-		public static T GetSingleState<T>() where T: StatePart
-		{
-			return GetSet(typeof(T)).OfType<T>().FirstOrDefault();
-		}
-		
-		public static IEnumerable<T> GetStates<T>() where T: StatePart
-		{
-			return GetSet(typeof(T)).OfType<T>();
-		}
-		
-		private static ISet<StatePart> GetSet(Type t)
-		{
-			ISet<StatePart> states;
-			
-			if(!m_StateSet.TryGetValue(t, out states))
-			{
-				m_StateSet[t] = states = new HashSet<StatePart>();
-			}
-			
-			return states;
-		}
-	}
-	
+	/// <summary>
+	///
+	/// </summary>
 	internal class StateActivator: IDisposable
 	{
 		private readonly Action m_Activate;
@@ -156,18 +116,11 @@ namespace OpenTK
 	
 	}
 
+	/// <summary>
+	///
+	/// </summary>
 	public abstract class StatePart : IDisposable
 	{
-		public void Activate ()
-		{
-			StateEnvironment.PutState(this);
-			ActivateCore();
-		}
-		
-		protected virtual void ActivateCore ()
-		{
-		}
-
 		protected virtual void DisposeCore ()
 		{
 		}
@@ -191,6 +144,9 @@ namespace OpenTK
 		#endregion
 	}
 
+	/// <summary>
+	///
+	/// </summary>
 	public abstract class BufferObjectBase: IDisposable
 	{
 		private Lazy<uint> m_Handle;
@@ -225,6 +181,9 @@ namespace OpenTK
 		#endregion
 }
 
+	/// <summary>
+	///
+	/// </summary>
 	public sealed class BufferObject<T> : BufferObjectBase where T : struct
 	{
 		public readonly int TypeSize;
@@ -292,6 +251,9 @@ namespace OpenTK
 		}
 	}
 
+	/// <summary>
+	///
+	/// </summary>
 	public class BufferObjectBinding
 	{
 		private readonly List<int> m_TargetIndex = new List<int> ();
@@ -303,6 +265,9 @@ namespace OpenTK
 		}
 	}
 
+	/// <summary>
+	///
+	/// </summary>
 	public sealed class VertexAttribute: BufferObjectBinding
 	{
 		public string AttributeName;
@@ -315,6 +280,9 @@ namespace OpenTK
 		public IntPtr Pointer;
 	}
 
+	/// <summary>
+	///
+	/// </summary>
 	public class ArrayObject : StatePart
 	{
 		public readonly List<BufferObjectBinding> AttribArrays = new List<BufferObjectBinding>();
@@ -385,8 +353,6 @@ namespace OpenTK
 		
 					PrintError (item.Target, location);
 				}
-				
-					
 			},
 			() => 
 			{
@@ -404,7 +370,9 @@ namespace OpenTK
 	}
 
 
-
+	/// <summary>
+	///
+	/// </summary>
 	public class Program : StatePart
 	{
 		public readonly IEnumerable<Shader> Shaders;
@@ -424,13 +392,14 @@ namespace OpenTK
 		private Program (string name)
 		{
 			Handle = GL.CreateProgram ();
+			Name = name;
 		}
 
 		public Program (string name, params Shader[] shaders) : this(name)
 		{
 			Shaders = Array.AsReadOnly (shaders);
 			
-			Console.WriteLine ("Program {0} declared, shaders: {1}", Name, String.Join (", ", shaders.Select (x => x.Name)));
+			Console.WriteLine ("Program <{0}> declared, shaders: {1}", Name, String.Join (", ", shaders.Select (x => x.Name)));
 		}
 
 		public Program (string name, params Tuple<ShaderType, string[]>[] shaders) : this(name, (from s in shaders
@@ -454,9 +423,9 @@ namespace OpenTK
 			Linked = result == 1;
 			
 			if (Linked.Value)
-				Console.WriteLine ("Program {0} Linked", Name);
+				Console.WriteLine ("Program <{0}> linked:\n{1}", Name, Log);
 			else
-				Console.WriteLine ("Program {0} error:\n{1}", Name, Log);
+				Console.WriteLine ("Program <{0}> error:\n{1}", Name, Log);
 		}
 		
 		internal void EnsureLinked()
@@ -485,6 +454,9 @@ namespace OpenTK
 		#endregion
 	}
 
+	/// <summary>
+	///
+	/// </summary>
 	public class Shader : IDisposable
 	{
 		public readonly string Code;
@@ -529,9 +501,12 @@ namespace OpenTK
 		public static ShaderType GetShaderTypeFromName (string name)
 		{
 			if (name.Contains ("fragment") || name.Contains ("frag"))
-				return ShaderType.FragmentShader; else if (name.Contains ("vertex") || name.Contains ("vert"))
+				return ShaderType.FragmentShader;
+			else if (name.Contains ("vertex") || name.Contains ("vert"))
 				return ShaderType.VertexShader;
-			
+			else if (name.Contains ("geom") || name.Contains ("geometry"))
+				return ShaderType.GeometryShader;
+
 			throw new ArgumentOutOfRangeException ();
 		}
 
@@ -544,16 +519,14 @@ namespace OpenTK
 		#endregion
 	}
 
+	/// <summary>
+	///
+	/// </summary>
 	public class Pipeline : StatePart
 	{
 		public readonly uint Handle;
 
 		public Pipeline (params Program[] innerState)
-		{
-			
-		}
-
-		protected override void ActivateCore ()
 		{
 			
 		}

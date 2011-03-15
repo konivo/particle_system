@@ -32,7 +32,7 @@ namespace opentk.System2
 				Payload = new List<T> ();
 			}
 
-			public void Split (Func<QNode<T>, Vector2> centerSelector, Func<T, QNode<T>, bool> payloadSplitter, Func<QNode<T>, bool> terminationCondition)
+			public void Split (Func<QNode<T>, Vector2> centerSelector, Action<QNode<T>> payloadSplitter, Func<QNode<T>, bool> terminationCondition)
 			{
 				if (terminationCondition (this))
 					return;
@@ -43,30 +43,13 @@ namespace opentk.System2
 				var q12 = new QNode<T> { Min = new Vector2 (center.X, Min.Y), Max = new Vector2 (Max.X, center.Y), Depth = Depth + 1 };
 				var q21 = new QNode<T> { Min = new Vector2 (Min.X, center.Y), Max = new Vector2 (center.X, Max.Y), Depth = Depth + 1 };
 				var q22 = new QNode<T> { Min = center, Max = Max, Depth = Depth + 1 };
-				
-				for (int i = 0; i < Payload.Count; i++)
-				{
-					var item = Payload[i];
-					Payload.RemoveAt (i);
-					
-					if (payloadSplitter (item, q11))
-						q11.Payload.Add (item);
-					else if (payloadSplitter (item, q12))
-						q12.Payload.Add (item);
-					else if (payloadSplitter (item, q22))
-						q22.Payload.Add (item);
-					else if (payloadSplitter (item, q21))
-						q21.Payload.Add (item);
-					else
-					{
-						Payload.Insert (i, item);
-					}
-				}
-				
+
 				Children.Add (q11);
 				Children.Add (q12);
 				Children.Add (q21);
 				Children.Add (q22);
+
+				payloadSplitter (this);
 				
 				foreach (var item in Children)
 				{
@@ -127,18 +110,28 @@ namespace opentk.System2
 			}
 			
 			Qtree = new QNode<int> { Min = min - Vector2.One, Max = max + Vector2.One };
-		  Qtree.Payload.AddRange (Enumerable.Range (0, Position.Length));
-			Qtree.Split (node => 0.5f * (node.Min + node.Max), (i, node) =>
+		  Qtree.Payload.AddRange (Enumerable.Range (0, InitializedCount));
+			Qtree.Split (node => 0.5f * (node.Min + node.Max), (node) =>
 			{
-				//if node fully contains payload bubble then return true
-				var bmin = Bmin[i];
-				var bmax = Bmax[i];
+				for (int i = 0; i < node.Payload.Count; i++)
+				{
+					var item = node.Payload[i];
+					//if node fully contains payload bubble then return true
+					var bmin = Bmin[item];
+					var bmax = Bmax[item];
 
-				if (node.Max.X >= bmax.X && node.Max.Y >= bmax.Y && node.Min.X < bmin.X && node.Min.Y < bmin.Y)
-					return true;
+					if(node.Max.X >= bmax.X && node.Max.Y >= bmax.Y && node.Min.X < bmin.X && node.Min.Y < bmin.Y)
+					{
+						node.Payload.RemoveAt (i);
+						i--;
 
-				return false;
-			}, node => node.Payload.Count == 0 || node.Depth > 20);
+						foreach (var childnode in node.Children) {
+							if(childnode.Max.X >= bmin.X && childnode.Min.X < bmax.X && childnode.Max.Y >= bmin.Y && childnode.Min.Y < bmax.Y)
+								childnode.Payload.Add (item);
+						}
+					}
+				}
+			}, node => node.Payload.Count <= 1 || node.Depth > 20);
 
 			//
 			m_DebugView.Tree = Qtree;
@@ -146,12 +139,27 @@ namespace opentk.System2
 
 		private void MakeBubble(int i)
 		{
-			var size = (float)m_Rnd.NextDouble () * 0.1f;
+			var size = (float)Math.Pow(m_Rnd.NextDouble (), 8);
+			//size /= 4;
 			var newpos = LeaderPath.Value.CalculatePoint (LeaderPathPosition);
 
 			ColorAndSize[i] = new Vector4 (0, 0, 0, size);
 			Position[i] = new Vector4 (newpos.X, newpos.Y, 0, 1);
-			Velocity[i] = new Vector4 (0, 0.1f / (10 * ColorAndSize[i].W), 0, 0);
+			Velocity[i] = new Vector4 (0, (float)Math.Min(1.0 / size, 100), 0, 0);
+			//Velocity[i] = new Vector4 (0, 1/1000.0f, 0, 0);
+
+			Bmin[i] = Position[i] - new Vector4(size, size, 0, 0);
+			Bmax[i] = Position[i] + new Vector4(size, size, 0, 0);
+		}
+
+		private void UpdateBubble(int i)
+		{
+			var size = ColorAndSize[i].W;
+
+			Velocity[i] = (Vector4)((Vector4d)Velocity[i]  + (Vector4d)VelocityUpdate[i]);
+			Position[i] = (Vector4)((Vector4d)Position[i]  + (Vector4d)Velocity[i] * 0.0001);
+
+			VelocityUpdate[i] = Vector4.Zero;
 
 			Bmin[i] = Position[i] - new Vector4(size, size, 0, 0);
 			Bmax[i] = Position[i] + new Vector4(size, size, 0, 0);
@@ -169,15 +177,8 @@ namespace opentk.System2
 			Bmax = new Vector4[Position.Length];
 		}
 
-		private DateTime m_PrevSimTime = DateTime.MinValue;
-
 		public void Simulate (DateTime simulationTime)
 		{
-			if(simulationTime - m_PrevSimTime < TimeSpan.FromSeconds(2))
-				return;
-
-			m_PrevSimTime = simulationTime;
-
 			PreparePath ();
 
 			for (int i = 0; i < EmittedCount; i++,Processed = (Processed + 1) % Position.Length)
@@ -188,33 +189,52 @@ namespace opentk.System2
 			
 			InitializeQtree ();
 			LeaderPathPosition += 0.1f;
-			
-			for (int i = Processed % 2; i < InitializedCount; i+= 2)
+
+			bool[] coupleBuffer = new bool[InitializedCount];
+			bool coupleMask = true;
+
+			for (int i = 0; i < InitializedCount; i+= 1)
 			{
-				VelocityUpdate[i] = Vector4.Zero;
+
 				var bmin = Bmin[i];
 				var bmax = Bmax[i];
+
+//				for (int j = 0; j < i; j++)
+//				{
+//					ComputeVelocity (i, j);
+//				}
+//
+//				continue;
 
 				Qtree.Traverse (node =>
 				{
 					for (int j = 0; j < node.Payload.Count; j++)
 					{
-						ComputeVelocity (i, node.Payload[j]);
+						var other = node.Payload[j];
+
+						if(coupleBuffer[other] ^ coupleMask)
+							ComputeVelocity (i, other);
+
+						coupleBuffer[other] = coupleMask;
 					}
 					
 				}, node =>
 				{
-					if (node.Max.X >= bmin.X && node.Min.X < bmax.X && node.Max.Y >= bmin.Y && node.Min.Y < bmax.Y)
+					if(node.Max.X >= bmin.X && node.Min.X < bmax.X && node.Max.Y >= bmin.Y && node.Min.Y < bmax.Y)
 						return true;
 					
 					return false;
 				});
+
+				for(int j = 0; j < InitializedCount; j++)
+					coupleBuffer[j] = coupleMask;
+
+				coupleMask = !coupleMask;
 			}
 
-			for (int i = Processed % 2; i < InitializedCount; i+= 2)
+			for (int i = 0; i < InitializedCount; i+= 1)
 			{
-				Velocity[i] += VelocityUpdate[i];
-				Position[i] += Velocity[i] * 0.000001f;
+					UpdateBubble(i);
 			}
 		}
 
@@ -224,26 +244,27 @@ namespace opentk.System2
 				return;
 			
 			var dir = (Vector4d) Position[i] - (Vector4d)Position[j];
-			var mi = ColorAndSize[i].W;
-			var mj = ColorAndSize[j].W;
+			var mi = (double)ColorAndSize[i].W;
+			var mj = (double)ColorAndSize[j].W;
 
-			if (dir.LengthFast > (mj + mi))
+			var len = dir.Length;
+			if (len > (mj + mi))
 				return;
 
-//			if (dir.LengthSquared < 0.000001)
-//				return;
+			if (len < 0.000001)
+				return;
 
-			var unitdir = Vector4d.Normalize (dir);
+			var unitdir = dir * (1/len);
 			
 			var vi0 = Vector4d.Dot ((Vector4d)Velocity[i], unitdir);
 			var vj0 = Vector4d.Dot ((Vector4d)Velocity[j], unitdir);
+
+			if(vi0 > 0 && vj0 < 0)
+				return;
 			
 			var vi1 = vi0 * (mi - mj) / (mi + mj) + vj0 * (2 * mj) / (mi + mj);
-			//var vj1 = vj0 * (mj - mi) / (mi + mj) + vi0 * (2 * mi) / (mi + mj);
 
 			VelocityUpdate[i] += (Vector4)((vi1 - vi0) * unitdir);
-			//Velocity[i] += (vi1 - vi0) * unitdir;
-			//Velocity[j] += (vj1 - vj0) * unitdir;
 		}
 
 		private void PreparePath ()

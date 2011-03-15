@@ -8,7 +8,7 @@ namespace opentk.System2
 {
 	public partial class System2: ParticleSystem
 	{
-		private const int PARTICLES_COUNT = 200;
+		private const int PARTICLES_COUNT = 2000;
 
 		#region implemented abstract members of opentk._ParticleSystem
 		protected override void HandleFrame (GameWindow window)

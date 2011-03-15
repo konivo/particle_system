@@ -63,7 +63,7 @@ namespace opentk.System2
 			var hnd = PositionBuffer.Handle;
 			hnd = ColorAndSizeBuffer.Handle;
 
-			m_DebugView = new opentk.QnodeDebug.QnodeDebug(1000, m_TransformationStack);
+			m_DebugView = new opentk.QnodeDebug.QnodeDebug(10000, m_TransformationStack);
 
 			InitializeSystem();
 			PrepareState ();

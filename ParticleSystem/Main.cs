@@ -18,7 +18,7 @@ namespace opentk
 				                      OpenTK.GameWindowFlags.Default
 				                      );
 			
-			(new System2.System2()).GetInstance(win);
+			(new System3.System3()).GetInstance(win);
 			win.Run ();
 			
 			Console.WriteLine ("Hello World!");

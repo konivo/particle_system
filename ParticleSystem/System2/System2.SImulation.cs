@@ -139,8 +139,7 @@ namespace opentk.System2
 
 		private void MakeBubble(int i)
 		{
-			var size = (float)Math.Pow(m_Rnd.NextDouble (), 8);
-			//size /= 4;
+			var size = (float)Math.Pow(m_Rnd.NextDouble (), 2) * 0.1f;
 			var newpos = LeaderPath.Value.CalculatePoint (LeaderPathPosition);
 
 			ColorAndSize[i] = new Vector4 (0, 0, 0, size);
@@ -188,7 +187,7 @@ namespace opentk.System2
 			}
 			
 			InitializeQtree ();
-			LeaderPathPosition += 0.1f;
+			LeaderPathPosition += 0.01f;
 
 			bool[] coupleBuffer = new bool[InitializedCount];
 			bool coupleMask = true;
@@ -259,12 +258,13 @@ namespace opentk.System2
 			var vi0 = Vector4d.Dot ((Vector4d)Velocity[i], unitdir);
 			var vj0 = Vector4d.Dot ((Vector4d)Velocity[j], unitdir);
 
-			if(vi0 > 0 && vj0 < 0)
-				return;
+			//if(vi0 > 0 && vj0 < 0)
+			//	return;
 			
 			var vi1 = vi0 * (mi - mj) / (mi + mj) + vj0 * (2 * mj) / (mi + mj);
 
-			VelocityUpdate[i] += (Vector4)((vi1 - vi0) * unitdir);
+			//VelocityUpdate[i] += (Vector4)((vi1 - vi0) * unitdir);
+			Velocity[i] += (Vector4)((vi1 - vi0) * unitdir);
 		}
 
 		private void PreparePath ()

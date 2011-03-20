@@ -62,6 +62,9 @@
     <Compile Include="RenderPass.cs" />
     <Compile Include="QnodeDebug\QnodeDebug.cs" />
     <Compile Include="OpenTK\GLHelper.cs" />
+    <Compile Include="System3\System3.cs" />
+    <Compile Include="System3\System3.State.cs" />
+    <Compile Include="System3\System3.SImulation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -69,6 +72,7 @@
     <Folder Include="System1\" />
     <Folder Include="System1\Shaders\" />
     <Folder Include="QnodeDebug\" />
+    <Folder Include="System3\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -78,5 +82,8 @@
     <EmbeddedResource Include="QnodeDebug\Shaders\fragment.glsl" />
     <EmbeddedResource Include="QnodeDebug\Shaders\vertex.glsl" />
     <EmbeddedResource Include="QnodeDebug\Shaders\geometry.glsl" />
+    <EmbeddedResource Include="System3\Shaders\geometry.glsl" />
+    <EmbeddedResource Include="System3\Shaders\fragment.glsl" />
+    <EmbeddedResource Include="System3\Shaders\vertex.glsl" />
   </ItemGroup>
 </Project>

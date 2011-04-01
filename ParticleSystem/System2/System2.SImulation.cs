@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using OpenTK;
+using OpenTK.Structure;
 using OpenTK.Graphics;
 using System.ComponentModel.Composition;
 
@@ -9,66 +10,6 @@ namespace opentk.System2
 {
 	public partial class System2
 	{
-		public class QNode<T>
-		{
-			public Vector2 Min;
-			public Vector2 Max;
-			public int Depth;
-
-			public List<QNode<T>> Children
-			{
-				get;
-				private set;
-			}
-			public List<T> Payload
-			{
-				get;
-				private set;
-			}
-
-			public QNode ()
-			{
-				Children = new List<QNode<T>> ();
-				Payload = new List<T> ();
-			}
-
-			public void Split (Func<QNode<T>, Vector2> centerSelector, Action<QNode<T>> payloadSplitter, Func<QNode<T>, bool> terminationCondition)
-			{
-				if (terminationCondition (this))
-					return;
-				
-				var center = centerSelector (this);
-				
-				var q11 = new QNode<T> { Min = Min, Max = center, Depth = Depth + 1 };
-				var q12 = new QNode<T> { Min = new Vector2 (center.X, Min.Y), Max = new Vector2 (Max.X, center.Y), Depth = Depth + 1 };
-				var q21 = new QNode<T> { Min = new Vector2 (Min.X, center.Y), Max = new Vector2 (center.X, Max.Y), Depth = Depth + 1 };
-				var q22 = new QNode<T> { Min = center, Max = Max, Depth = Depth + 1 };
-
-				Children.Add (q11);
-				Children.Add (q12);
-				Children.Add (q21);
-				Children.Add (q22);
-
-				payloadSplitter (this);
-				
-				foreach (var item in Children)
-				{
-					item.Split (centerSelector, payloadSplitter, terminationCondition);
-				}
-			}
-
-			public void Traverse (Action<QNode<T>> visitor, Func<QNode<T>, bool> navigator)
-			{
-				visitor (this);
-				
-				foreach (var item in Children)
-				{
-					if (navigator (item))
-						item.Traverse (visitor, navigator);
-				}
-			}
-		}
-
 		protected Vector4[] Position;
 		protected Vector2[] Oscilation;
 		protected Vector4[] Velocity;
@@ -83,12 +24,12 @@ namespace opentk.System2
 		protected float LeaderPathPosition;
 		protected int Processed;
 		protected int EmittedCount = 1;
-		private QNode<int> Qtree;
+		private QuadTree<int> Qtree;
 		private System.Random m_Rnd = new Random ();
 
 		private int InitializedCount;
 
-		private opentk.QnodeDebug.QnodeDebug m_DebugView;
+		private opentk.QnodeDebug.QuadTreeDebug m_DebugView;
 
 		private void InitializeQtree ()
 		{
@@ -109,7 +50,7 @@ namespace opentk.System2
 				}
 			}
 			
-			Qtree = new QNode<int> { Min = min - Vector2.One, Max = max + Vector2.One };
+			Qtree = new QuadTree<int> { Min = min - Vector2.One, Max = max + Vector2.One };
 		  Qtree.Payload.AddRange (Enumerable.Range (0, InitializedCount));
 			Qtree.Split (node => 0.5f * (node.Min + node.Max), (node) =>
 			{

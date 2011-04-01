@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel.Composition;
 using OpenTK;
+using OpenTK.Structure;
 using OpenTK.Graphics.OpenGL;
-
 
 namespace opentk.QnodeDebug
 {
-using QNode = System2.System2.QNode<int>;
+	using QNode = QuadTree<int>;
 
-	public partial class QnodeDebug: RenderPass
+	public partial class QuadTreeDebug: RenderPass
 	{
 		//
 		private ArrayObject m_AttributeState;
@@ -36,7 +36,7 @@ using QNode = System2.System2.QNode<int>;
 			set;
 		}
 
-		public QnodeDebug (int maxSize, MatrixStack trans)
+		public QuadTreeDebug (int maxSize, MatrixStack trans)
 		{
 			m_MaxSize = maxSize;
 			m_TransformationStack = trans;

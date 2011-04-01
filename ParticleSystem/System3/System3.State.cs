@@ -43,7 +43,7 @@ namespace opentk.System3
 				DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
-			m_Projection = new MatrixStack ().Push (Matrix4.CreateOrthographic (14, 14, -1, 1));
+			m_Projection = new MatrixStack ().Push (Matrix4.CreateOrthographic (1,1, NEAR, FAR));
 			m_TransformationStack = new MatrixStack (m_Projection).Push (Matrix4.Identity).Push (Matrix4.Identity);
 
 			m_UniformState = new UniformState ()
@@ -72,11 +72,11 @@ namespace opentk.System3
 		private void SetCamera (GameWindow window)
 		{
 			float aspect = window.Height / (float)window.Width;
-			float projw = 14;
+			float projw = VIEWPORT_WIDTH;
 			GL.Viewport (0, 0, window.Width, window.Height);
 			
 			if (m_Projection != null)
-				m_Projection.Stack[0] = Matrix4.CreateOrthographic (projw, projw * aspect, -1, 1);
+				m_Projection.Stack[0] = Matrix4.CreateOrthographic (projw, projw * aspect, NEAR, FAR);
 		}
 	}
 }

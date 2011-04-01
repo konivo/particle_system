@@ -18,5 +18,5 @@ void main () {
 	axes.y = modelview_transform * vec4(0, 1, 0, 0);
 	axes.z = modelview_transform * vec4(0, 0, 1, 0);
 
-	dimensions = sprite_dimensions;
+	dimensions = sprite_dimensions * 20;
 }

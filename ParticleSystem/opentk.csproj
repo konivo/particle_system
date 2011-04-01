@@ -60,11 +60,14 @@
     <Compile Include="System2\System2.SImulation.cs" />
     <Compile Include="System2\System2.State.cs" />
     <Compile Include="RenderPass.cs" />
-    <Compile Include="QnodeDebug\QnodeDebug.cs" />
     <Compile Include="OpenTK\GLHelper.cs" />
     <Compile Include="System3\System3.cs" />
     <Compile Include="System3\System3.State.cs" />
     <Compile Include="System3\System3.SImulation.cs" />
+    <Compile Include="OpenTK\Structure\QuadTree.cs" />
+    <Compile Include="QnodeDebug\QuadTreeDebug.cs" />
+    <Compile Include="OpenTK\Extensions\MathExtensions.cs" />
+    <Compile Include="OpenTK\MathHelper2.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -73,6 +76,8 @@
     <Folder Include="System1\Shaders\" />
     <Folder Include="QnodeDebug\" />
     <Folder Include="System3\" />
+    <Folder Include="OpenTK\Structure\" />
+    <Folder Include="OpenTK\Extensions\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />

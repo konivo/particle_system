@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+
 namespace OpenTK.Graphics.OpenGL
 {
 	public static class GLExtensions

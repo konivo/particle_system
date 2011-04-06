@@ -3,6 +3,7 @@ using System.Linq;
 using System.ComponentModel.Composition;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using opentk.GridRenderPass;
 
 namespace opentk.System3
 {
@@ -24,6 +25,8 @@ namespace opentk.System3
 		private BufferObject<Vector4> DimensionBuffer;
 		//
 		private State m_SystemState;
+		//
+		private Grid m_Grid;
 
 		unsafe void PrepareState ()
 		{
@@ -43,8 +46,13 @@ namespace opentk.System3
 				DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
-			m_Projection = new MatrixStack ().Push (Matrix4.CreateOrthographic (1,1, NEAR, FAR));
-			m_TransformationStack = new MatrixStack (m_Projection).Push (Matrix4.Identity).Push (Matrix4.Identity);
+			var lookat = Matrix4.LookAt(100, 100, 100, 0,0,0, 1, 0, 0);
+			lookat.Transpose();
+			var ortho = Matrix4.CreateOrthographic (1,1, NEAR, FAR);
+			ortho.Transpose();
+
+			m_Projection = new MatrixStack ().Push (ortho);
+			m_TransformationStack = new MatrixStack (m_Projection).Push (lookat).Push (Matrix4.Identity);
 
 			m_UniformState = new UniformState ()
 			.Set ("color", new Vector4 (0, 0, 1, 1))
@@ -65,6 +73,7 @@ namespace opentk.System3
 			var hnd = PositionBuffer.Handle;
 			hnd = DimensionBuffer.Handle;
 
+			m_Grid = new Grid(m_TransformationStack);
 			InitializeSystem();
 			PrepareState ();
 		}
@@ -76,7 +85,11 @@ namespace opentk.System3
 			GL.Viewport (0, 0, window.Width, window.Height);
 			
 			if (m_Projection != null)
-				m_Projection.Stack[0] = Matrix4.CreateOrthographic (projw, projw * aspect, NEAR, FAR);
+			{
+				var ortho = Matrix4.CreateOrthographic (projw, projw * aspect, NEAR, FAR);
+				ortho.Transpose();
+				m_Projection.Stack[0] = ortho;
+			}
 		}
 	}
 }

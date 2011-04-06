@@ -14,16 +14,36 @@ namespace opentk.System3
 			public int LifeLen;
 		}
 
+		public enum MapType{
+			Pickover,
+			Polynomial,
+			Lorenz
+		}
+
+		public int TrailSize{get; set;}
+
+		public bool AnimateKoef{ get; set;}
+
+		public MapType Map{get; set;}
+
+		public double A {get; set;}
+		public double B {get; set;}
+		public double C {get; set;}
+		public double D {get; set;}
+
+		public double Sigma {get; set;}
+		public double Rho {get; set;}
+		public double Beta {get; set;}
+
 		protected Vector4[] Dimension;
 		protected Vector4[] Position;
 		protected MetaInformation[] Meta;
 		protected int Processed;
-		protected int TrailSize = 1;
 		private System.Random m_Rnd = new Random ();
 
-		private Vector4d m_Koeficients = new Vector4d(10, 1.8, 2.71, 1.51);
-		private Vector4d m_KDelta;
-		private int m_AnimatedKoefStep = 0;
+		//private Vector4d m_Koeficients = new Vector4d(10, 1.8, 2.71, 1.51);
+//		private Vector4d m_KDelta;
+//		private int m_AnimatedKoefStep = 0;
 
 		private void MakeBubble (int i)
 		{
@@ -37,6 +57,8 @@ namespace opentk.System3
 
 		private void InitializeSystem ()
 		{
+			TrailSize = 1;
+
 			Dimension = DimensionBuffer.Data;
 			Position = PositionBuffer.Data;
 			Meta = new MetaInformation[Position.Length];
@@ -61,11 +83,29 @@ namespace opentk.System3
 
 		public void Simulate (DateTime simulationTime)
 		{
+			Func<int, Vector3d> fun;
+
+			switch (Map) {
+			case MapType.Lorenz:
+				fun = Lorenz;
+				break;
+			case MapType.Pickover:
+				fun = Pickover;
+				break;
+			case MapType.Polynomial:
+				fun = Polynomial;
+				break;
+			default:
+			fun = (i) => new Vector3d();
+			break;
+			}
+
+
 			AnimateKoeficients ();
 
 			for (int i = 0; i < Position.Length; i += TrailSize)
 			{
-				Position[i] = Position[i] + new Vector4((Vector3)Pickover(i) * (float)DT, 0);
+				Position[i] = Position[i] + new Vector4((Vector3)fun(i) * (float)DT, 0);
 			}
 			
 			for (int i = 0; i < Position.Length; i += TrailSize)
@@ -79,8 +119,6 @@ namespace opentk.System3
 
 		private Vector3d Pickover (int i)
 		{
-			double A = m_Koeficients.X, B = m_Koeficients.Y, C = m_Koeficients.Z, D = m_Koeficients.W;
-
 			var x_p = (double)Position[i].X;
 			var y_p = (double)Position[i].Y;
 			var z_p = (double)Position[i].Z;
@@ -94,23 +132,19 @@ namespace opentk.System3
 
 		private Vector3d Lorenz (int i)
 		{
-			double sigma = m_Koeficients.X, rho = m_Koeficients.Y, beta = m_Koeficients.Z;
-
 			var x_p = (double)Position[i].X;
 			var y_p = (double)Position[i].Y;
 			var z_p = (double)Position[i].Z;
 
-			var x_n = sigma * (y_p - x_p);
-			var y_n = x_p * (rho - z_p) - y_p;
-			var z_n = x_p * y_p - z_p * beta;
+			var x_n = Sigma * (y_p - x_p);
+			var y_n = x_p * (Rho - z_p) - y_p;
+			var z_n = x_p * y_p - z_p * Beta;
 
 			return new Vector3d(x_n, y_n, z_n);
 		}
 
 		private Vector3d Polynomial (int i)
 		{
-			double A = m_Koeficients.X, B = m_Koeficients.Y, C = m_Koeficients.Z;
-
 			var x_p = (double)Position[i].X;
 			var y_p = (double)Position[i].Y;
 			var z_p = (double)Position[i].Z;
@@ -124,13 +158,13 @@ namespace opentk.System3
 
 		private void AnimateKoeficients ()
 		{
-			if (m_AnimatedKoefStep == 1000)
-			{
-				m_KDelta = (Vector4d)CreateRandom2 (0.5f) / 1000;
-				m_AnimatedKoefStep = 0;
-			}
-			m_AnimatedKoefStep++;
-			m_Koeficients = m_Koeficients + m_KDelta;
+//			if (m_AnimatedKoefStep == 1000)
+//			{
+//				m_KDelta = (Vector4d)CreateRandom2 (0.5f) / 1000;
+//				m_AnimatedKoefStep = 0;
+//			}
+//			m_AnimatedKoefStep++;
+//			m_Koeficients = m_Koeficients + m_KDelta;
 		}
 	}
 }

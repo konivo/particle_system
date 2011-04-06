@@ -42,6 +42,8 @@
       <HintPath>..\..\..\..\..\..\usr\lib\mono\OpenTK\OpenTK.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -68,6 +70,8 @@
     <Compile Include="QnodeDebug\QuadTreeDebug.cs" />
     <Compile Include="OpenTK\Extensions\MathExtensions.cs" />
     <Compile Include="OpenTK\MathHelper2.cs" />
+    <Compile Include="PropertyGridCustom\SliderEditor.cs" />
+    <Compile Include="GridRenderPass\Grid.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -78,6 +82,7 @@
     <Folder Include="System3\" />
     <Folder Include="OpenTK\Structure\" />
     <Folder Include="OpenTK\Extensions\" />
+    <Folder Include="PropertyGridCustom\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -90,5 +95,7 @@
     <EmbeddedResource Include="System3\Shaders\geometry.glsl" />
     <EmbeddedResource Include="System3\Shaders\fragment.glsl" />
     <EmbeddedResource Include="System3\Shaders\vertex.glsl" />
+    <EmbeddedResource Include="GridRenderPass\Shaders\fragment.glsl" />
+    <EmbeddedResource Include="GridRenderPass\Shaders\vertex.glsl" />
   </ItemGroup>
 </Project>

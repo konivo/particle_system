@@ -1,18 +1,57 @@
 using System;
 using OpenTK;
 using OpenTK.Graphics;
+using System.ComponentModel;
 using System.ComponentModel.Composition;
 using OpenTK.Graphics.OpenGL;
+using opentk.PropertyGridCustom;
 
 namespace opentk.System3
 {
-	public partial class System3: ParticleSystem
+	public partial class System3 : ParticleSystem
 	{
-		private const int PARTICLES_COUNT = 100000;
-		private const int VIEWPORT_WIDTH = 124;
-		private const int NEAR = -124;
-		private const int FAR = 124;
-		private const double DT = 1.001;
+		[Browsable(true)]
+		public int PARTICLES_COUNT
+		{
+			get;
+			set;
+		}
+
+		[Browsable(true)]
+		public int VIEWPORT_WIDTH
+		{
+			get;
+			set;
+		}
+
+		[Browsable(true)]
+		public int NEAR
+		{
+			get;
+			set;
+		}
+
+
+		[Editor(typeof(ContrastEditor), typeof(System.Drawing.Design.UITypeEditor))]
+		public int FAR
+		{
+			get;
+			set;
+		}
+
+		[Browsable(true)]
+		public double DT
+		{
+			get;
+			set;
+		}
+
+		[Browsable(true)]
+		public Vector3d PokusnyVector
+		{
+			get;
+			set;
+		}
 
 		#region implemented abstract members of opentk._ParticleSystem
 		protected override void HandleFrame (GameWindow window)
@@ -28,15 +67,17 @@ namespace opentk.System3
 			PrepareState ();
 			GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
 
+			m_Grid.Render();
+			
 			window.SwapBuffers ();
 		}
 
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
-			var result = new System3 ();
+			var result = new System3 { PARTICLES_COUNT = 100000, VIEWPORT_WIDTH = 124, NEAR = -124, FAR = 124, DT = 1 };
 			return result;
 		}
-
+		
 		#endregion
 	}
 }

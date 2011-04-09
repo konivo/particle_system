@@ -75,7 +75,7 @@ namespace opentk.System2
 			GL.Viewport (0, 0, window.Width, window.Height);
 			
 			if (m_Projection != null)
-				m_Projection.Stack[0] = Matrix4.CreateOrthographic (projw, projw * aspect, -1, 1);
+				m_Projection.ValueStack[0] = Matrix4.CreateOrthographic (projw, projw * aspect, -1, 1);
 		}
 	}
 }

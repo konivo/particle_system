@@ -38,6 +38,26 @@ namespace OpenTK
 		{
 			return Vector2d.Multiply(RandomVector2(1), magnitude);
 		}
+
+		public static Vector4d PlaneFrom(Vector3d o, Vector3d a, Vector3d b, double planeoffset)
+		{
+			var c = Vector3d.Cross(a - o, b - o);
+			c.Normalize();
+			double prod;
+			Vector3d.Dot(ref o, ref c, out prod);
+
+			return new Vector4d(c, -prod - planeoffset);
+		}
+
+		public static Vector4 PlaneFrom(Vector3 o, Vector3 a, Vector3 b, float planeoffset)
+		{
+			var c = Vector3.Cross(a - o, b - o);
+			c.Normalize();
+			float prod;
+			Vector3.Dot(ref o, ref c, out prod);
+
+			return new Vector4(c, -prod - planeoffset);
+		}
 	}
 }
 

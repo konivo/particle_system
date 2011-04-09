@@ -4,6 +4,7 @@ using System.ComponentModel.Composition;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using opentk.GridRenderPass;
+using opentk.Manipulators;
 
 namespace opentk.System3
 {
@@ -28,6 +29,8 @@ namespace opentk.System3
 		//
 		private Grid m_Grid;
 
+		private OrbitManipulator m_Manip;
+
 		unsafe void PrepareState ()
 		{
 			if (m_ParticleRenderingState != null)
@@ -46,13 +49,10 @@ namespace opentk.System3
 				DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
-			var lookat = Matrix4.LookAt(100, 100, 100, 0,0,0, 1, 0, 0);
-			lookat.Transpose();
 			var ortho = Matrix4.CreateOrthographic (1,1, NEAR, FAR);
-			ortho.Transpose();
 
 			m_Projection = new MatrixStack ().Push (ortho);
-			m_TransformationStack = new MatrixStack (m_Projection).Push (lookat).Push (Matrix4.Identity);
+			m_TransformationStack = new MatrixStack ().Push(m_Projection);
 
 			m_UniformState = new UniformState ()
 			.Set ("color", new Vector4 (0, 0, 1, 1))
@@ -73,7 +73,11 @@ namespace opentk.System3
 			var hnd = PositionBuffer.Handle;
 			hnd = DimensionBuffer.Handle;
 
+			m_Manip = new OrbitManipulator(m_TransformationStack);
 			m_Grid = new Grid(m_TransformationStack);
+
+			m_TransformationStack.Push (m_Manip.RT);
+
 			InitializeSystem();
 			PrepareState ();
 		}
@@ -87,8 +91,12 @@ namespace opentk.System3
 			if (m_Projection != null)
 			{
 				var ortho = Matrix4.CreateOrthographic (projw, projw * aspect, NEAR, FAR);
-				ortho.Transpose();
-				m_Projection.Stack[0] = ortho;
+				m_Projection.ValueStack[0] = ortho;
+			}
+
+			if(m_Manip != null)
+			{
+				m_Manip.HandleInput(window);
 			}
 		}
 	}

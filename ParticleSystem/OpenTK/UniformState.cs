@@ -73,7 +73,7 @@ namespace OpenTK
 			if (val is Matrix4)
 			{
 				var mat = (Matrix4)val;
-				GL.UniformMatrix4 (location, true, ref mat);
+				GL.UniformMatrix4 (location, false, ref mat);
 			}
 
 			else if (val is Vector4)

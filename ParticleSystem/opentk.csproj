@@ -72,6 +72,8 @@
     <Compile Include="OpenTK\MathHelper2.cs" />
     <Compile Include="PropertyGridCustom\SliderEditor.cs" />
     <Compile Include="GridRenderPass\Grid.cs" />
+    <Compile Include="Manipulator.cs" />
+    <Compile Include="OrbitManipulator\OrbitManipulator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -83,6 +85,7 @@
     <Folder Include="OpenTK\Structure\" />
     <Folder Include="OpenTK\Extensions\" />
     <Folder Include="PropertyGridCustom\" />
+    <Folder Include="OrbitManipulator\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />

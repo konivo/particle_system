@@ -12,6 +12,7 @@ namespace opentk.System3
 		protected struct MetaInformation
 		{
 			public int LifeLen;
+			public int Leader;
 		}
 
 		public enum MapType{
@@ -41,18 +42,14 @@ namespace opentk.System3
 		protected int Processed;
 		private System.Random m_Rnd = new Random ();
 
-		//private Vector4d m_Koeficients = new Vector4d(10, 1.8, 2.71, 1.51);
-//		private Vector4d m_KDelta;
-//		private int m_AnimatedKoefStep = 0;
-
 		private void MakeBubble (int i)
 		{
-			var size = (float)Math.Pow (m_Rnd.NextDouble (), 2) * 0.01f;
+			var size = (float)Math.Pow (m_Rnd.NextDouble (), 2) * 0.1f;
 			var newpos = CreateRandom (12);
 			
 			Dimension[i] = new Vector4 (size, size, size, size);
 			Position[i] = new Vector4 (newpos.X, newpos.Y, newpos.Z, 1);
-			Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000) };
+			Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = 0 };
 		}
 
 		private void InitializeSystem ()
@@ -102,10 +99,23 @@ namespace opentk.System3
 
 
 			AnimateKoeficients ();
+			TrailSize = TrailSize > 0? TrailSize: 1;
 
 			for (int i = 0; i < Position.Length; i += TrailSize)
 			{
-				Position[i] = Position[i] + new Vector4((Vector3)fun(i) * (float)DT, 0);
+				var pi = i + Meta[i].Leader;
+
+				Meta[i].Leader += 1;
+				Meta[i].Leader %= TrailSize;
+
+				var ii = i + Meta[i].Leader;
+
+				if(ii >= Position.Length)
+					break;
+
+				Position[ii] = Position[pi];
+
+				Position[ii] = Position[ii] + new Vector4((Vector3)fun(ii) * (float)DT, 0);
 			}
 			
 			for (int i = 0; i < Position.Length; i += TrailSize)

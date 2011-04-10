@@ -10,25 +10,29 @@ in Axes{
 	vec4 z;
 } axes[];
 
+in vec2[] scale;
 in vec3[] dimensions;
 
 out vec2 param;
 
 void main ()
 {
+	vec4 dx = dimensions[0].x * vec4(scale[0].x, 0, 0, 0);
+	vec4 dy = dimensions[0].y * vec4(0, scale[0].y, 0, 0);
+
 	param = vec2(0, 0);
-	gl_Position = gl_in[0].gl_Position - dimensions[0].x * axes[0].x - dimensions[0].y * axes[0].y;
+	gl_Position = gl_in[0].gl_Position - dx - dy;
 	EmitVertex();
 
 	param = vec2(0, 1);
-	gl_Position = gl_in[0].gl_Position - dimensions[0].x * axes[0].x + dimensions[0].y * axes[0].y;
+	gl_Position = gl_in[0].gl_Position - dx + dy;
 	EmitVertex();
 
 	param = vec2(1, 0);
-	gl_Position = gl_in[0].gl_Position + dimensions[0].x * axes[0].x - dimensions[0].y * axes[0].y;
+	gl_Position = gl_in[0].gl_Position + dx - dy;
 	EmitVertex();
 
 	param = vec2(1, 1);
-	gl_Position = gl_in[0].gl_Position + dimensions[0].x * axes[0].x + dimensions[0].y * axes[0].y;
+	gl_Position = gl_in[0].gl_Position + dx + dy;
 	EmitVertex();
 }

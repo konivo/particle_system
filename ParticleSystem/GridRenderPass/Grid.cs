@@ -10,7 +10,9 @@ namespace opentk.GridRenderPass
 {
 	public partial class Grid : RenderPass
 	{
-		private int m_GridDensity = 20;
+		private int m_GridDensity = 8;
+
+		private int m_BigGridDensity = 40;
 
 		private int m_GridDiameter = 200;
 
@@ -44,6 +46,8 @@ namespace opentk.GridRenderPass
 			Vector3 max = -diagpoint;
 			Vector3 d = new Vector3 (m_GridDiameter / (float)(m_Count - 1), m_GridDiameter / (float)(m_Count - 1), 0);
 
+			int bigGridSize = m_BigGridDensity / m_GridDensity;
+
 			//xy grid lines
 			for (int index = 0; index < m_Count; index++)
 			{
@@ -54,12 +58,9 @@ namespace opentk.GridRenderPass
 				vbuf[i + 2] = new Vector3 (min.X, diagpoint.Y, 0);
 				vbuf[i + 3] = new Vector3 (max.X, diagpoint.Y, 0);
 
-				pbuf[i] = 0;
-				pbuf[i + 1] = 1;
+				float opacity = index % bigGridSize == 0 ? 1 : 0.5f;
 
-				pbuf[i + 2] = 0;
-				pbuf[i + 3] = 1;
-
+				pbuf[i + 3] = pbuf[i + 2] = pbuf[i + 1] = pbuf[i] = opacity;
 				diagpoint = diagpoint + d;
 			}
 

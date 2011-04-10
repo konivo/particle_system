@@ -14,6 +14,7 @@ namespace opentk.Manipulators
 	{
 		public Vector3 Position = new Vector3 (100, 100, 100);
 		public Vector3 Target;
+		public Vector3 UpDirection = new Vector3(0, 0, 1);
 
 		private Vector2 m_OldMousePos;
 		private bool m_Initialized = false;
@@ -35,10 +36,10 @@ namespace opentk.Manipulators
 			
 			var projview = ProjectionView.Value;
 			projview.Invert ();
-			
-			var mousepos = 2 * Vector2.Divide (new Vector2 (window.Mouse.X, window.Mouse.Y), new Vector2 (window.Width, window.Height)) - new Vector2 (1, 1);
+
+			var mousepos = 2 * new Vector2 (window.Mouse.X, window.Mouse.Y);
 			mousepos.Y = -mousepos.Y;
-//
+
 			if (!m_Initialized)
 			{
 				m_OldMousePos = mousepos;
@@ -46,15 +47,18 @@ namespace opentk.Manipulators
 			}
 			
 			var deltaPos = mousepos - m_OldMousePos;
-			var deltaAngles = deltaPos;
-			
-			var rotationH = Quaternion.FromAxisAngle (Vector3.UnitX, deltaAngles.Y);
-			var rotationV = Quaternion.FromAxisAngle (Vector3.UnitY, deltaAngles.X);
-			
-			var rot = Quaternion.Multiply (rotationH, rotationV);
-			Position = Vector3.Transform (Position, rot);
+			var deltaAngles = deltaPos / 400;
 
-			RTstack.ValueStack[0] = Matrix4.LookAt (Position, Target, new Vector3 (0, 0, 1));
+			var temp = Position;
+			temp.Normalize();
+			temp = Vector3.Cross(temp, Vector3.UnitZ);
+			temp.Normalize();
+
+			var rotationH = Quaternion.FromAxisAngle (temp, deltaAngles.Y);
+			var rotationV = Quaternion.FromAxisAngle (Vector3.UnitZ, deltaAngles.X);
+			Position = Vector3.Transform(Position, Matrix4.Rotate(rotationH) * Matrix4.Rotate(rotationV));
+
+			RTstack.ValueStack[0] = Matrix4.LookAt (Position, Target, UpDirection);
 			
 			m_OldMousePos = mousepos;
 			return true;

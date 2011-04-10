@@ -60,8 +60,7 @@ namespace opentk.System3
 			.Set ("green", 0.0f)
 			.Set ("blue", 1.0f)
 			.Set ("colors", new float[] { 0, 1, 0, 1 })
-			.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) })
-			.Set ("modelview_transform", m_TransformationStack);
+			.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
 			
 			m_ParticleRenderingState = new ArrayObject (
 			                                            new VertexAttribute { AttributeName = "sprite_pos", Buffer = PositionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
@@ -77,6 +76,9 @@ namespace opentk.System3
 			m_Grid = new Grid(m_TransformationStack);
 
 			m_TransformationStack.Push (m_Manip.RT);
+			m_UniformState.Set("modelview_transform", m_Manip.RT);
+			m_UniformState.Set("projection_transform", m_Projection);
+
 
 			InitializeSystem();
 			PrepareState ();

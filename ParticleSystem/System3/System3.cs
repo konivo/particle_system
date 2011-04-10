@@ -74,7 +74,7 @@ namespace opentk.System3
 
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
-			var result = new System3 { PARTICLES_COUNT = 300000, VIEWPORT_WIDTH = 124, NEAR = 0, FAR = 10240, DT = 1 };
+			var result = new System3 { PARTICLES_COUNT = 100000, VIEWPORT_WIDTH = 124, NEAR = 0, FAR = 10240, DT = 1 };
 			return result;
 		}
 		

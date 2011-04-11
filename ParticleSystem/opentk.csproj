@@ -74,6 +74,9 @@
     <Compile Include="GridRenderPass\Grid.cs" />
     <Compile Include="Manipulator.cs" />
     <Compile Include="OrbitManipulator\OrbitManipulator.cs" />
+    <Compile Include="System3\ChaoticMaps.cs" />
+    <Compile Include="System3\ChaoticMapConverter.cs" />
+    <Compile Include="GlobalContext.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

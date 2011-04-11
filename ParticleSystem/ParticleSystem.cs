@@ -3,10 +3,11 @@ using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using OpenTK;
+using System.ComponentModel;
 namespace opentk
 {
 	[InheritedExport]
-	public abstract class ParticleSystem
+	public abstract class ParticleSystem: INotifyPropertyChanged
 	{
 		/// <summary>
 		///
@@ -74,6 +75,41 @@ namespace opentk
 
 			return shaders;
 		}
-	}
+	
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <param name="placeholder">
+		/// A <see cref="T"/>
+		/// </param>
+		/// <param name="value">
+		/// A <see cref="T"/>
+		/// </param>
+		/// <param name="name">
+		/// A <see cref="System.String"/>
+		/// </param>
+		protected void DoPropertyChange<T>(ref T placeholder, T value, string name)
+		{
+			placeholder = value;
+			RaisePropertyChanged(name);
+		}
+
+		/// <summary>
+		///
+		/// </summary>
+		/// <param name="name">
+		/// A <see cref="System.String"/>
+		/// </param>
+		protected void RaisePropertyChanged(string name)
+		{
+			if(PropertyChanged != null)
+				PropertyChanged(this, new PropertyChangedEventArgs(name));
+		}
+
+		#region INotifyPropertyChanged implementation
+		public event PropertyChangedEventHandler PropertyChanged;
+		#endregion
+}
 }
 

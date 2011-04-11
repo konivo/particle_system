@@ -4,43 +4,96 @@ using System.Collections.Generic;
 using OpenTK;
 using OpenTK.Graphics;
 using System.ComponentModel.Composition;
+using System.ComponentModel;
 
 namespace opentk.System3
 {
 	public partial class System3
 	{
-		protected struct MetaInformation
+		public struct MetaInformation
 		{
 			public int LifeLen;
 			public int Leader;
 		}
 
-		public enum MapType{
+		public enum MapType
+		{
 			Pickover,
 			Polynomial,
-			Lorenz
+			Lorenz,
+			Chua
 		}
 
-		public int TrailSize{get; set;}
+		public int TrailSize
+		{
+			get;
+			set;
+		}
 
-		public bool AnimateKoef{ get; set;}
+		public bool AnimateKoef
+		{
+			get;
+			set;
+		}
 
-		public MapType Map{get; set;}
+		public MapType Map
+		{
+			get;
+			set;
+		}
 
-		public double A {get; set;}
-		public double B {get; set;}
-		public double C {get; set;}
-		public double D {get; set;}
+		public double A
+		{
+			get;
+			set;
+		}
+		public double B
+		{
+			get;
+			set;
+		}
+		public double C
+		{
+			get;
+			set;
+		}
+		public double D
+		{
+			get;
+			set;
+		}
 
-		public double Sigma {get; set;}
-		public double Rho {get; set;}
-		public double Beta {get; set;}
+		public double Sigma
+		{
+			get;
+			set;
+		}
+		public double Rho
+		{
+			get;
+			set;
+		}
+		public double Beta
+		{
+			get;
+			set;
+		}
 
 		protected Vector4[] Dimension;
 		protected Vector4[] Position;
 		protected MetaInformation[] Meta;
 		protected int Processed;
 		private System.Random m_Rnd = new Random ();
+		private ChaoticMap m_ChaoticMap;
+
+		[Category("Map properties")]
+		[TypeConverter(typeof(ChaoticMapConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the map.")]
+		public ChaoticMap ChaoticMap
+		{
+			get { return m_ChaoticMap; }
+			set { DoPropertyChange (ref m_ChaoticMap, value, "ChaoticMap"); }
+		}
 
 		private void MakeBubble (int i)
 		{
@@ -54,8 +107,9 @@ namespace opentk.System3
 
 		private void InitializeSystem ()
 		{
+			ChaoticMap = new LorenzMap ();
 			TrailSize = 1;
-
+			
 			Dimension = DimensionBuffer.Data;
 			Position = PositionBuffer.Data;
 			Meta = new MetaInformation[Position.Length];
@@ -80,42 +134,24 @@ namespace opentk.System3
 
 		public void Simulate (DateTime simulationTime)
 		{
-			Func<int, Vector3d> fun;
-
-			switch (Map) {
-			case MapType.Lorenz:
-				fun = Lorenz;
-				break;
-			case MapType.Pickover:
-				fun = Pickover;
-				break;
-			case MapType.Polynomial:
-				fun = Polynomial;
-				break;
-			default:
-			fun = (i) => new Vector3d();
-			break;
-			}
-
-
-			AnimateKoeficients ();
-			TrailSize = TrailSize > 0? TrailSize: 1;
-
+			var fun = m_ChaoticMap.Map;
+			TrailSize = TrailSize > 0 ? TrailSize : 1;
+			
 			for (int i = 0; i < Position.Length; i += TrailSize)
 			{
 				var pi = i + Meta[i].Leader;
-
+				
 				Meta[i].Leader += 1;
 				Meta[i].Leader %= TrailSize;
-
+				
 				var ii = i + Meta[i].Leader;
-
-				if(ii >= Position.Length)
+				
+				if (ii >= Position.Length)
 					break;
-
+				
 				Position[ii] = Position[pi];
-
-				Position[ii] = Position[ii] + new Vector4((Vector3)fun(ii) * (float)DT, 0);
+				
+				Position[ii] = Position[ii] + new Vector4 ((Vector3)fun ( (Vector3d)Position[ii].Xyz) * (float)DT, 0);
 			}
 			
 			for (int i = 0; i < Position.Length; i += TrailSize)
@@ -125,56 +161,6 @@ namespace opentk.System3
 				else
 					Meta[i].LifeLen--;
 			}
-		}
-
-		private Vector3d Pickover (int i)
-		{
-			var x_p = (double)Position[i].X;
-			var y_p = (double)Position[i].Y;
-			var z_p = (double)Position[i].Z;
-
-			var z_n = Math.Sin (x_p);
-			var x_n = Math.Sin (A * y_p) - z_p * Math.Cos (B * x_p);
-			var y_n = z_p * Math.Sin (C * x_p) - Math.Cos (D * y_p);
-
-			return new Vector3d(x_n, y_n, z_n);
-		}
-
-		private Vector3d Lorenz (int i)
-		{
-			var x_p = (double)Position[i].X;
-			var y_p = (double)Position[i].Y;
-			var z_p = (double)Position[i].Z;
-
-			var x_n = Sigma * (y_p - x_p);
-			var y_n = x_p * (Rho - z_p) - y_p;
-			var z_n = x_p * y_p - z_p * Beta;
-
-			return new Vector3d(x_n, y_n, z_n);
-		}
-
-		private Vector3d Polynomial (int i)
-		{
-			var x_p = (double)Position[i].X;
-			var y_p = (double)Position[i].Y;
-			var z_p = (double)Position[i].Z;
-
-			var x_n = A + y_p - z_p * y_p;
-			var y_n = B + z_p - z_p * x_p;
-			var z_n = C + x_p - y_p * x_p;
-
-			return new Vector3d(x_n, y_n, z_n);
-		}
-
-		private void AnimateKoeficients ()
-		{
-//			if (m_AnimatedKoefStep == 1000)
-//			{
-//				m_KDelta = (Vector4d)CreateRandom2 (0.5f) / 1000;
-//				m_AnimatedKoefStep = 0;
-//			}
-//			m_AnimatedKoefStep++;
-//			m_Koeficients = m_Koeficients + m_KDelta;
 		}
 	}
 }

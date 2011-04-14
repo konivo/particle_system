@@ -5,6 +5,7 @@ using OpenTK;
 using OpenTK.Graphics;
 using System.ComponentModel.Composition;
 using System.ComponentModel;
+using System.Threading.Tasks;
 
 namespace opentk.System3
 {
@@ -16,64 +17,25 @@ namespace opentk.System3
 			public int Leader;
 		}
 
-		public enum MapType
-		{
-			Pickover,
-			Polynomial,
-			Lorenz,
-			Chua
-		}
-
 		public int TrailSize
 		{
 			get;
 			set;
 		}
 
-		public bool AnimateKoef
+		public int StepsPerFrame
 		{
 			get;
 			set;
 		}
 
-		public MapType Map
+		public bool MapMode
 		{
 			get;
 			set;
 		}
 
-		public double A
-		{
-			get;
-			set;
-		}
-		public double B
-		{
-			get;
-			set;
-		}
-		public double C
-		{
-			get;
-			set;
-		}
-		public double D
-		{
-			get;
-			set;
-		}
-
-		public double Sigma
-		{
-			get;
-			set;
-		}
-		public double Rho
-		{
-			get;
-			set;
-		}
-		public double Beta
+		public float ParticleScaleFactor
 		{
 			get;
 			set;
@@ -85,6 +47,7 @@ namespace opentk.System3
 		protected int Processed;
 		private System.Random m_Rnd = new Random ();
 		private ChaoticMap m_ChaoticMap;
+		private bool m_MapModeComputed;
 
 		[Category("Map properties")]
 		[TypeConverter(typeof(ChaoticMapConverter))]
@@ -97,8 +60,8 @@ namespace opentk.System3
 
 		private void MakeBubble (int i)
 		{
-			var size = (float)Math.Pow (m_Rnd.NextDouble (), 2) * 0.1f;
-			var newpos = CreateRandom (12);
+			var size = (float)(Math.Pow (m_Rnd.NextDouble (), 2) * 0.001);
+			var newpos = (Vector3)MathHelper2.RandomVector3(12);
 			
 			Dimension[i] = new Vector4 (size, size, size, size);
 			Position[i] = new Vector4 (newpos.X, newpos.Y, newpos.Z, 1);
@@ -120,46 +83,73 @@ namespace opentk.System3
 			}
 		}
 
-		private Vector4 CreateRandom (float magnitude)
-		{
-			double dmag = 2 * magnitude;
-			return (Vector4)new Vector4d (m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag, 1) - new Vector4 (magnitude, magnitude, magnitude, 0);
-		}
-
-		private Vector4 CreateRandom2 (float magnitude)
-		{
-			double dmag = 2 * magnitude;
-			return (Vector4)new Vector4d (m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag) - new Vector4 (magnitude, magnitude, magnitude, magnitude);
-		}
-
 		public void Simulate (DateTime simulationTime)
 		{
 			var fun = m_ChaoticMap.Map;
 			TrailSize = TrailSize > 0 ? TrailSize : 1;
+			StepsPerFrame = StepsPerFrame > 0 ? StepsPerFrame : 1;
 			
-			for (int i = 0; i < Position.Length; i += TrailSize)
+			if (MapMode)
 			{
-				var pi = i + Meta[i].Leader;
-				
-				Meta[i].Leader += 1;
-				Meta[i].Leader %= TrailSize;
-				
-				var ii = i + Meta[i].Leader;
-				
-				if (ii >= Position.Length)
-					break;
-				
-				Position[ii] = Position[pi];
-				
-				Position[ii] = Position[ii] + new Vector4 ((Vector3)fun ( (Vector3d)Position[ii].Xyz) * (float)DT, 0);
+				if(m_MapModeComputed)
+					return;
+
+				Position[0] = new Vector4(0.0f, 0, 0, 1);
+
+				var ld = (Meta[0].Leader + 1) % Position.Length;
+				Meta[0].Leader = ld == 0? 1 : ld;
+
+				for (int i = Meta[0].Leader; i < Position.Length; i += TrailSize)
+				{
+					Position[i] = new Vector4 ((Vector3)fun ((Vector3d)Position[i - 1].Xyz), 1);
+				}
+
+				m_MapModeComputed = true;
 			}
-			
-			for (int i = 0; i < Position.Length; i += TrailSize)
+			else
 			{
-				if (Meta[i].LifeLen <= 0)
-					MakeBubble (i);
-				else
-					Meta[i].LifeLen--;
+				m_MapModeComputed = false;
+
+				var trailCount = (Position.Length + TrailSize - 1) / TrailSize;
+				var trailPacketSize = 10;
+				var trailPacketCount = (trailCount + 10 - 1) / 10;
+
+				Parallel.For(0, trailPacketCount,
+				(packetIndex) =>
+				{
+					var packetoffset = packetIndex * trailPacketSize;
+					var packetupper = packetoffset + trailPacketSize;
+					packetupper = packetupper < trailCount ? packetupper : trailCount;
+
+					for (int j = 0; j < StepsPerFrame; j++)
+					{
+						for (int ti = packetoffset; ti < packetupper; ti++)
+						{
+							//ti is trail index
+							//i is the trail's first element
+							var i = ti * TrailSize;
+							var pi = i + Meta[i].Leader;
+
+							Meta[i].Leader += 1;
+							Meta[i].Leader %= TrailSize;
+
+							var ii = i + Meta[i].Leader;
+
+							if (ii >= Position.Length)
+								break;
+
+							Position[ii] = Position[pi];
+							Position[ii] = Position[ii] + new Vector4 ((Vector3)fun ((Vector3d)Position[ii].Xyz) * (float)DT, 0);
+
+							//
+							if (Meta[i].LifeLen <= 0)
+								MakeBubble (i);
+							else
+								Meta[i].LifeLen--;
+						}
+					}
+
+				});
 			}
 		}
 	}

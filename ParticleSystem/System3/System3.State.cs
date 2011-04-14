@@ -31,14 +31,32 @@ namespace opentk.System3
 
 		private OrbitManipulator m_Manip;
 
+		private int m_PublishCounter;
+
 		unsafe void PrepareState ()
 		{
 			if (m_ParticleRenderingState != null)
 			{
 				Simulate (DateTime.Now);
 
-				PositionBuffer.Publish ();
-				DimensionBuffer.Publish ();
+				if(MapMode)
+				{
+					var publishSize = 1000000;
+					m_PublishCounter += 1;
+
+					var start = m_PublishCounter * publishSize % PARTICLES_COUNT;
+					var end = start + publishSize;
+					end = end > PARTICLES_COUNT ? PARTICLES_COUNT : end;
+
+					PositionBuffer.PublishPart (start, end - start);
+					DimensionBuffer.PublishPart (start, end - start);
+				}
+				else
+				{
+					PositionBuffer.Publish ();
+					DimensionBuffer.Publish ();
+				}
+
 				m_SystemState.Activate ();
 				return;
 			}
@@ -56,7 +74,7 @@ namespace opentk.System3
 
 			m_UniformState = new UniformState ()
 			.Set ("color", new Vector4 (0, 0, 1, 1))
-			.Set ("red", 1.0f)
+			.Set ("particle_scale_factor", ValueProvider.Create(() => this.ParticleScaleFactor))
 			.Set ("green", 0.0f)
 			.Set ("blue", 1.0f)
 			.Set ("colors", new float[] { 0, 1, 0, 1 })

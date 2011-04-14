@@ -44,6 +44,7 @@
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -77,6 +78,7 @@
     <Compile Include="System3\ChaoticMaps.cs" />
     <Compile Include="System3\ChaoticMapConverter.cs" />
     <Compile Include="GlobalContext.cs" />
+    <Compile Include="OpenTK\ValueProvider.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

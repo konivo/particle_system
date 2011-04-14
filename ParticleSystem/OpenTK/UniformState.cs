@@ -68,6 +68,11 @@ namespace OpenTK
 			return prefix;
 		}
 
+		private void SetValueDynamic(int program, int location, string name, dynamic valueprovider)
+		{
+			SetValue(program, location, name, valueprovider.Value);
+		}
+
 		private void SetValue (int program, int location, string name, object val)
 		{
 			if (val is Matrix4)
@@ -114,9 +119,10 @@ namespace OpenTK
 				}
 			}
 			//todo: generate properly and generically
-			else if (val is IValueProvider<Matrix4>)
+			else// if (val.GetType().GetGenericTypeDefinition() == typeof(IValueProvider<>))
 			{
-				SetValue (program, location, name, ((IValueProvider<Matrix4>)val).Value);
+				dynamic provider = val;
+				SetValue (program, location, name, provider.Value);
 			}
 		}
 	}

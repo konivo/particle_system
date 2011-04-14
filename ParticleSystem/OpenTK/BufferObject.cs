@@ -232,6 +232,17 @@ namespace OpenTK
 			GL.BufferSubData(BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * Data.Length), Data);
 		}
 
+		public void PublishPart(int start, int count)
+		{
+			unsafe {
+				fixed(T* ptr = &Data[start])
+				{
+					GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+					GL.BufferSubData(BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * start), (IntPtr)(TypeSize * count), (IntPtr)ptr);
+				}
+			}
+		}
+
 		//todo:
 		// GetManagedSize() returns the size of a structure whose type
 		// is 'type', as stored in managed memory. For any referenec type

@@ -221,5 +221,53 @@ namespace opentk.System3
 		}
 	}
 
+	/// <summary>
+	///
+	/// </summary>
+	public class OwenMareshMap : ChaoticMap
+	{
+		public double A
+		{
+			get;
+			set;
+		}
+		public double B
+		{
+			get;
+			set;
+		}
+		public double C
+		{
+			get;
+			set;
+		}
+
+		public OwenMareshMap () : base("OwenMaresh")
+		{
+			A = 2;
+			B = 2;
+			C = 7;
+			Map = Implementation;
+		}
+
+		private Vector3d Implementation (Vector3d input)
+		{
+			var x_p = input.X;
+			var y_p = input.Y;
+			var z_p = input.Z;
+
+			var x_n = A * Math.Cos(z_p - y_p);
+			var y_n = B * Math.Sin(x_p - z_p);
+			var z_n = C * Math.Cos(y_p - x_p);
+
+			return new Vector3d (x_n, y_n, z_n);
+		}
+
+		private double PhiFunction (double x)
+		{
+			return 1 / 16.0 * Math.Pow (x, 3) - 1 / 6.0 * x;
+		}
+	}
+
 }
 

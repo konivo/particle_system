@@ -10,6 +10,27 @@ namespace opentk.System3
 {
 	public partial class System3 : ParticleSystem
 	{
+		public enum ColorSchemeType
+		{
+			Distance,
+			Color
+		}
+
+		public enum ParticleShapeType
+		{
+			SmoothDot = 0x1,
+			SolidSpere = 0x2,
+			Bubble = 0x3
+		}
+
+		[Flags]
+		public enum ParticleAttributes
+		{
+			None = 0x0,
+			Normal = 0x1,
+			Tangent = 0x2
+		}
+
 		[Browsable(true)]
 		public int PARTICLES_COUNT
 		{
@@ -53,28 +74,94 @@ namespace opentk.System3
 			set;
 		}
 
+		public int TrailSize
+		{
+			get;
+			set;
+		}
+
+		public int StepsPerFrame
+		{
+			get;
+			set;
+		}
+
+		public bool MapMode
+		{
+			get;
+			set;
+		}
+
+		public float ParticleScaleFactor
+		{
+			get;
+			set;
+		}
+
+		public float ParticleBrightness
+		{
+			get;
+			set;
+		}
+
+		public ColorSchemeType ColorScheme
+		{
+			get;
+			set;
+		}
+
+		public ParticleShapeType ParticleShape
+		{
+			get;
+			set;
+		}
+
+		public float SmoothShapeSharpness
+		{
+			get;
+			set;
+		}
+
+		[Category("Map properties")]
+		[TypeConverter(typeof(ChaoticMapConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the map.")]
+		public ChaoticMap ChaoticMap
+		{
+			get { return m_ChaoticMap; }
+			set { DoPropertyChange (ref m_ChaoticMap, value, "ChaoticMap"); }
+		}
+
 		#region implemented abstract members of opentk._ParticleSystem
 		protected override void HandleFrame (GameWindow window)
 		{
 			GL.ClearColor (Color4.Black);
 			GL.Clear (ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-			//GL.Clear (ClearBufferMask.DepthBufferBit);
-			GL.Enable (EnableCap.Blend);
-			GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
-			GL.BlendEquation (BlendEquationMode.FuncAdd);
-			
+
+			if (ParticleShape == System3.ParticleShapeType.SolidSpere)
+			{
+				GL.Enable (EnableCap.DepthTest);
+				GL.DepthMask(true);
+				GL.DepthFunc (DepthFunction.Less);
+				GL.Disable (EnableCap.Blend);
+			}
+			else
+			{
+				GL.Disable (EnableCap.DepthTest);
+				GL.Enable (EnableCap.Blend);
+				GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+				GL.BlendEquation (BlendEquationMode.FuncAdd);
+			}
+
 			SetCamera (window);
 			PrepareState ();
 			GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
-
-			m_Grid.Render();
-			
+			m_Grid.Render ();
 			window.SwapBuffers ();
 		}
 
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
-			var result = new System3 { PARTICLES_COUNT = 10000000, VIEWPORT_WIDTH = 124, NEAR = 0, FAR = 10240, DT = 1, MapMode = true };
+			var result = new System3 { PARTICLES_COUNT = 300000, VIEWPORT_WIDTH = 124, NEAR = 0, FAR = 10240, DT = 0.01, ParticleScaleFactor = 30, ParticleBrightness = 1, ParticleShape = System3.ParticleShapeType.SolidSpere, MapMode = false };
 			return result;
 		}
 		

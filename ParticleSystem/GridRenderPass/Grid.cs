@@ -12,9 +12,9 @@ namespace opentk.GridRenderPass
 	{
 		private int m_GridDensity = 8;
 
-		private int m_BigGridDensity = 40;
+		private int m_BigGridDensity = 80;
 
-		private int m_GridDiameter = 200;
+		private int m_GridDiameter = 240;
 
 		private int m_Count;
 		//
@@ -104,6 +104,10 @@ namespace opentk.GridRenderPass
 
 		public override void Render ()
 		{
+			GL.Enable (EnableCap.Blend);
+			GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+			GL.BlendEquation (BlendEquationMode.FuncAdd);
+
 			PrepareState ();
 			GL.DrawArrays (BeginMode.Lines, 0, m_Count * 4 + 2);
 			GLHelper.PrintError ();

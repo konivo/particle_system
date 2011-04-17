@@ -1,27 +1,28 @@
 using System;
+using System.Threading;
 
 namespace OpenTK
 {
 	public static class MathHelper2
 	{
-		private static readonly Random m_Rnd = new Random();
+		private static ThreadLocal<Random> m_Rnd = new ThreadLocal<Random>(() => new Random());
 
 		public static Vector4d RandomVector4 (double magnitude)
 		{
 			double dmag = 2 * magnitude;
-			return new Vector4d (m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag) - new Vector4d (magnitude, magnitude, magnitude, magnitude);
+			return new Vector4d (m_Rnd.Value.NextDouble () * dmag, m_Rnd.Value.NextDouble () * dmag, m_Rnd.Value.NextDouble () * dmag, m_Rnd.Value.NextDouble () * dmag) - new Vector4d (magnitude, magnitude, magnitude, magnitude);
 		}
 
 		public static Vector3d RandomVector3 (double magnitude)
 		{
 			double dmag = 2 * magnitude;
-			return new Vector3d (m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag) - new Vector3d (magnitude, magnitude, magnitude);
+			return new Vector3d (m_Rnd.Value.NextDouble () * dmag, m_Rnd.Value.NextDouble () * dmag, m_Rnd.Value.NextDouble () * dmag) - new Vector3d (magnitude, magnitude, magnitude);
 		}
 
 		public static Vector2d RandomVector2 (double magnitude)
 		{
 			double dmag = 2 * magnitude;
-			return new Vector2d (m_Rnd.NextDouble () * dmag, m_Rnd.NextDouble () * dmag) - new Vector2d (magnitude, magnitude);
+			return new Vector2d (m_Rnd.Value.NextDouble () * dmag, m_Rnd.Value.NextDouble () * dmag) - new Vector2d (magnitude, magnitude);
 		}
 
 		public static Vector4d RandomVector (Vector4d magnitude)
@@ -57,6 +58,11 @@ namespace OpenTK
 			Vector3.Dot(ref o, ref c, out prod);
 
 			return new Vector4(c, -prod - planeoffset);
+		}
+
+		public static T Clamp<T> (T val, T min, T max) where T: IComparable<T>
+		{
+			return val.CompareTo(min) < 0? min : val.CompareTo(max) > 0? max : val;
 		}
 	}
 }

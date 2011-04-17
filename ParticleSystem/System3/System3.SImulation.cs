@@ -11,60 +11,36 @@ namespace opentk.System3
 {
 	public partial class System3
 	{
-		public struct MetaInformation
+		protected struct MetaInformation
 		{
 			public int LifeLen;
 			public int Leader;
 		}
 
-		public int TrailSize
-		{
-			get;
-			set;
-		}
-
-		public int StepsPerFrame
-		{
-			get;
-			set;
-		}
-
-		public bool MapMode
-		{
-			get;
-			set;
-		}
-
-		public float ParticleScaleFactor
-		{
-			get;
-			set;
-		}
-
 		protected Vector4[] Dimension;
 		protected Vector4[] Position;
+		protected Vector4[] Color;
 		protected MetaInformation[] Meta;
 		protected int Processed;
 		private System.Random m_Rnd = new Random ();
 		private ChaoticMap m_ChaoticMap;
 		private bool m_MapModeComputed;
 
-		[Category("Map properties")]
-		[TypeConverter(typeof(ChaoticMapConverter))]
-		[DescriptionAttribute("Expand to see the parameters of the map.")]
-		public ChaoticMap ChaoticMap
-		{
-			get { return m_ChaoticMap; }
-			set { DoPropertyChange (ref m_ChaoticMap, value, "ChaoticMap"); }
-		}
-
 		private void MakeBubble (int i)
 		{
+			if (Meta[i].Leader != 0)
+			{
+				MakeBubble (Meta[i].Leader + i);
+				Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = Meta[i].Leader };
+				return;
+			}
+			
 			var size = (float)(Math.Pow (m_Rnd.NextDouble (), 2) * 0.001);
-			var newpos = (Vector3)MathHelper2.RandomVector3(12);
+			var newpos = (Vector3)MathHelper2.RandomVector3 (12);
 			
 			Dimension[i] = new Vector4 (size, size, size, size);
 			Position[i] = new Vector4 (newpos.X, newpos.Y, newpos.Z, 1);
+			Color[i] = new Vector4 (0, 1, 0, 1);
 			Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = 0 };
 		}
 
@@ -75,6 +51,7 @@ namespace opentk.System3
 			
 			Dimension = DimensionBuffer.Data;
 			Position = PositionBuffer.Data;
+			Color = ColorBuffer.Data;
 			Meta = new MetaInformation[Position.Length];
 			
 			for (int i = 0; i < Position.Length; i++)
@@ -91,36 +68,56 @@ namespace opentk.System3
 			
 			if (MapMode)
 			{
-				if(m_MapModeComputed)
-					return;
-
-				Position[0] = new Vector4(0.0f, 0, 0, 1);
-
-				var ld = (Meta[0].Leader + 1) % Position.Length;
-				Meta[0].Leader = ld == 0? 1 : ld;
-
-				for (int i = Meta[0].Leader; i < Position.Length; i += TrailSize)
+				var step = 150;
+				var ld = (Meta[0].Leader + 1) % step;
+				Meta[0].Leader = ld;
+				
+				//prepare seed points
+				if (!m_MapModeComputed)
 				{
-					Position[i] = new Vector4 ((Vector3)fun ((Vector3d)Position[i - 1].Xyz), 1);
+					for (int i = 0; i < step; i++)
+					{
+						Position[i] = new Vector4 ((float)(m_Rnd.NextDouble () * 0.01), 0, 0, 1);
+					}
+					m_MapModeComputed = true;
 				}
-
-				m_MapModeComputed = true;
-			}
+				
+				//iterate the seed values
+				ld += step;
+				for (int i = ld; i < Position.Length; i += step)
+				{
+					Position[i] = new Vector4 ((Vector3)fun ((Vector3d)Position[i - step].Xyz), 1);
+					
+					switch (ColorScheme)
+					{
+					case ColorSchemeType.Distance:
+						var dist = (Position[i] - Position[i - step]).LengthSquared;
+						var A = MathHelper2.Clamp (dist / 10, 0, 1);
+						
+						Color[i] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
+						break;
+					case ColorSchemeType.Color:
+						Color[i] = new Vector4 (0.2f, 1, 0.2f, 1);
+						break;
+					default:
+						break;
+					}
+				}
+			}			
 			else
 			{
 				m_MapModeComputed = false;
-
+				
 				var trailCount = (Position.Length + TrailSize - 1) / TrailSize;
 				var trailPacketSize = 10;
 				var trailPacketCount = (trailCount + 10 - 1) / 10;
-
-				Parallel.For(0, trailPacketCount,
-				(packetIndex) =>
+				
+				Parallel.For (0, trailPacketCount, packetIndex =>
 				{
 					var packetoffset = packetIndex * trailPacketSize;
 					var packetupper = packetoffset + trailPacketSize;
-					packetupper = packetupper < trailCount ? packetupper : trailCount;
-
+					packetupper = packetupper <= trailCount ? packetupper : trailCount;
+					
 					for (int j = 0; j < StepsPerFrame; j++)
 					{
 						for (int ti = packetoffset; ti < packetupper; ti++)
@@ -129,26 +126,46 @@ namespace opentk.System3
 							//i is the trail's first element
 							var i = ti * TrailSize;
 							var pi = i + Meta[i].Leader;
-
+							
 							Meta[i].Leader += 1;
 							Meta[i].Leader %= TrailSize;
-
+							
 							var ii = i + Meta[i].Leader;
-
 							if (ii >= Position.Length)
-								break;
+							{
+								ii = 0;
+								Meta[i].Leader = 0;
+							}
 
-							Position[ii] = Position[pi];
-							Position[ii] = Position[ii] + new Vector4 ((Vector3)fun ((Vector3d)Position[ii].Xyz) * (float)DT, 0);
+							var delta = new Vector4 ((Vector3)fun ((Vector3d)Position[pi].Xyz) * (float)DT, 0);
+							Position[ii] = Position[pi] + delta;
 
 							//
-							if (Meta[i].LifeLen <= 0)
-								MakeBubble (i);
-							else
-								Meta[i].LifeLen--;
+							switch (ColorScheme)
+							{
+							case ColorSchemeType.Distance:
+								var dist = delta.LengthSquared/ (float) DT;
+								var A = MathHelper2.Clamp (dist / 10, 0, 1);
+
+								Color[ii] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
+								break;
+							case ColorSchemeType.Color:
+								Color[ii] = new Vector4 (0.2f, 1, 0.2f, 1);
+								break;
+							default:
+								break;
+							}
+							
+							//
+							if (j == StepsPerFrame - 1)
+							{
+								if (Meta[i].LifeLen <= 0)
+									MakeBubble (i);
+								else
+									Meta[i].LifeLen--;
+							}
 						}
 					}
-
 				});
 			}
 		}

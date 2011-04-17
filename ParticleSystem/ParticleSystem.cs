@@ -7,7 +7,7 @@ using System.ComponentModel;
 namespace opentk
 {
 	[InheritedExport]
-	public abstract class ParticleSystem: INotifyPropertyChanged
+	public abstract class ParticleSystem : INotifyPropertyChanged, IDisposable
 	{
 		/// <summary>
 		///
@@ -20,9 +20,9 @@ namespace opentk
 		/// </returns>
 		public ParticleSystem GetInstance (GameWindow win)
 		{
-			var result = GetInstanceInternal(win);
+			var result = GetInstanceInternal (win);
 			win.RenderFrame += result.HandleWinRenderFrame;
-
+			
 			return result;
 		}
 
@@ -65,17 +65,17 @@ namespace opentk
 		/// <returns>
 		/// A <see cref="IEnumerable<Shader>"/>
 		/// </returns>
-		public IEnumerable<Shader> GetShaders()
+		public IEnumerable<Shader> GetShaders ()
 		{
-			var parentNamespace = GetType().Namespace.Split('.').Last();
-
+			var parentNamespace = GetType ().Namespace.Split ('.').Last ();
+			
 			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
 				where res.Contains ("glsl") && res.Contains (parentNamespace)
 				select new Shader (res, ResourcesHelper.GetText (res, System.Text.Encoding.UTF8));
-
+			
 			return shaders;
 		}
-	
+
 
 		/// <summary>
 		///
@@ -89,10 +89,10 @@ namespace opentk
 		/// <param name="name">
 		/// A <see cref="System.String"/>
 		/// </param>
-		protected void DoPropertyChange<T>(ref T placeholder, T value, string name)
+		protected void DoPropertyChange<T> (ref T placeholder, T value, string name)
 		{
 			placeholder = value;
-			RaisePropertyChanged(name);
+			RaisePropertyChanged (name);
 		}
 
 		/// <summary>
@@ -101,15 +101,20 @@ namespace opentk
 		/// <param name="name">
 		/// A <see cref="System.String"/>
 		/// </param>
-		protected void RaisePropertyChanged(string name)
+		protected void RaisePropertyChanged (string name)
 		{
-			if(PropertyChanged != null)
-				PropertyChanged(this, new PropertyChangedEventArgs(name));
+			if (PropertyChanged != null)
+				PropertyChanged (this, new PropertyChangedEventArgs (name));
 		}
 
 		#region INotifyPropertyChanged implementation
 		public event PropertyChangedEventHandler PropertyChanged;
 		#endregion
-}
+
+		#region IDisposable implementation
+		public virtual void Dispose ()
+		{	}
+		#endregion
+	}
 }
 

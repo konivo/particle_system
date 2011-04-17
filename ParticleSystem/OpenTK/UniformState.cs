@@ -101,6 +101,11 @@ namespace OpenTK
 				var mat = (float)val;
 				GL.Uniform1 (location, mat);
 			}
+			else if (val is int)
+			{
+				var mat = (int)val;
+				GL.Uniform1 (location, mat);
+			}
 			else if (val is Array)
 			{
 				var elementtype = val.GetType ().GetElementType ();

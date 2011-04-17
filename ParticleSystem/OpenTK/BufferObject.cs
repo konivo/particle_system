@@ -13,10 +13,9 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class State
+	public class State: IDisposable
 	{
 		private readonly Dictionary<Type, ISet<StatePart>> m_StateSet = new Dictionary<Type, ISet<StatePart>> ();
-		//private List<StateActivator> m_Activators = new List<StateActivator>();
 	
 		private Lazy<List<StateActivator>> m_Activators;
 	
@@ -86,7 +85,22 @@ namespace OpenTK
 			foreach (var item in m_Activators.Value)
 				item.Activate();
 		}
-	}
+
+		#region IDisposable implementation
+		public void Dispose ()
+		{
+			foreach (var item in m_Activators.Value)
+			{
+				item.Dispose();
+			}
+
+			foreach (var item in StateParts)
+			{
+				item.Dispose();
+			}
+		}
+		#endregion
+}
 
 	/// <summary>
 	///
@@ -140,6 +154,8 @@ namespace OpenTK
 		public void Dispose ()
 		{
 			//for each member which implements IDisposable and is of the type StateBase do dispose() and then do InternalDispose
+
+			DisposeCore ();
 		}
 		#endregion
 	}

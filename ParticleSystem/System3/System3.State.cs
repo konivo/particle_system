@@ -25,6 +25,8 @@ namespace opentk.System3
 		//
 		private BufferObject<Vector4> DimensionBuffer;
 		//
+		private BufferObject<Vector4> ColorBuffer;
+		//
 		private State m_SystemState;
 		//
 		private Grid m_Grid;
@@ -32,6 +34,8 @@ namespace opentk.System3
 		private OrbitManipulator m_Manip;
 
 		private int m_PublishCounter;
+
+		private int m_PublishSize;
 
 		unsafe void PrepareState ()
 		{
@@ -41,7 +45,7 @@ namespace opentk.System3
 
 				if(MapMode)
 				{
-					var publishSize = 1000000;
+					var publishSize = m_PublishSize;
 					m_PublishCounter += 1;
 
 					var start = m_PublishCounter * publishSize % PARTICLES_COUNT;
@@ -50,11 +54,13 @@ namespace opentk.System3
 
 					PositionBuffer.PublishPart (start, end - start);
 					DimensionBuffer.PublishPart (start, end - start);
+					ColorBuffer.PublishPart (start, end - start);
 				}
 				else
 				{
 					PositionBuffer.Publish ();
 					DimensionBuffer.Publish ();
+					ColorBuffer.Publish();
 				}
 
 				m_SystemState.Activate ();
@@ -65,7 +71,10 @@ namespace opentk.System3
 			{
 				PositionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
 				DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
+				ColorBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "color_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
+
+			m_PublishSize = 100000;
 
 			var ortho = Matrix4.CreateOrthographic (1,1, NEAR, FAR);
 
@@ -75,13 +84,16 @@ namespace opentk.System3
 			m_UniformState = new UniformState ()
 			.Set ("color", new Vector4 (0, 0, 1, 1))
 			.Set ("particle_scale_factor", ValueProvider.Create(() => this.ParticleScaleFactor))
-			.Set ("green", 0.0f)
+			.Set ("particle_shape", ValueProvider.Create(() => (int)this.ParticleShape))
+			.Set ("particle_brightness", ValueProvider.Create(() => this.ParticleBrightness))
+			.Set ("smooth_shape_sharpness", ValueProvider.Create(() => this.SmoothShapeSharpness))
 			.Set ("blue", 1.0f)
 			.Set ("colors", new float[] { 0, 1, 0, 1 })
 			.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
 			
 			m_ParticleRenderingState = new ArrayObject (
 			                                            new VertexAttribute { AttributeName = "sprite_pos", Buffer = PositionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
+			                                            new VertexAttribute { AttributeName = "sprite_color", Buffer = ColorBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
 			                                            new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = DimensionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float });
 			m_ParticleRenderingProgram = new Program ("main_program", GetShaders().ToArray ());
 
@@ -89,6 +101,7 @@ namespace opentk.System3
 			
 			var hnd = PositionBuffer.Handle;
 			hnd = DimensionBuffer.Handle;
+			hnd = ColorBuffer.Handle;
 
 			m_Manip = new OrbitManipulator(m_TransformationStack);
 			m_Grid = new Grid(m_TransformationStack);
@@ -96,7 +109,6 @@ namespace opentk.System3
 			m_TransformationStack.Push (m_Manip.RT);
 			m_UniformState.Set("modelview_transform", m_Manip.RT);
 			m_UniformState.Set("projection_transform", m_Projection);
-
 
 			InitializeSystem();
 			PrepareState ();
@@ -118,6 +130,13 @@ namespace opentk.System3
 			{
 				m_Manip.HandleInput(window);
 			}
+		}
+
+		public override void Dispose()
+		{
+			m_SystemState.Dispose();
+			PositionBuffer.Dispose();
+			DimensionBuffer.Dispose();
 		}
 	}
 }

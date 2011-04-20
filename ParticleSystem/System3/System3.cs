@@ -16,6 +16,12 @@ namespace opentk.System3
 			Color
 		}
 
+		public enum ProjectionType
+		{
+			Ortho,
+			Frustum
+		}
+
 		public enum ParticleShapeType
 		{
 			SmoothDot = 0x1,
@@ -46,7 +52,14 @@ namespace opentk.System3
 		}
 
 		[Browsable(true)]
-		public int NEAR
+		public double Fov
+		{
+			get;
+			set;
+		}
+
+		[Browsable(true)]
+		public double NEAR
 		{
 			get;
 			set;
@@ -54,7 +67,7 @@ namespace opentk.System3
 
 
 		[Editor(typeof(ContrastEditor), typeof(System.Drawing.Design.UITypeEditor))]
-		public int FAR
+		public double FAR
 		{
 			get;
 			set;
@@ -111,6 +124,12 @@ namespace opentk.System3
 		}
 
 		public ParticleShapeType ParticleShape
+		{
+			get;
+			set;
+		}
+
+		public ProjectionType Projection
 		{
 			get;
 			set;

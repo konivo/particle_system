@@ -76,7 +76,7 @@ namespace opentk.System3
 
 			m_PublishSize = 100000;
 
-			var ortho = Matrix4.CreateOrthographic (1,1, NEAR, FAR);
+			var ortho = Matrix4.CreateOrthographic (1,1, (float)NEAR, (float)FAR);
 
 			m_Projection = new MatrixStack ().Push (ortho);
 			m_TransformationStack = new MatrixStack ().Push(m_Projection);
@@ -99,10 +99,6 @@ namespace opentk.System3
 
 			m_SystemState = new State (null, m_ParticleRenderingState, m_ParticleRenderingProgram, m_UniformState);
 			
-			var hnd = PositionBuffer.Handle;
-			hnd = DimensionBuffer.Handle;
-			hnd = ColorBuffer.Handle;
-
 			m_Manip = new OrbitManipulator(m_TransformationStack);
 			m_Grid = new Grid(m_TransformationStack);
 
@@ -122,8 +118,17 @@ namespace opentk.System3
 			
 			if (m_Projection != null)
 			{
-				var ortho = Matrix4.CreateOrthographic (projw, projw * aspect, NEAR, FAR);
-				m_Projection.ValueStack[0] = ortho;
+				switch (Projection)
+				{
+				case ProjectionType.Frustum:
+					m_Projection.ValueStack[0] = Matrix4.CreatePerspectiveFieldOfView((float)Fov, aspect, (float)NEAR, (float)FAR);
+					break;
+				case ProjectionType.Ortho:
+					m_Projection.ValueStack[0] = Matrix4.CreateOrthographic (projw, projw * aspect, (float)NEAR, (float)FAR);;
+					break;
+				default:
+					break;
+				}
 			}
 
 			if(m_Manip != null)

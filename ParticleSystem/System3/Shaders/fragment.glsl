@@ -27,10 +27,10 @@ void main ()
 		//todo: dz need not to change linearly with distance
 		//sphere
 		case 2:
-			float depth_delta = (1 - dist) * zscale;
 			if(dist > 1)
 				discard;
 
+			float depth_delta = sqrt(1 - dist * dist) * zscale;
 			color = vec4(fcolor * pow(1 - dist, smooth_shape_sharpness) * particle_brightness * 0.01f, 1.0f);
 			gl_FragDepth = gl_FragCoord.z - depth_delta;
 			gl_FragColor = color;

@@ -13,77 +13,73 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class State: IDisposable
+	public class State : IDisposable
 	{
 		private readonly Dictionary<Type, ISet<StatePart>> m_StateSet = new Dictionary<Type, ISet<StatePart>> ();
-	
+
 		private Lazy<List<StateActivator>> m_Activators;
-	
+
 		public IEnumerable<StatePart> StateParts
 		{
-			get{
-				return m_StateSet.Values.SelectMany(x => x);
-			}
+			get { return m_StateSet.Values.SelectMany (x => x); }
 		}
-	
-		public T GetSingleState<T>() where T: StatePart
+
+		public T GetSingleState<T> () where T : StatePart
 		{
-			return GetSet(typeof(T)).OfType<T>().FirstOrDefault();
+			return GetSet (typeof(T)).OfType<T> ().FirstOrDefault ();
 		}
-		
-		public IEnumerable<T> GetStates<T>() where T: StatePart
+
+		public IEnumerable<T> GetStates<T> () where T : StatePart
 		{
-			return GetSet(typeof(T)).OfType<T>();
+			return GetSet (typeof(T)).OfType<T> ();
 		}
-		
-		private ISet<StatePart> GetSet(Type t)
+
+		private ISet<StatePart> GetSet (Type t)
 		{
 			ISet<StatePart> states;
 			
-			if(!m_StateSet.TryGetValue(t, out states))
+			if (!m_StateSet.TryGetValue (t, out states))
 			{
-				m_StateSet[t] = states = new HashSet<StatePart>();
+				m_StateSet[t] = states = new HashSet<StatePart> ();
 			}
 			
 			return states;
 		}
-		
-		private void PutState(StatePart state)
+
+		private void PutState (StatePart state)
 		{
-			GetSet(state.GetType()).Add(state);
+			GetSet (state.GetType ()).Add (state);
 		}
-		
+
 		private State ()
 		{
-			m_Activators = new Lazy<List<StateActivator>>(
-			() => {
-				var acts = 
-					from i in m_StateSet.Values
+			m_Activators = new Lazy<List<StateActivator>> (() =>
+			{
+				var acts = from i in m_StateSet.Values
 					from j in i
-					select j.GetActivator(this);
+					select j.GetActivator (this);
 				
-				return acts.ToList();			
+				return acts.ToList ();
 			}, true);
 		}
-		
-		public State (State basestate, params StatePart[] states)
-		:this()
+
+		public State (State basestate, params StatePart[] states) : this()
 		{
-			if(basestate != null)
+			if (basestate != null)
 			{
-				throw new NotImplementedException();
+				throw new NotImplementedException ();
 			}
 			
 			foreach (StatePart item in states)
 			{
-				PutState(item);
+				PutState (item);
 			}
 		}
-		
+
 		public void Activate ()
 		{
 			foreach (var item in m_Activators.Value)
-				item.Activate();
+				item.Activate ();
 		}
 
 		#region IDisposable implementation
@@ -91,43 +87,38 @@ namespace OpenTK
 		{
 			foreach (var item in m_Activators.Value)
 			{
-				item.Dispose();
-			}
-
-			foreach (var item in StateParts)
-			{
-				item.Dispose();
+				item.Dispose ();
 			}
 		}
 		#endregion
-}
+	}
 
 	/// <summary>
 	///
 	/// </summary>
-	internal class StateActivator: IDisposable
+	internal class StateActivator : IDisposable
 	{
 		private readonly Action m_Activate;
 		private readonly Action m_Dispose;
-	
+
 		public StateActivator (Action activate, Action dispose)
 		{
-			m_Activate = activate?? (() => {});
-			m_Dispose = dispose?? (() => {});
+			m_Activate = activate ?? (() => { });
+			m_Dispose = dispose ?? (() => { });
 		}
-		
+
 		public void Activate ()
 		{
-			m_Activate();
+			m_Activate ();
 		}
-	
+
 		#region IDisposable implementation
 		public void Dispose ()
 		{
-			m_Dispose();
+			m_Dispose ();
 		}
-		#endregion	
-	
+		#endregion
+		
 	}
 
 	/// <summary>
@@ -138,23 +129,23 @@ namespace OpenTK
 		protected virtual void DisposeCore ()
 		{
 		}
-		
-		internal StateActivator GetActivator(State state)
+
+		internal StateActivator GetActivator (State state)
 		{
-			var act = GetActivatorCore(state);
-			return new StateActivator(act.Item1, act.Item2);
+			var act = GetActivatorCore (state);
+			return new StateActivator (act.Item1, act.Item2);
 		}
-		
-		protected virtual Tuple<Action, Action> GetActivatorCore(State state)
+
+		protected virtual Tuple<Action, Action> GetActivatorCore (State state)
 		{
-			return null;		
+			return null;
 		}
 
 		#region IDisposable implementation
 		public void Dispose ()
 		{
 			//for each member which implements IDisposable and is of the type StateBase do dispose() and then do InternalDispose
-
+			
 			DisposeCore ();
 		}
 		#endregion
@@ -163,13 +154,13 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public abstract class BufferObjectBase: IDisposable
+	public abstract class BufferObjectBase : IDisposable
 	{
 		private Lazy<uint> m_Handle;
 
 		public string Name;
 		public BufferUsageHint Usage;
-		public uint Handle 
+		public uint Handle
 		{
 			get { return m_Handle.Value; }
 		}
@@ -184,9 +175,10 @@ namespace OpenTK
 				return result;
 			});
 		}
-		
-		protected virtual void Initialize(uint handle)
-		{}	
+
+		protected virtual void Initialize (uint handle)
+		{
+		}
 
 		#region IDisposable implementation
 		public void Dispose ()
@@ -195,7 +187,7 @@ namespace OpenTK
 				GL.DeleteBuffers (1, new uint[] { Handle });
 		}
 		#endregion
-}
+	}
 
 	/// <summary>
 	///
@@ -205,56 +197,56 @@ namespace OpenTK
 		public readonly int TypeSize;
 		private int m_Length;
 		private T[] m_Data;
+		private T[] m_UserData;
 
-		public T[] Data {
-			get {			
-				return m_Data; 
-			}
-			set {
-				if(m_Data != null)
-					throw new InvalidOperationException();
-			
+		public T[] Data
+		{
+			get { return m_Data; }
+			set
+			{
+				if (m_Data != null)
+					throw new InvalidOperationException ();
+				
 				m_Data = value;
 			}
 		}
 
-		public BufferObject (int typesize, int length)
+		public BufferObject (int typesize, int length) : this(typesize)
 		{
-			TypeSize = typesize;
-			m_Length = length;
+			Data = new T[length];
 		}
 
-		public BufferObject (int typesize) : this(typesize, -1)
-		{}
-		
+		public BufferObject (int typesize)
+		{
+			TypeSize = typesize;
+		}
+
 		protected override void Initialize (uint handle)
 		{
-			if (m_Data == null) {
-				m_Data = new T[m_Length];
-				GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);
-				GL.BufferData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * m_Length), IntPtr.Zero, Usage);
+			if (m_Data == null)
+			{
+				throw new InvalidOperationException();
 			}
-			else{
-				GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);
-				GL.BufferData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * Data.Length), Data, Usage);			
-			}
-			
+
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);
+			GL.BufferData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * Data.Length), Data, Usage);
 			Console.WriteLine ("buffer {3}: {0}, {1}, {2}", typeof(T), TypeSize, m_Data.Length, Name);
 		}
 
-		public void Publish()
+		public void Publish ()
 		{
 			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
-			GL.BufferSubData(BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * Data.Length), Data);
+			GL.BufferSubData (BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * Data.Length), Data);
 		}
 
-		public void PublishPart(int start, int count)
+		public void PublishPart (int start, int count)
 		{
-			unsafe {
-				fixed(T* ptr = &Data[start])
+			unsafe
+			{
+				fixed (T* ptr = &Data[start])
 				{
 					GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
-					GL.BufferSubData(BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * start), (IntPtr)(TypeSize * count), (IntPtr)ptr);
+					GL.BufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * start), (IntPtr)(TypeSize * count), (IntPtr)ptr);
 				}
 			}
 		}
@@ -286,8 +278,13 @@ namespace OpenTK
 		private readonly List<int> m_TargetIndex = new List<int> ();
 
 		public string BufferName;
-		public virtual BufferTarget Target{ get {return BufferTarget.ArrayBuffer;} set{}}
-		public List<int> TargetIndex {
+		public virtual BufferTarget Target
+		{
+			get { return BufferTarget.ArrayBuffer; }
+			set { }
+		}
+		public List<int> TargetIndex
+		{
 			get { return m_TargetIndex; }
 		}
 	}
@@ -295,7 +292,7 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public sealed class VertexAttribute: BufferObjectBinding
+	public sealed class VertexAttribute : BufferObjectBinding
 	{
 		public string AttributeName;
 		public BufferObjectBase Buffer;
@@ -312,18 +309,19 @@ namespace OpenTK
 	/// </summary>
 	public class ArrayObject : StatePart
 	{
-		public readonly List<BufferObjectBinding> AttribArrays = new List<BufferObjectBinding>();
+		public readonly List<BufferObjectBinding> AttribArrays = new List<BufferObjectBinding> ();
 
 		public ArrayObject (params BufferObjectBinding[] states)
 		{
-			AttribArrays.AddRange(states);
+			AttribArrays.AddRange (states);
 		}
 
 		[System.Diagnostics.Conditional("DEBUG")]
 		private void PrintError (BufferTarget target, int binding)
 		{
 			var err = GL.GetError ();
-			if (err != ErrorCode.NoError) {
+			if (err != ErrorCode.NoError)
+			{
 				StackTrace str = new StackTrace ();
 				Console.WriteLine ("error {0} at method {1}, line {2} when binding to target {3}", err, str.GetFrame (0).GetMethod ().Name, str.GetFrame (0).GetFileLineNumber (), target);
 			}
@@ -331,44 +329,45 @@ namespace OpenTK
 
 		[System.Diagnostics.Conditional("DEBUG")]
 		private void PrintError ()
-		{			
+		{
 			var err = GL.GetError ();
-			if (err != ErrorCode.NoError) {
+			if (err != ErrorCode.NoError)
+			{
 				StackTrace str = new StackTrace ();
 				Console.WriteLine ("untreated error {0} at method {1}", err, str.GetFrame (0).GetMethod ().Name);
 			}
 		}
-		
+
 		protected override Tuple<Action, Action> GetActivatorCore (State state)
 		{
 			int Handle = -1;
-		
-			return new Tuple<Action, Action>(
-			() => 
+			
+			return new Tuple<Action, Action> (() =>
 			{
 				PrintError ();
 				
-				if(Handle != -1){
+				if (Handle != -1)
+				{
 					GL.BindVertexArray (Handle);
 					PrintError ();
 					return;
 				}
-					
-				var program = state.GetSingleState<Program>();
 				
-				if(program == null)
+				var program = state.GetSingleState<Program> ();
+				
+				if (program == null)
 					return;
 				
-				program.EnsureLinked();
+				program.EnsureLinked ();
 				
 				//
 				GL.GenVertexArrays (1, out Handle);
 				GL.BindVertexArray (Handle);
-				foreach (var item in AttribArrays.OfType<VertexAttribute>()) 
+				foreach (var item in AttribArrays.OfType<VertexAttribute> ())
 				{
-					int location = GL.GetAttribLocation(program.Handle, item.AttributeName);
+					int location = GL.GetAttribLocation (program.Handle, item.AttributeName);
 					
-					if(location == -1)
+					if (location == -1)
 						continue;
 					
 					GL.BindBuffer (item.Target, item.Buffer.Handle);
@@ -377,22 +376,21 @@ namespace OpenTK
 					GL.EnableVertexAttribArray (location);
 					
 					Console.WriteLine ("binding {0} to target {1}: {2}: {3}", item.Buffer.Name, item.Target, item.AttributeName, location);
-		
+					
 					PrintError (item.Target, location);
 				}
-			},
-			() => 
+			}, () =>
 			{
-				var hnd = Handle;				
-				if(hnd != -1)
+				var hnd = Handle;
+				if (hnd != -1)
 					GL.DeleteVertexArrays (1, ref hnd);
-			}
-			);
+			});
 		}
 
 		#region IDisposable implementation
 		protected override void DisposeCore ()
-		{}
+		{
+		}
 		#endregion
 	}
 
@@ -406,13 +404,19 @@ namespace OpenTK
 		public readonly int Handle;
 		public readonly string Name;
 
-		public bool? Linked { get; private set; }
+		public bool? Linked
+		{
+			get;
+			private set;
+		}
 
-		public IEnumerable<string> ShaderLogs {
+		public IEnumerable<string> ShaderLogs
+		{
 			get { return Shaders.Select (x => x.Log); }
 		}
 
-		public string Log {
+		public string Log
+		{
 			get { return GL.GetProgramInfoLog (Handle); }
 		}
 
@@ -432,11 +436,13 @@ namespace OpenTK
 		public Program (string name, params Tuple<ShaderType, string[]>[] shaders) : this(name, (from s in shaders
 			from shader in s.Item2
 			select new Shader (s.Item1, shader)).ToArray ())
-		{}
+		{
+		}
 
 		private void Link ()
 		{
-			foreach (var item in Shaders) {
+			foreach (var item in Shaders)
+			{
 				if (!item.Compiled.HasValue)
 					item.Compile ();
 				
@@ -454,23 +460,20 @@ namespace OpenTK
 			else
 				Console.WriteLine ("Program <{0}> error:\n{1}", Name, Log);
 		}
-		
-		internal void EnsureLinked()
+
+		internal void EnsureLinked ()
 		{
 			if (!Linked.HasValue)
 				Link ();
 		}
-		
+
 		protected override Tuple<Action, Action> GetActivatorCore (State state)
 		{
-			return new Tuple<Action, Action>(
-			() => 
+			return new Tuple<Action, Action> (() =>
 			{
-				EnsureLinked();
+				EnsureLinked ();
 				GL.UseProgram (Handle);
-			},
-			null
-			);			
+			}, null);
 		}
 
 		#region IDisposable implementation
@@ -491,8 +494,16 @@ namespace OpenTK
 		public readonly int Handle;
 		public readonly string Name;
 
-		public bool? Compiled { get; private set; }
-		public string Log { get; private set; }
+		public bool? Compiled
+		{
+			get;
+			private set;
+		}
+		public string Log
+		{
+			get;
+			private set;
+		}
 
 		public Shader (string name, ShaderType type, string code)
 		{
@@ -533,7 +544,7 @@ namespace OpenTK
 				return ShaderType.VertexShader;
 			else if (name.Contains ("geom") || name.Contains ("geometry"))
 				return ShaderType.GeometryShader;
-
+			
 			throw new ArgumentOutOfRangeException ();
 		}
 

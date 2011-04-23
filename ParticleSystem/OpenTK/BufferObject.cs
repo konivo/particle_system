@@ -160,6 +160,13 @@ namespace OpenTK
 
 		public string Name;
 		public BufferUsageHint Usage;
+
+		public bool Initialized
+		{
+			get;
+			private set;
+		}
+
 		public uint Handle
 		{
 			get { return m_Handle.Value; }
@@ -172,13 +179,14 @@ namespace OpenTK
 				uint result;
 				GL.GenBuffers (1, out result);
 				Initialize (result);
+
+				Initialized = true;
 				return result;
 			});
 		}
 
 		protected virtual void Initialize (uint handle)
-		{
-		}
+		{	}
 
 		#region IDisposable implementation
 		public void Dispose ()
@@ -195,19 +203,22 @@ namespace OpenTK
 	public sealed class BufferObject<T> : BufferObjectBase where T : struct
 	{
 		public readonly int TypeSize;
-		private int m_Length;
 		private T[] m_Data;
-		private T[] m_UserData;
 
 		public T[] Data
 		{
 			get { return m_Data; }
 			set
 			{
-				if (m_Data != null)
-					throw new InvalidOperationException ();
-				
+				if(m_Data == value)
+					return;
+
 				m_Data = value;
+
+				if (m_Data != null && Initialized)
+				{
+					Initialize(Handle);
+				}
 			}
 		}
 
@@ -225,7 +236,7 @@ namespace OpenTK
 		{
 			if (m_Data == null)
 			{
-				throw new InvalidOperationException();
+				throw new InvalidOperationException ();
 			}
 
 			GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);

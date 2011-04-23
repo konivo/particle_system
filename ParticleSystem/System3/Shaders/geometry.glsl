@@ -5,48 +5,57 @@ uniform float particle_scale_factor;
 layout (points) in;
 layout (triangle_strip, max_vertices = 12) out;
 
-in Axes{
-	vec4 x;
-	vec4 y;
-	vec4 z;
-} axes[];
-
-in vec3[] scale;
-in vec3[] dimensions;
 in vec3[] color;
+in float[] z_orig;
+in float[] z_maxdelta;
+in vec2[] xy_maxdelta;
 
-out vec2 param;
-out vec3 fcolor;
-out float zscale;
+//
+out Outdata{
+	//-1, 1 parameterization
+	vec2 param;
 
+	//vertex color
+	vec3 fcolor;
+
+	//original z coordinate in camera space
+	float z_orig;
+
+	//delta in z coordinate in camera space
+	float z_maxdelta;
+} OUT;
+
+//generates quad shaped sprite,
 void main ()
 {
-//todo: dz need not to change linearly with distance
-	vec4 dx = particle_scale_factor * dimensions[0].x * vec4(scale[0].x, 0, 0, 0);
-	vec4 dy = particle_scale_factor * dimensions[0].y * vec4(0, scale[0].y, 0, 0);
-	float dz = particle_scale_factor * dimensions[0].z * scale[0].z;
+	vec4 dx = vec4(xy_maxdelta[0].x, 0, 0, 0);
+	vec4 dy = vec4(0, xy_maxdelta[0].y, 0, 0);
 
-	param = vec2(0, 0);
-	fcolor = color[0];
-	zscale = dz;
+	OUT.param = vec2(0, 0);
+	OUT.fcolor = color[0];
+	OUT.z_orig = z_orig[0];
+	OUT.z_maxdelta = z_maxdelta[0];
 	gl_Position = gl_in[0].gl_Position - dx - dy;
 	EmitVertex();
 
-	param = vec2(0, 1);
-	fcolor = color[0];
-	zscale = dz;
+	OUT.param = vec2(0, 1);
+	OUT.fcolor = color[0];
+	OUT.z_orig = z_orig[0];
+	OUT.z_maxdelta = z_maxdelta[0];
 	gl_Position = gl_in[0].gl_Position - dx + dy;
 	EmitVertex();
 
-	param = vec2(1, 0);
-	fcolor = color[0];
-	zscale = dz;
+	OUT.param = vec2(1, 0);
+	OUT.fcolor = color[0];
+	OUT.z_orig = z_orig[0];
+	OUT.z_maxdelta = z_maxdelta[0];
 	gl_Position = gl_in[0].gl_Position + dx - dy;
 	EmitVertex();
 
-	param = vec2(1, 1);
-	fcolor = color[0];
-	zscale = dz;
+	OUT.param = vec2(1, 1);
+	OUT.fcolor = color[0];
+	OUT.z_orig = z_orig[0];
+	OUT.z_maxdelta = z_maxdelta[0];
 	gl_Position = gl_in[0].gl_Position + dx + dy;
 	EmitVertex();
 }

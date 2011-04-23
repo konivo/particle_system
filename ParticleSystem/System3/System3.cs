@@ -180,7 +180,10 @@ namespace opentk.System3
 
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
-			var result = new System3 { PARTICLES_COUNT = 300000, VIEWPORT_WIDTH = 124, NEAR = 0, FAR = 10240, DT = 0.01, ParticleScaleFactor = 30, ParticleBrightness = 1, ParticleShape = System3.ParticleShapeType.SolidSpere, MapMode = false };
+			var result = new System3 {
+				PARTICLES_COUNT = 300000, VIEWPORT_WIDTH = 124, NEAR = 1, FAR = 10240, DT = 0.01,
+				Fov = 0.6,
+				ParticleScaleFactor = 30, ParticleBrightness = 1, ParticleShape = System3.ParticleShapeType.SolidSpere, MapMode = false };
 			return result;
 		}
 		

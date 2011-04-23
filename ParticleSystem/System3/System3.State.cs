@@ -41,6 +41,15 @@ namespace opentk.System3
 		{
 			if (m_ParticleRenderingState != null)
 			{
+				if(PARTICLES_COUNT != PositionBuffer.Data.Length)
+				{
+					PositionBuffer.Data = new Vector4[PARTICLES_COUNT];
+					DimensionBuffer.Data = new Vector4[PARTICLES_COUNT];
+					ColorBuffer.Data = new Vector4[PARTICLES_COUNT];
+
+					InitializeSystem();
+				}
+
 				Simulate (DateTime.Now);
 
 				if(MapMode)
@@ -121,7 +130,7 @@ namespace opentk.System3
 				switch (Projection)
 				{
 				case ProjectionType.Frustum:
-					m_Projection.ValueStack[0] = Matrix4.CreatePerspectiveFieldOfView((float)Fov, aspect, (float)NEAR, (float)FAR);
+					m_Projection.ValueStack[0] = Matrix4.CreatePerspectiveFieldOfView((float)Fov, 1/aspect, (float)NEAR, (float)FAR);
 					break;
 				case ProjectionType.Ortho:
 					m_Projection.ValueStack[0] = Matrix4.CreateOrthographic (projw, projw * aspect, (float)NEAR, (float)FAR);;
@@ -142,6 +151,7 @@ namespace opentk.System3
 			m_SystemState.Dispose();
 			PositionBuffer.Dispose();
 			DimensionBuffer.Dispose();
+			ColorBuffer.Dispose();
 		}
 	}
 }

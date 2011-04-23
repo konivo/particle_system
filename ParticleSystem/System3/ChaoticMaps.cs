@@ -269,5 +269,26 @@ namespace opentk.System3
 		}
 	}
 
+
+	/// <summary>
+	/// dx/dt = y, dy/dt = -x + yz, dz/dt = 1 - y2
+	/// </summary>
+	public class Sprotts1Map : ChaoticMap
+	{
+		public Sprotts1Map () : base("Sprotts1Map")
+		{
+			Map = Implementation;
+		}
+
+		private Vector3d Implementation (Vector3d input)
+		{
+			var x_n = input.Y;
+			var y_n = -input.X + input.Y* input.Z;
+			var z_n = 1 - Math.Pow(input.Y, 2.0);
+
+			return new Vector3d (x_n, y_n, z_n);
+		}
+	}
+
 }
 

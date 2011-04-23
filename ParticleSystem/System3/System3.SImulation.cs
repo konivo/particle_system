@@ -25,6 +25,7 @@ namespace opentk.System3
 		private System.Random m_Rnd = new Random ();
 		private ChaoticMap m_ChaoticMap;
 		private bool m_MapModeComputed;
+		private float m_SpeedUpperBound;
 
 		private void MakeBubble (int i)
 		{
@@ -65,6 +66,7 @@ namespace opentk.System3
 			var fun = m_ChaoticMap.Map;
 			TrailSize = TrailSize > 0 ? TrailSize : 1;
 			StepsPerFrame = StepsPerFrame > 0 ? StepsPerFrame : 1;
+			m_SpeedUpperBound = m_SpeedUpperBound > 0? m_SpeedUpperBound * 0.75f: 1;
 			
 			if (MapMode)
 			{
@@ -91,8 +93,9 @@ namespace opentk.System3
 					switch (ColorScheme)
 					{
 					case ColorSchemeType.Distance:
-						var dist = (Position[i] - Position[i - step]).LengthSquared;
-						var A = MathHelper2.Clamp (dist / 10, 0, 1);
+						var speed = (Position[i] - Position[i - step]).LengthFast / (float)DT;
+						var A = MathHelper2.Clamp (2 * speed / m_SpeedUpperBound, 0, 1);
+						m_SpeedUpperBound = m_SpeedUpperBound < speed? speed: m_SpeedUpperBound;
 						
 						Color[i] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
 						break;
@@ -144,8 +147,9 @@ namespace opentk.System3
 							switch (ColorScheme)
 							{
 							case ColorSchemeType.Distance:
-								var dist = delta.LengthSquared/ (float) DT;
-								var A = MathHelper2.Clamp (dist / 10, 0, 1);
+								var speed = delta.LengthFast/ (float) DT;
+								var A = MathHelper2.Clamp (2 * speed / m_SpeedUpperBound, 0, 1);
+								m_SpeedUpperBound = m_SpeedUpperBound < speed? speed: m_SpeedUpperBound;
 
 								Color[ii] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
 								break;

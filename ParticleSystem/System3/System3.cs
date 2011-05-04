@@ -26,7 +26,7 @@ namespace opentk.System3
 		{
 			SmoothDot = 0x1,
 			SolidSpere = 0x2,
-			Bubble = 0x3
+			TextureSmoothDot = 0x3
 		}
 
 		[Flags]

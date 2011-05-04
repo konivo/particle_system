@@ -49,6 +49,10 @@ namespace OpenTK
 				
 				if (program != null)
 				{
+					//TODO: this is the responsibility of another state part .. so it should be done in a different way
+					//or use ProgramUniform
+					GL.UseProgram(program.Handle);
+
 					foreach (var item in m_Values)
 					{
 						string name = GetValueName (item.Key, item.Value);

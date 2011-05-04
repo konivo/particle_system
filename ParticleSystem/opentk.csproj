@@ -79,6 +79,7 @@
     <Compile Include="System3\ChaoticMapConverter.cs" />
     <Compile Include="GlobalContext.cs" />
     <Compile Include="OpenTK\ValueProvider.cs" />
+    <Compile Include="OpenTK\TextureObject.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

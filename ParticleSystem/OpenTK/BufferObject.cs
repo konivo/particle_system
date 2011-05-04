@@ -151,12 +151,24 @@ namespace OpenTK
 		#endregion
 	}
 
+
 	/// <summary>
 	///
 	/// </summary>
-	public abstract class BufferObjectBase : IDisposable
+	public interface IHandle
 	{
-		private Lazy<uint> m_Handle;
+		int Handle
+		{
+			get;
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public abstract class BufferObjectBase : IHandle, IDisposable
+	{
+		private Lazy<int> m_Handle;
 
 		public string Name;
 		public BufferUsageHint Usage;
@@ -167,32 +179,33 @@ namespace OpenTK
 			private set;
 		}
 
-		public uint Handle
+		public int Handle
 		{
 			get { return m_Handle.Value; }
 		}
 
 		public BufferObjectBase ()
 		{
-			m_Handle = new Lazy<uint> (() =>
+			m_Handle = new Lazy<int> (() =>
 			{
-				uint result;
+				int result;
 				GL.GenBuffers (1, out result);
 				Initialize (result);
-
+				
 				Initialized = true;
 				return result;
 			});
 		}
 
-		protected virtual void Initialize (uint handle)
-		{	}
+		protected virtual void Initialize (int handle)
+		{
+		}
 
 		#region IDisposable implementation
 		public void Dispose ()
 		{
 			if (m_Handle.IsValueCreated)
-				GL.DeleteBuffers (1, new uint[] { Handle });
+				GL.DeleteBuffers (1, new[] { Handle });
 		}
 		#endregion
 	}
@@ -210,14 +223,14 @@ namespace OpenTK
 			get { return m_Data; }
 			set
 			{
-				if(m_Data == value)
+				if (m_Data == value)
 					return;
-
+				
 				m_Data = value;
-
+				
 				if (m_Data != null && Initialized)
 				{
-					Initialize(Handle);
+					Initialize (Handle);
 				}
 			}
 		}
@@ -232,13 +245,13 @@ namespace OpenTK
 			TypeSize = typesize;
 		}
 
-		protected override void Initialize (uint handle)
+		protected override void Initialize (int handle)
 		{
 			if (m_Data == null)
 			{
 				throw new InvalidOperationException ();
 			}
-
+			
 			GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);
 			GL.BufferData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * Data.Length), Data, Usage);
 			Console.WriteLine ("buffer {3}: {0}, {1}, {2}", typeof(T), TypeSize, m_Data.Length, Name);
@@ -284,19 +297,20 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class BufferObjectBinding
-	{
-		private readonly List<int> m_TargetIndex = new List<int> ();
+	public class ObjectBinding
+	{	}
 
-		public string BufferName;
+	/// <summary>
+	///
+	/// </summary>
+	public class BufferObjectBinding : ObjectBinding
+	{
+		public BufferObjectBase Buffer;
+
 		public virtual BufferTarget Target
 		{
 			get { return BufferTarget.ArrayBuffer; }
 			set { }
-		}
-		public List<int> TargetIndex
-		{
-			get { return m_TargetIndex; }
 		}
 	}
 
@@ -306,7 +320,6 @@ namespace OpenTK
 	public sealed class VertexAttribute : BufferObjectBinding
 	{
 		public string AttributeName;
-		public BufferObjectBase Buffer;
 		public int Size;
 		public VertexAttribPointerType Type;
 		public bool Normalize;
@@ -320,75 +333,68 @@ namespace OpenTK
 	/// </summary>
 	public class ArrayObject : StatePart
 	{
-		public readonly List<BufferObjectBinding> AttribArrays = new List<BufferObjectBinding> ();
+		public readonly List<VertexAttribute> AttribArrays = new List<VertexAttribute> ();
 
-		public ArrayObject (params BufferObjectBinding[] states)
+		public ArrayObject (params VertexAttribute[] states)
 		{
 			AttribArrays.AddRange (states);
 		}
 
 		[System.Diagnostics.Conditional("DEBUG")]
-		private void PrintError (BufferTarget target, int binding)
+		private void PrintError (object bufferTarget)
 		{
 			var err = GL.GetError ();
 			if (err != ErrorCode.NoError)
 			{
 				StackTrace str = new StackTrace ();
-				Console.WriteLine ("error {0} at method {1}, line {2} when binding to target {3}", err, str.GetFrame (0).GetMethod ().Name, str.GetFrame (0).GetFileLineNumber (), target);
-			}
-		}
-
-		[System.Diagnostics.Conditional("DEBUG")]
-		private void PrintError ()
-		{
-			var err = GL.GetError ();
-			if (err != ErrorCode.NoError)
-			{
-				StackTrace str = new StackTrace ();
-				Console.WriteLine ("untreated error {0} at method {1}", err, str.GetFrame (0).GetMethod ().Name);
+				Console.WriteLine ("error {0} at method {1}, line {2} when binding to target {3}", err, str.GetFrame (0).GetMethod ().Name, str.GetFrame (0).GetFileLineNumber (), bufferTarget);
 			}
 		}
 
 		protected override Tuple<Action, Action> GetActivatorCore (State state)
 		{
+			//for vertex arrays object
 			int Handle = -1;
-			
+
 			return new Tuple<Action, Action> (() =>
 			{
-				PrintError ();
-				
+				//print unobserved errors so far
+				GLHelper.PrintError ();
+
 				if (Handle != -1)
 				{
+					//vertex array binding
 					GL.BindVertexArray (Handle);
-					PrintError ();
-					return;
+					GLHelper.PrintError ();
 				}
-				
-				var program = state.GetSingleState<Program> ();
-				
-				if (program == null)
-					return;
-				
-				program.EnsureLinked ();
-				
-				//
-				GL.GenVertexArrays (1, out Handle);
-				GL.BindVertexArray (Handle);
-				foreach (var item in AttribArrays.OfType<VertexAttribute> ())
+				else
 				{
-					int location = GL.GetAttribLocation (program.Handle, item.AttributeName);
+					//one time initialization
+					var program = state.GetSingleState<Program> ();
 					
-					if (location == -1)
-						continue;
+					if (program == null)
+						return;
 					
-					GL.BindBuffer (item.Target, item.Buffer.Handle);
-					GL.VertexAttribPointer (location, item.Size, item.Type, item.Normalize, item.Stride, item.Pointer);
-					GLExtensions.VertexAttribDivisor (location, item.Divisor);
-					GL.EnableVertexAttribArray (location);
+					program.EnsureLinked ();
 					
-					Console.WriteLine ("binding {0} to target {1}: {2}: {3}", item.Buffer.Name, item.Target, item.AttributeName, location);
-					
-					PrintError (item.Target, location);
+					//
+					GL.GenVertexArrays (1, out Handle);
+					GL.BindVertexArray (Handle);
+					foreach (var item in AttribArrays)
+					{
+						int location = GL.GetAttribLocation (program.Handle, item.AttributeName);
+						
+						if (location == -1)
+							continue;
+						
+						GL.BindBuffer (item.Target, item.Buffer.Handle);
+						GL.VertexAttribPointer (location, item.Size, item.Type, item.Normalize, item.Stride, item.Pointer);
+						GLExtensions.VertexAttribDivisor (location, item.Divisor);
+						GL.EnableVertexAttribArray (location);
+						
+						Console.WriteLine ("binding {0} to target {1}: {2}: {3}", item.Buffer.Name, item.Target, item.AttributeName, location);
+						PrintError (item.Target);
+					}
 				}
 			}, () =>
 			{
@@ -409,11 +415,15 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class Program : StatePart
+	public class Program : StatePart, IHandle
 	{
 		public readonly IEnumerable<Shader> Shaders;
-		public readonly int Handle;
 		public readonly string Name;
+		public int Handle
+		{
+			get;
+			private set;
+		}
 
 		public bool? Linked
 		{
@@ -498,12 +508,17 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class Shader : IDisposable
+	public class Shader : IDisposable, IHandle
 	{
 		public readonly string Code;
 		public readonly ShaderType Type;
-		public readonly int Handle;
 		public readonly string Name;
+
+		public int Handle
+		{
+			get;
+			private set;
+		}
 
 		public bool? Compiled
 		{
@@ -571,9 +586,13 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class Pipeline : StatePart
+	public class Pipeline : StatePart, IHandle
 	{
-		public readonly uint Handle;
+		public int Handle
+		{
+			get;
+			private set;
+		}
 
 		public Pipeline (params Program[] innerState)
 		{

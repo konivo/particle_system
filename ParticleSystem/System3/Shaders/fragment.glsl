@@ -3,6 +3,7 @@ uniform mat4 projection_transform;
 uniform float particle_brightness;
 uniform float smooth_shape_sharpness;
 uniform int particle_shape;
+uniform sampler2D custom_texture;
 
 in Outdata{
 	vec2 param;
@@ -14,14 +15,14 @@ in Outdata{
 void main ()
 {
 	vec4 color;
-	vec2 param = 2 * (param - 0.5f);
+	vec2 cparam = 2 * (param - 0.5f);
 	gl_FragDepth = gl_FragCoord.z;
 
 	switch(particle_shape)
 	{
 		//hard dot
 		case 1:
-			float dist = length(param) * 1.1f;
+			float dist = length(cparam) * 1.1f;
 			color = vec4(fcolor * pow(1.1f - dist, smooth_shape_sharpness),  particle_brightness * 0.001f);
 
 			gl_FragColor = color;
@@ -30,7 +31,7 @@ void main ()
 		//todo: dz need not to change linearly with distance
 		//sphere
 		case 2:
-			float dist2 = dot(param, param);
+			float dist2 = dot(cparam, cparam);
 
 			if(dist2 > 1)
 				discard;
@@ -47,8 +48,9 @@ void main ()
 			gl_FragColor = color;
 			break;
 
-		//bubble
+		//texture
 		case 3:
+			gl_FragColor = texture (custom_texture, param);
 		break;
 
 		default:

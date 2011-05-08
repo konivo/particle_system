@@ -96,13 +96,10 @@ namespace opentk.GridRenderPass
 			m_Program = new Program ("coordinate_grid_program", GetShaders ().ToArray ());
 			m_State = new State (null, m_AttributeState, m_Program, m_UniformState);
 			
-			var hnd = PositionBuffer.Handle;
-			var hnd1 = ParameterBuffer.Handle;
-			
 			PrepareState ();
 		}
 
-		public override void Render ()
+		public override void Render (GameWindow window)
 		{
 			GL.Enable (EnableCap.Blend);
 			GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);

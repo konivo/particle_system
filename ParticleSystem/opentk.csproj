@@ -80,6 +80,9 @@
     <Compile Include="GlobalContext.cs" />
     <Compile Include="OpenTK\ValueProvider.cs" />
     <Compile Include="OpenTK\TextureObject.cs" />
+    <Compile Include="State.cs" />
+    <Compile Include="OpenTK\Program.cs" />
+    <Compile Include="OpenTK\FramebufferObject.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -101,10 +104,11 @@
     <EmbeddedResource Include="QnodeDebug\Shaders\fragment.glsl" />
     <EmbeddedResource Include="QnodeDebug\Shaders\vertex.glsl" />
     <EmbeddedResource Include="QnodeDebug\Shaders\geometry.glsl" />
-    <EmbeddedResource Include="System3\Shaders\geometry.glsl" />
-    <EmbeddedResource Include="System3\Shaders\fragment.glsl" />
-    <EmbeddedResource Include="System3\Shaders\vertex.glsl" />
     <EmbeddedResource Include="GridRenderPass\Shaders\fragment.glsl" />
     <EmbeddedResource Include="GridRenderPass\Shaders\vertex.glsl" />
+    <EmbeddedResource Include="System3\Shaders\main_fragment.glsl" />
+    <EmbeddedResource Include="System3\Shaders\main_geometry.glsl" />
+    <EmbeddedResource Include="System3\Shaders\main_vertex.glsl" />
+    <EmbeddedResource Include="System3\Shaders\pass1_fragment.gls" />
   </ItemGroup>
 </Project>

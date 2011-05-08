@@ -65,12 +65,12 @@ namespace opentk
 		/// <returns>
 		/// A <see cref="IEnumerable<Shader>"/>
 		/// </returns>
-		public IEnumerable<Shader> GetShaders ()
+		public IEnumerable<Shader> GetShaders (string name = "")
 		{
 			var parentNamespace = GetType ().Namespace.Split ('.').Last ();
 			
 			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
-				where res.Contains ("glsl") && res.Contains (parentNamespace)
+				where res.Contains ("glsl") && res.Contains (parentNamespace) && res.Contains(name)
 				select new Shader (res, ResourcesHelper.GetText (res, System.Text.Encoding.UTF8));
 			
 			return shaders;

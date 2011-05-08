@@ -34,9 +34,6 @@ namespace opentk.Manipulators
 		{
 			m_Initialized = window.Mouse[MouseButton.Left];
 			
-			var projview = ProjectionView.Value;
-			projview.Invert ();
-
 			var mousepos = 2 * new Vector2 (window.Mouse.X, window.Mouse.Y);
 			mousepos.Y = -mousepos.Y;
 

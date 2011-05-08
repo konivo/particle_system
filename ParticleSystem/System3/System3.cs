@@ -156,25 +156,12 @@ namespace opentk.System3
 			GL.ClearColor (Color4.Black);
 			GL.Clear (ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-			if (ParticleShape == System3.ParticleShapeType.SolidSpere)
-			{
-				GL.Enable (EnableCap.DepthTest);
-				GL.DepthMask(true);
-				GL.DepthFunc (DepthFunction.Less);
-				GL.Disable (EnableCap.Blend);
-			}
-			else
-			{
-				GL.Disable (EnableCap.DepthTest);
-				GL.Enable (EnableCap.Blend);
-				GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
-				GL.BlendEquation (BlendEquationMode.FuncAdd);
-			}
-
-			SetCamera (window);
 			PrepareState ();
-			GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
-			m_Grid.Render ();
+
+			foreach(var pass in m_Passes)
+				pass.Render(window);
+			m_Grid.Render (window);
+
 			window.SwapBuffers ();
 		}
 

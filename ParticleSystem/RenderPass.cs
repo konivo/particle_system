@@ -7,7 +7,7 @@ namespace opentk
 {
 	public abstract class RenderPass
 	{
-		public abstract void Render();
+		public abstract void Render(GameWindow window);
 
 		public IEnumerable<Shader> GetShaders()
 		{
@@ -24,35 +24,39 @@ namespace opentk
 	/// <summary>
 	///
 	/// </summary>
-	public class SeparateProgramPass: RenderPass
+	public class SeparateProgramPass<TOwner>: RenderPass
 	{
 		private State m_State;
 
-		private Action m_Action;
+		private Action<GameWindow> m_Action;
 
-		private string m_PassId;
+		public string PassName
+		{
+			get;
+			private set;
+		}
 
-		public override void Render()
+		public override void Render(GameWindow window)
 		{
 			m_State.Activate();
-			m_Action();
+			m_Action(window);
 		}
 
-		public SeparateProgramPass (string passId, Action action, State baseState, params StatePart[] stateParts)
+		public SeparateProgramPass (string passName, Action<GameWindow> action, params StatePart[] stateParts)
 		{
 			//create program from resources filtered by passId
-
-			//build up state
-
-			//
+			var program = new Program(passName, GetShaders(passName).ToArray());
+			m_State = new State(null, stateParts.Concat(new []{ program} ).ToArray());
+			m_Action = action;
+			PassName = passName;
 		}
 
-		public IEnumerable<Shader> GetShaders()
+		private IEnumerable<Shader> GetShaders(string passName = "")
 		{
-			var parentNamespace = GetType().Namespace.Split('.').Last();
+			var parentNamespace = typeof(TOwner).Namespace.Split('.').Last();
 
 			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
-				where res.Contains ("glsl") && res.Contains (parentNamespace)
+				where res.Contains ("glsl") && res.Contains (parentNamespace) && res.Contains(passName)
 				select new Shader (res, ResourcesHelper.GetText (res, System.Text.Encoding.UTF8));
 
 			return shaders;

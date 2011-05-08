@@ -99,7 +99,7 @@ namespace opentk.QnodeDebug
 			PrepareState ();
 		}
 
-		public override void Render ()
+		public override void Render (GameWindow window)
 		{
 			PrepareState ();
 			GL.DrawArrays(BeginMode.Points, 0, m_ActSize);

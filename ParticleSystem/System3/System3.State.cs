@@ -13,8 +13,6 @@ namespace opentk.System3
 		//
 		private ArrayObject m_ParticleRenderingState;
 		//
-		private Program m_ParticleRenderingProgram;
-		//
 		private UniformState m_UniformState;
 		//
 		private MatrixStack m_TransformationStack;
@@ -28,8 +26,11 @@ namespace opentk.System3
 		private BufferObject<Vector4> ColorBuffer;
 
 		private TextureBase Texture;
-		//
-		private State m_SystemState;
+		private TextureBase UV_ColorIndex_None_Texture;
+		private TextureBase WorldDepth_Texture;
+		private TextureBase AOC_Texture;
+		private TextureBase Depth_Texture;
+
 		//
 		private Grid m_Grid;
 
@@ -39,19 +40,21 @@ namespace opentk.System3
 
 		private int m_PublishSize;
 
-		unsafe void PrepareState ()
+		private RenderPass[] m_Passes;
+
+		private void PrepareState ()
 		{
-			if (m_ParticleRenderingState != null)
+			if (m_Passes != null)
 			{
 				if (PARTICLES_COUNT != PositionBuffer.Data.Length)
 				{
 					PositionBuffer.Data = new Vector4[PARTICLES_COUNT];
 					DimensionBuffer.Data = new Vector4[PARTICLES_COUNT];
 					ColorBuffer.Data = new Vector4[PARTICLES_COUNT];
-					
+
 					InitializeSystem ();
 				}
-				
+
 				Simulate (DateTime.Now);
 				
 				if (MapMode)
@@ -75,15 +78,14 @@ namespace opentk.System3
 					ColorBuffer.Publish ();
 				}
 				
-				m_SystemState.Activate ();
 				return;
 			}
 			
 			unsafe
 			{
-				PositionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
-				DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
-				ColorBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "color_buffer", Usage = BufferUsageHint.DynamicDraw };
+				PositionBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
+				DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
+				ColorBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "color_buffer", Usage = BufferUsageHint.DynamicDraw };
 				
 				Texture = new DataTexture<Vector3> {
 					Name = "custom_texture",
@@ -95,6 +97,54 @@ namespace opentk.System3
 						MinFilter = TextureMinFilter.LinearMipmapLinear,
 						MagFilter = TextureMagFilter.Linear,
 					}};
+
+				UV_ColorIndex_None_Texture =
+				new DataTexture<Vector3> {
+					Name = "UV_ColorIndex_None_Texture",
+					InternalFormat = PixelInternalFormat.Rgba16f,
+					Data2D = TestTexture(300, 300),
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
+
+				WorldDepth_Texture =
+				new DataTexture<Vector3> {
+					Name = "WorldDepth_Texture",
+					InternalFormat = PixelInternalFormat.R32f,
+					Data2D = TestTexture(300, 300),
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
+				}};
+
+				AOC_Texture =
+				new DataTexture<Vector3> {
+					Name = "AOC_Texture",
+					InternalFormat = PixelInternalFormat.R8,
+					Data2D = TestTexture(300, 300),
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
+
+				Depth_Texture =
+				new DataTexture<float> {
+					Name = "Depth_Texture",
+					InternalFormat = PixelInternalFormat.DepthComponent32f,
+					Data2D = new float[300, 300],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
 			}
 			
 			m_PublishSize = 100000;
@@ -104,26 +154,143 @@ namespace opentk.System3
 			m_Projection = new MatrixStack ().Push (ortho);
 			m_TransformationStack = new MatrixStack ().Push (m_Projection);
 			
-			m_UniformState = new UniformState ().Set ("color", new Vector4 (0, 0, 1, 1)).Set ("particle_scale_factor", ValueProvider.Create (() => this.ParticleScaleFactor)).Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape)).Set ("particle_brightness", ValueProvider.Create (() => this.ParticleBrightness)).Set ("smooth_shape_sharpness", ValueProvider.Create (() => this.SmoothShapeSharpness)).Set ("blue", 1.0f).Set ("colors", new float[] { 0, 1, 0, 1 }).Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
+			m_UniformState = new UniformState ();
+			m_UniformState.Set ("color", new Vector4 (0, 0, 1, 1));
+			m_UniformState.Set ("particle_scale_factor", ValueProvider.Create (() => this.ParticleScaleFactor));
+			m_UniformState.Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape));
+			m_UniformState.Set ("particle_brightness", ValueProvider.Create (() => this.ParticleBrightness));
+			m_UniformState.Set ("smooth_shape_sharpness", ValueProvider.Create (() => this.SmoothShapeSharpness));
+			m_UniformState.Set ("blue", 1.0f);
+			m_UniformState.Set ("colors", new float[] { 0, 1, 0, 1 });
+			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
 			
-			m_ParticleRenderingState = new ArrayObject (
-				new VertexAttribute { AttributeName = "sprite_pos", Buffer = PositionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
-				new VertexAttribute { AttributeName = "sprite_color", Buffer = ColorBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
-				new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = DimensionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float });
+			m_ParticleRenderingState =
+				new ArrayObject (
+					new VertexAttribute { AttributeName = "sprite_pos", Buffer = PositionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
+					new VertexAttribute { AttributeName = "sprite_color", Buffer = ColorBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
+					new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = DimensionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float }
+				);
 
-			m_ParticleRenderingProgram = new Program ("main_program", GetShaders ().ToArray ());
-			
-			m_SystemState = new State (null, m_ParticleRenderingState, m_ParticleRenderingProgram, m_UniformState,
-				new TextureBindingSet( new TextureBinding { VariableName = "custom_texture", Texture = Texture }));
-			
-			m_Manip = new OrbitManipulator (m_TransformationStack);
+			//
+			var firstPass = new SeparateProgramPass<System3>
+			(
+				 "main",
+
+				 //pass code
+				 (window) =>
+				 {
+					  GL.Enable (EnableCap.DepthTest);
+						GL.DepthMask(true);
+						GL.DepthFunc (DepthFunction.Less);
+						GL.Disable (EnableCap.Blend);
+
+					SetCamera (window);
+					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
+				 },
+
+				 //pass state
+				 m_ParticleRenderingState,
+				 m_UniformState,
+				 new FramebufferBindingSet(
+				   new DrawFramebufferBinding { VariableName = "WorldDepth", Texture = WorldDepth_Texture },
+				   new DrawFramebufferBinding { VariableName = "UV_ColorIndex_None", Texture = UV_ColorIndex_None_Texture },
+				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture }
+				 ),
+				 new TextureBindingSet(
+				   new TextureBinding { VariableName = "custom_texture", Texture = Texture }
+				 )
+			);
+
+//			//
+//			var aocPass = new SeparateProgramPass<System3>
+//			(
+//				 "aoc",
+//
+//				 //pass code
+//				 (window) =>
+//				 {
+//					if (ParticleShape == System3.ParticleShapeType.SolidSpere)
+//					{
+//						GL.Enable (EnableCap.DepthTest);
+//						GL.DepthMask(true);
+//						GL.DepthFunc (DepthFunction.Less);
+//						GL.Disable (EnableCap.Blend);
+//					}
+//					else
+//					{
+//						GL.Disable (EnableCap.DepthTest);
+//						GL.Enable (EnableCap.Blend);
+//						GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+//						GL.BlendEquation (BlendEquationMode.FuncAdd);
+//					}
+//
+//					SetCamera (window);
+//					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
+//				 },
+//
+//				 //pass state
+//				 //m_ParticleRenderingState,
+//				 new FramebufferBindingSet(
+//				   new DrawFramebufferBinding
+//				   {
+//					   VariableName = "AOC",
+//					   Texture = AOC_Texture
+//				   }
+//				 ),
+//				 m_UniformState,
+//				 new TextureBindingSet(
+//				   new TextureBinding { VariableName = "WorldDepth", Texture = WorldDepth_Texture }
+//				 )
+//			);
+
+			//
+			var lightPass = new SeparateProgramPass<System3>
+			(
+				 "light",
+
+				 //pass code
+				 (window) =>
+				 {
+					if (ParticleShape == System3.ParticleShapeType.SolidSpere)
+					{
+						GL.Enable (EnableCap.DepthTest);
+						GL.DepthMask(true);
+						GL.DepthFunc (DepthFunction.Less);
+						GL.Disable (EnableCap.Blend);
+					}
+					else
+					{
+						GL.Disable (EnableCap.DepthTest);
+						GL.Enable (EnableCap.Blend);
+						GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+						GL.BlendEquation (BlendEquationMode.FuncAdd);
+					}
+
+					SetCamera (window);
+					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
+				 },
+
+				 //pass state
+				 FramebufferBindingSet.Default,
+				 m_ParticleRenderingState,
+				 m_UniformState,
+				 new TextureBindingSet(
+				   new TextureBinding { VariableName = "texture", Texture = Texture },
+				   new TextureBinding { VariableName = "WorldDepth", Texture = WorldDepth_Texture },
+				   new TextureBinding { VariableName = "UV_ColorIndex_None", Texture = UV_ColorIndex_None_Texture },
+				   new TextureBinding { VariableName = "AOC", Texture = AOC_Texture }
+				 )
+			);
+
+			m_Passes = new RenderPass[]{ firstPass, lightPass };
+
+			m_Manip = new OrbitManipulator (m_Projection);
 			m_Grid = new Grid (m_TransformationStack);
 			
 			m_TransformationStack.Push (m_Manip.RT);
 			m_UniformState.Set ("modelview_transform", m_Manip.RT);
 			m_UniformState.Set ("projection_transform", m_Projection);
-			
-			InitializeSystem ();
+
 			PrepareState ();
 		}
 
@@ -179,7 +346,6 @@ namespace opentk.System3
 
 		public override void Dispose ()
 		{
-			m_SystemState.Dispose ();
 			PositionBuffer.Dispose ();
 			DimensionBuffer.Dispose ();
 			ColorBuffer.Dispose ();

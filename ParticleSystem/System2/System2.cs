@@ -24,7 +24,7 @@ namespace opentk.System2
 			GL.DrawArraysInstanced (BeginMode.TriangleFan, 0, 4, PARTICLES_COUNT);
 
 
-			m_DebugView.Render();
+			m_DebugView.Render(window);
 			
 			window.SwapBuffers ();
 		}

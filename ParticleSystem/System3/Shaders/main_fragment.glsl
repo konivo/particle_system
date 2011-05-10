@@ -5,56 +5,37 @@ uniform float smooth_shape_sharpness;
 uniform int particle_shape;
 uniform sampler2D custom_texture;
 
-in Outdata{
+in Outdata
+{
 	vec2 param;
 	vec3 fcolor;
 	float z_orig;
 	float z_maxdelta;
 };
 
+out Fragdata
+{
+	float WorldDepth;
+	vec4 UV_ColorIndex_None;
+};
+
 void main ()
 {
-	vec4 color;
 	vec2 cparam = 2 * (param - 0.5f);
-	gl_FragDepth = gl_FragCoord.z;
+	float dist2 = dot(cparam, cparam);
 
-	switch(particle_shape)
-	{
-		//hard dot
-		case 1:
-			float dist = length(cparam) * 1.1f;
-			color = vec4(fcolor * pow(1.1f - dist, smooth_shape_sharpness),  particle_brightness * 0.001f);
+	if(dist2 > 1)
+		discard;
 
-			gl_FragColor = color;
-			break;
-			
-		//todo: dz need not to change linearly with distance
-		//sphere
-		case 2:
-			float dist2 = dot(cparam, cparam);
+	float z_delta = sqrt(1 - dist2) * z_maxdelta;
+	vec4 z = projection_transform * vec4(0, 0, z_orig, 1);
+	z /= z.w;
 
-			if(dist2 > 1)
-				discard;
+	vec4 zd = projection_transform * vec4(0, 0, z_orig + z_delta, 1);
+	zd /= zd.w;
 
-			float z_delta = sqrt(1 - dist2) * z_maxdelta;
-			vec4 z = projection_transform * vec4(0, 0, z_orig, 1);
-			z /= z.w;
+	gl_FragDepth = (gl_FragCoord.z + zd.z) - z.z;
 
-			vec4 zd = projection_transform * vec4(0, 0, z_orig + z_delta, 1);
-			zd /= zd.w;
-
-			color = vec4(fcolor * pow(1 - dist2, smooth_shape_sharpness) * particle_brightness * 0.01f, 1.0f);
-			gl_FragDepth = (gl_FragCoord.z + zd.z) - z.z;
-			gl_FragColor = color;
-			break;
-
-		//texture
-		case 3:
-			gl_FragColor = texture (custom_texture, param);
-		break;
-
-		default:
-			gl_FragColor = vec4(fcolor, 0.01);
-			break;
-	}
-}	
+	UV_ColorIndex_None = vec4(param, 0.5f, 0);
+	WorldDepth = z_orig + z_delta;
+}

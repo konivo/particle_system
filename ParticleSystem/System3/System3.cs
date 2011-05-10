@@ -160,6 +160,7 @@ namespace opentk.System3
 
 			foreach(var pass in m_Passes)
 				pass.Render(window);
+
 			m_Grid.Render (window);
 
 			window.SwapBuffers ();

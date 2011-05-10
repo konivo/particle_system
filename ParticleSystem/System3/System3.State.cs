@@ -111,10 +111,10 @@ namespace opentk.System3
 				}};
 
 				WorldDepth_Texture =
-				new DataTexture<Vector3> {
+				new DataTexture<float> {
 					Name = "WorldDepth_Texture",
 					InternalFormat = PixelInternalFormat.R32f,
-					Data2D = TestTexture(300, 300),
+					Data2D = new float[300, 300],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -138,6 +138,7 @@ namespace opentk.System3
 				new DataTexture<float> {
 					Name = "Depth_Texture",
 					InternalFormat = PixelInternalFormat.DepthComponent32f,
+					Format = PixelFormat.DepthComponent,
 					Data2D = new float[300, 300],
 					Params = new TextureBase.Parameters
 					{
@@ -192,8 +193,8 @@ namespace opentk.System3
 				 m_ParticleRenderingState,
 				 m_UniformState,
 				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { VariableName = "WorldDepth", Texture = WorldDepth_Texture },
-				   new DrawFramebufferBinding { VariableName = "UV_ColorIndex_None", Texture = UV_ColorIndex_None_Texture },
+				   new DrawFramebufferBinding { VariableName = "Outdata.WorldDepth", Texture = WorldDepth_Texture },
+				   new DrawFramebufferBinding { VariableName = "Outdata.UV_ColorIndex_None", Texture = UV_ColorIndex_None_Texture },
 				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture }
 				 ),
 				 new TextureBindingSet(

@@ -327,6 +327,11 @@ namespace OpenTK
 				Type = PixelType.Float;
 				Format = Format ?? PixelFormat.Rgba;
 			}
+			else if (typeof(T) ==  typeof(float))
+			{
+				Type = PixelType.Float;
+				Format = Format ?? PixelFormat.Red;
+			}
 			else throw new NotSupportedException ();
 
 			Publish (handle, true);

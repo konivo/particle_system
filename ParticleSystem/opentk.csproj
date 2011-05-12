@@ -110,5 +110,9 @@
     <EmbeddedResource Include="System3\Shaders\light_fragment.glsl" />
     <EmbeddedResource Include="System3\Shaders\main_light_vertex.glsl" />
     <EmbeddedResource Include="System3\Shaders\main_light_geometry.glsl" />
+    <EmbeddedResource Include="System3\Shaders\aoc_fragment.glsl" />
+    <EmbeddedResource Include="System3\Shaders\aoc_solid3_vertex.glsl" />
+    <EmbeddedResource Include="System3\Shaders\solid3_fragment.glsl" />
+    <EmbeddedResource Include="System3\Shaders\aoc_solid3_geometry.glsl" />
   </ItemGroup>
 </Project>

@@ -11,7 +11,8 @@ in float[] z_maxdelta;
 in vec2[] xy_maxdelta;
 
 //
-out Outdata{
+out VertexData
+{
 	//-1, 1 parameterization
 	vec2 param;
 

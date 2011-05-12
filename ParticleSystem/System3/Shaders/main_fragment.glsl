@@ -1,11 +1,7 @@
 #version 330
 uniform mat4 projection_transform;
-uniform float particle_brightness;
-uniform float smooth_shape_sharpness;
-uniform int particle_shape;
-uniform sampler2D custom_texture;
 
-in Outdata
+in VertexData
 {
 	vec2 param;
 	vec3 fcolor;
@@ -15,8 +11,7 @@ in Outdata
 
 out Fragdata
 {
-	float WorldDepth;
-	vec4 UV_ColorIndex_None;
+	vec4 uv_colorindex_none;
 };
 
 void main ()
@@ -35,7 +30,5 @@ void main ()
 	zd /= zd.w;
 
 	gl_FragDepth = (gl_FragCoord.z + zd.z) - z.z;
-
-	UV_ColorIndex_None = vec4(param, 0.5f, 0);
-	WorldDepth = z_orig + z_delta;
+	uv_colorindex_none = vec4(param, 0.5f, 0);
 }

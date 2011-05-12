@@ -40,6 +40,10 @@ namespace opentk.System3
 
 		private int m_PublishSize;
 
+		private RenderPass[] m_SolidModePasses;
+
+		private RenderPass[] m_EmitModePasses;
+
 		private RenderPass[] m_Passes;
 
 		private void PrepareState ()
@@ -76,6 +80,17 @@ namespace opentk.System3
 					PositionBuffer.Publish ();
 					DimensionBuffer.Publish ();
 					ColorBuffer.Publish ();
+				}
+
+				switch (ParticleShape)
+				{
+					case ParticleShapeType.TextureSmoothDot:
+					case ParticleShapeType.SmoothDot:
+					m_Passes = m_EmitModePasses;
+					break;
+				default:
+					m_Passes = m_SolidModePasses;
+					break;
 				}
 				
 				return;
@@ -173,19 +188,21 @@ namespace opentk.System3
 				);
 
 			//
-			var firstPass = new SeparateProgramPass<System3>
+			var firstPassSolid = new SeparateProgramPass<System3>
 			(
 				 "main",
 
 				 //pass code
 				 (window) =>
 				 {
-					  GL.Enable (EnableCap.DepthTest);
-						GL.DepthMask(true);
-						GL.DepthFunc (DepthFunction.Less);
-						GL.Disable (EnableCap.Blend);
+					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+				  GL.Enable (EnableCap.DepthTest);
+					GL.DepthMask(true);
+					GL.DepthFunc (DepthFunction.Less);
+					GL.Disable (EnableCap.Blend);
 
 					SetCamera (window);
+					GL.Viewport(0, 0, 300, 300);
 					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
 				 },
 
@@ -193,8 +210,7 @@ namespace opentk.System3
 				 m_ParticleRenderingState,
 				 m_UniformState,
 				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { VariableName = "Outdata.WorldDepth", Texture = WorldDepth_Texture },
-				   new DrawFramebufferBinding { VariableName = "Outdata.UV_ColorIndex_None", Texture = UV_ColorIndex_None_Texture },
+				   new DrawFramebufferBinding { VariableName = "Fragdata.uv_colorindex_none", Texture = UV_ColorIndex_None_Texture },
 				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture }
 				 ),
 				 new TextureBindingSet(
@@ -202,70 +218,77 @@ namespace opentk.System3
 				 )
 			);
 
-//			//
-//			var aocPass = new SeparateProgramPass<System3>
-//			(
-//				 "aoc",
-//
-//				 //pass code
-//				 (window) =>
-//				 {
-//					if (ParticleShape == System3.ParticleShapeType.SolidSpere)
-//					{
-//						GL.Enable (EnableCap.DepthTest);
-//						GL.DepthMask(true);
-//						GL.DepthFunc (DepthFunction.Less);
-//						GL.Disable (EnableCap.Blend);
-//					}
-//					else
-//					{
-//						GL.Disable (EnableCap.DepthTest);
-//						GL.Enable (EnableCap.Blend);
-//						GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
-//						GL.BlendEquation (BlendEquationMode.FuncAdd);
-//					}
-//
-//					SetCamera (window);
-//					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
-//				 },
-//
-//				 //pass state
-//				 //m_ParticleRenderingState,
-//				 new FramebufferBindingSet(
-//				   new DrawFramebufferBinding
-//				   {
-//					   VariableName = "AOC",
-//					   Texture = AOC_Texture
-//				   }
-//				 ),
-//				 m_UniformState,
-//				 new TextureBindingSet(
-//				   new TextureBinding { VariableName = "WorldDepth", Texture = WorldDepth_Texture }
-//				 )
-//			);
+			//
+			var aocPassSolid = new SeparateProgramPass<System3>
+			(
+				 "aoc",
+
+				 //pass code
+				 (window) =>
+				 {
+					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+					GL.Disable (EnableCap.DepthTest);
+					GL.DepthMask(true);
+					GL.DepthFunc (DepthFunction.Less);
+					GL.Disable (EnableCap.Blend);
+
+					GL.Viewport(0, 0, 300, 300);
+					GL.DrawArrays (BeginMode.Points, 0, 1);
+				 },
+
+				 //pass state
+				 m_ParticleRenderingState,
+				 new FramebufferBindingSet(
+				   new DrawFramebufferBinding { VariableName = "Fragdata.aoc", Texture = AOC_Texture }
+				 ),
+				 m_UniformState,
+				 new TextureBindingSet(
+				   new TextureBinding { VariableName = "depth_texture", Texture = Depth_Texture }
+				 )
+			);
 
 			//
-			var lightPass = new SeparateProgramPass<System3>
+			var thirdPassSolid = new SeparateProgramPass<System3>
+			(
+				 "solid3",
+
+				 //pass code
+				 (window) =>
+				 {
+					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+					GL.Enable (EnableCap.DepthTest);
+					GL.DepthMask(true);
+					GL.DepthFunc (DepthFunction.Less);
+					GL.Disable (EnableCap.Blend);
+
+					SetCamera(window);
+					GL.DrawArrays (BeginMode.Points, 0, 1);
+				 },
+
+				 //pass state
+				 FramebufferBindingSet.Default,
+				 m_ParticleRenderingState,
+				 m_UniformState,
+				 new TextureBindingSet(
+				   new TextureBinding { VariableName = "custom_texture", Texture = Texture },
+				   new TextureBinding { VariableName = "depth_texture", Texture = Depth_Texture },
+				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
+				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture }
+				 )
+			);
+
+			//
+			var firstPassEmit = new SeparateProgramPass<System3>
 			(
 				 "light",
 
 				 //pass code
 				 (window) =>
 				 {
-					if (ParticleShape == System3.ParticleShapeType.SolidSpere)
-					{
-						GL.Enable (EnableCap.DepthTest);
-						GL.DepthMask(true);
-						GL.DepthFunc (DepthFunction.Less);
-						GL.Disable (EnableCap.Blend);
-					}
-					else
-					{
-						GL.Disable (EnableCap.DepthTest);
-						GL.Enable (EnableCap.Blend);
-						GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
-						GL.BlendEquation (BlendEquationMode.FuncAdd);
-					}
+					GL.Disable (EnableCap.DepthTest);
+					GL.Enable (EnableCap.Blend);
+					GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+					GL.BlendEquation (BlendEquationMode.FuncAdd);
 
 					SetCamera (window);
 					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
@@ -276,14 +299,12 @@ namespace opentk.System3
 				 m_ParticleRenderingState,
 				 m_UniformState,
 				 new TextureBindingSet(
-				   new TextureBinding { VariableName = "texture", Texture = Texture },
-				   new TextureBinding { VariableName = "WorldDepth", Texture = WorldDepth_Texture },
-				   new TextureBinding { VariableName = "UV_ColorIndex_None", Texture = UV_ColorIndex_None_Texture },
-				   new TextureBinding { VariableName = "AOC", Texture = AOC_Texture }
+				   new TextureBinding { VariableName = "texture", Texture = Texture }
 				 )
 			);
 
-			m_Passes = new RenderPass[]{ firstPass, lightPass };
+			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, aocPassSolid, thirdPassSolid };
+			m_EmitModePasses = new RenderPass[]{ firstPassEmit };
 
 			m_Manip = new OrbitManipulator (m_Projection);
 			m_Grid = new Grid (m_TransformationStack);

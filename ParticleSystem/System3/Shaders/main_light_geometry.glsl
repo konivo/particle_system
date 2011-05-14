@@ -9,6 +9,9 @@ in vec3[] color;
 in float[] z_orig;
 in float[] z_maxdelta;
 in vec2[] xy_maxdelta;
+in vec4[] world_cam_z_dir;
+in vec4[] world_cam_x_dir;
+in vec4[] world_cam_y_dir;
 
 //
 out VertexData
@@ -24,6 +27,10 @@ out VertexData
 
 	//delta in z coordinate in camera space
 	float z_maxdelta;
+
+	vec4 world_cam_x_dir;
+	vec4 world_cam_y_dir;
+	vec4 world_cam_z_dir;
 } OUT;
 
 //generates quad shaped sprite,
@@ -36,6 +43,9 @@ void main ()
 	OUT.fcolor = color[0];
 	OUT.z_orig = z_orig[0];
 	OUT.z_maxdelta = z_maxdelta[0];
+	OUT.world_cam_x_dir = world_cam_x_dir[0];
+	OUT.world_cam_y_dir = world_cam_y_dir[0];
+	OUT.world_cam_z_dir = world_cam_z_dir[0];
 	gl_Position = gl_in[0].gl_Position - dx - dy;
 	EmitVertex();
 
@@ -43,6 +53,9 @@ void main ()
 	OUT.fcolor = color[0];
 	OUT.z_orig = z_orig[0];
 	OUT.z_maxdelta = z_maxdelta[0];
+	OUT.world_cam_x_dir = world_cam_x_dir[0];
+	OUT.world_cam_y_dir = world_cam_y_dir[0];
+	OUT.world_cam_z_dir = world_cam_z_dir[0];
 	gl_Position = gl_in[0].gl_Position - dx + dy;
 	EmitVertex();
 
@@ -50,6 +63,9 @@ void main ()
 	OUT.fcolor = color[0];
 	OUT.z_orig = z_orig[0];
 	OUT.z_maxdelta = z_maxdelta[0];
+	OUT.world_cam_x_dir = world_cam_x_dir[0];
+	OUT.world_cam_y_dir = world_cam_y_dir[0];
+	OUT.world_cam_z_dir = world_cam_z_dir[0];
 	gl_Position = gl_in[0].gl_Position + dx - dy;
 	EmitVertex();
 
@@ -57,6 +73,9 @@ void main ()
 	OUT.fcolor = color[0];
 	OUT.z_orig = z_orig[0];
 	OUT.z_maxdelta = z_maxdelta[0];
+	OUT.world_cam_x_dir = world_cam_x_dir[0];
+	OUT.world_cam_y_dir = world_cam_y_dir[0];
+	OUT.world_cam_z_dir = world_cam_z_dir[0];
 	gl_Position = gl_in[0].gl_Position + dx + dy;
 	EmitVertex();
 }

@@ -4,7 +4,7 @@ uniform float particle_brightness;
 uniform float smooth_shape_sharpness;
 
 uniform sampler2D custom_texture;
-uniform sampler2D depth_texture;
+uniform sampler2D normaldepth_texture;
 uniform sampler2D aoc_texture;
 uniform sampler2D uv_colorindex_texture;
 
@@ -15,6 +15,7 @@ in VertexData
 
 void main ()
 {
-	gl_FragColor = texture(uv_colorindex_texture, param);
-	gl_FragDepth = texture(depth_texture, param).x;
+	gl_FragColor = vec4(0, texture(aoc_texture, param).w, 0, 1);
+	//gl_FragColor = vec4(texture(normaldepth_texture, param).xyz, 1);
+	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

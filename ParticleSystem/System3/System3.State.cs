@@ -27,8 +27,8 @@ namespace opentk.System3
 
 		private TextureBase Texture;
 		private TextureBase UV_ColorIndex_None_Texture;
-		private TextureBase WorldDepth_Texture;
 		private TextureBase AOC_Texture;
+		private TextureBase NormalDepth_Texture;
 		private TextureBase Depth_Texture;
 
 		//
@@ -125,23 +125,24 @@ namespace opentk.System3
 						MagFilter = TextureMagFilter.Linear,
 				}};
 
-				WorldDepth_Texture =
-				new DataTexture<float> {
-					Name = "WorldDepth_Texture",
-					InternalFormat = PixelInternalFormat.R32f,
-					Data2D = new float[300, 300],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Nearest,
-						MagFilter = TextureMagFilter.Nearest,
-				}};
-
 				AOC_Texture =
 				new DataTexture<Vector3> {
 					Name = "AOC_Texture",
 					InternalFormat = PixelInternalFormat.R8,
 					Data2D = TestTexture(300, 300),
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
+
+				NormalDepth_Texture =
+				new DataTexture<Vector4> {
+					Name = "NormalDepth_Texture",
+					InternalFormat = PixelInternalFormat.Rgba32f,
+					//Format = PixelFormat.DepthComponent,
+					Data2D = new Vector4[300, 300],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -179,6 +180,7 @@ namespace opentk.System3
 			m_UniformState.Set ("blue", 1.0f);
 			m_UniformState.Set ("colors", new float[] { 0, 1, 0, 1 });
 			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
+			m_UniformState.Set ("sampling_pattern", SamplingPattern(100));
 			
 			m_ParticleRenderingState =
 				new ArrayObject (
@@ -210,8 +212,9 @@ namespace opentk.System3
 				 m_ParticleRenderingState,
 				 m_UniformState,
 				 new FramebufferBindingSet(
+				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture },
 				   new DrawFramebufferBinding { VariableName = "Fragdata.uv_colorindex_none", Texture = UV_ColorIndex_None_Texture },
-				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture }
+				   new DrawFramebufferBinding { VariableName = "Fragdata.normal_depth", Texture = NormalDepth_Texture }
 				 ),
 				 new TextureBindingSet(
 				   new TextureBinding { VariableName = "custom_texture", Texture = Texture }
@@ -228,7 +231,7 @@ namespace opentk.System3
 				 {
 					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 					GL.Disable (EnableCap.DepthTest);
-					GL.DepthMask(true);
+					GL.DepthMask(false);
 					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
 
@@ -243,7 +246,7 @@ namespace opentk.System3
 				 ),
 				 m_UniformState,
 				 new TextureBindingSet(
-				   new TextureBinding { VariableName = "depth_texture", Texture = Depth_Texture }
+				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture }
 				 )
 			);
 
@@ -271,7 +274,7 @@ namespace opentk.System3
 				 m_UniformState,
 				 new TextureBindingSet(
 				   new TextureBinding { VariableName = "custom_texture", Texture = Texture },
-				   new TextureBinding { VariableName = "depth_texture", Texture = Depth_Texture },
+				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture },
 				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
 				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture }
 				 )
@@ -285,6 +288,7 @@ namespace opentk.System3
 				 //pass code
 				 (window) =>
 				 {
+					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 					GL.Disable (EnableCap.DepthTest);
 					GL.Enable (EnableCap.Blend);
 					GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
@@ -299,7 +303,7 @@ namespace opentk.System3
 				 m_ParticleRenderingState,
 				 m_UniformState,
 				 new TextureBindingSet(
-				   new TextureBinding { VariableName = "texture", Texture = Texture }
+				   new TextureBinding { VariableName = "custom_texture", Texture = Texture }
 				 )
 			);
 
@@ -333,6 +337,18 @@ namespace opentk.System3
 						result[i,j] = new Vector3(0, 0, 0);
 					else result[i, j] = new Vector3(len, 0, 0);
 				}
+			}
+
+			return result;
+		}
+
+		private Vector2[] SamplingPattern (int w)
+		{
+			var result = new Vector2[w];
+
+			for (int i = 0; i < w; i++)
+			{
+				result[i] = (Vector2)MathHelper2.RandomVector2(1);
 			}
 
 			return result;

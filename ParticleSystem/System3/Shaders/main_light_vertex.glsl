@@ -25,8 +25,13 @@ out float z_maxdelta;
 //horizontal and vertical clipping space deltas
 out vec2 xy_maxdelta;
 
-void main () {
+//camera particle direction in world space coordinates
+out vec4 world_cam_z_dir;
+out vec4 world_cam_x_dir;
+out vec4 world_cam_y_dir;
 
+void main ()
+{
 	vec4 p0 = modelview_transform * vec4(sprite_pos, 1);
 	vec4 p1 = p0 + vec4(1, 0, 0, 0) * particle_scale_factor * sprite_dimensions.x;
 	vec4 p2 = p0 + vec4(0, 1, 0, 0) * particle_scale_factor * sprite_dimensions.y;
@@ -43,6 +48,11 @@ void main () {
 	p2 /= p2.w;
 
 	xy_maxdelta = vec2(length(p1 - p0), length(p2 - p0));
+
+	mat4 modelview_inv_transform = inverse(modelview_transform);
+	world_cam_z_dir =  modelview_inv_transform * vec4(0, 0, 1, 0);
+	world_cam_x_dir =  modelview_inv_transform * vec4(1, 0, 0, 0);
+	world_cam_y_dir =  modelview_inv_transform * vec4(0, 1, 0, 0);
 
 	color = sprite_color;
 	gl_Position = p0;

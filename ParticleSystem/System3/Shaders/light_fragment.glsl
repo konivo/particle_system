@@ -21,7 +21,6 @@ void main ()
 {
 	vec4 color;
 	vec2 cparam = 2 * (param - 0.5f);
-	gl_FragDepth = gl_FragCoord.z;
 
 	switch(particle_shape)
 	{
@@ -29,17 +28,17 @@ void main ()
 		case 1:
 			float dist = length(cparam) * 1.1f;
 			color = vec4(fcolor * pow(1.1f - dist, smooth_shape_sharpness),  particle_brightness * 0.001f);
-
-			gl_FragColor = color;
 			break;
 
 		//texture
 		case 3:
-			gl_FragColor = texture (custom_texture, param);
+			color = texture (custom_texture, param);
 		break;
 
 		default:
-			gl_FragColor = vec4(fcolor, 0.01);
+			color = vec4(fcolor, 0.01);
 			break;
 	}
+
+	gl_FragColor = color;
 }	

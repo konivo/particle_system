@@ -123,7 +123,11 @@ namespace OpenTK
 				{
 					for (int i = 0; i < ((Array)val).Length; i++)
 					{
-						SetValue (program, location, name + "[" + i + "]", ((Array)val).GetValue (i));
+						int uloc = GL.GetUniformLocation (program, name + "[" + i + "]");
+						if (uloc >= 0)
+						{
+							SetValue (program, uloc, name + "[" + i + "]",  ((Array)val).GetValue (i));
+						}
 					}
 				}
 			}

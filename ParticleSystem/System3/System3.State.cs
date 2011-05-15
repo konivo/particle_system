@@ -46,6 +46,10 @@ namespace opentk.System3
 
 		private RenderPass[] m_Passes;
 
+		private Vector2 m_Viewport;
+
+		private int m_SolidModeTextureSize = 1000;
+
 		private void PrepareState ()
 		{
 			if (m_Passes != null)
@@ -117,7 +121,7 @@ namespace opentk.System3
 				new DataTexture<Vector3> {
 					Name = "UV_ColorIndex_None_Texture",
 					InternalFormat = PixelInternalFormat.Rgba16f,
-					Data2D = TestTexture(300, 300),
+					Data2D = TestTexture(m_SolidModeTextureSize, m_SolidModeTextureSize),
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -126,10 +130,10 @@ namespace opentk.System3
 				}};
 
 				AOC_Texture =
-				new DataTexture<Vector3> {
+				new DataTexture<float> {
 					Name = "AOC_Texture",
-					InternalFormat = PixelInternalFormat.R8,
-					Data2D = TestTexture(300, 300),
+					InternalFormat = PixelInternalFormat.R32f,
+					Data2D = new float[m_SolidModeTextureSize, m_SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -142,7 +146,7 @@ namespace opentk.System3
 					Name = "NormalDepth_Texture",
 					InternalFormat = PixelInternalFormat.Rgba32f,
 					//Format = PixelFormat.DepthComponent,
-					Data2D = new Vector4[300, 300],
+					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -155,7 +159,7 @@ namespace opentk.System3
 					Name = "Depth_Texture",
 					InternalFormat = PixelInternalFormat.DepthComponent32f,
 					Format = PixelFormat.DepthComponent,
-					Data2D = new float[300, 300],
+					Data2D = new float[m_SolidModeTextureSize, m_SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -177,9 +181,10 @@ namespace opentk.System3
 			m_UniformState.Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape));
 			m_UniformState.Set ("particle_brightness", ValueProvider.Create (() => this.ParticleBrightness));
 			m_UniformState.Set ("smooth_shape_sharpness", ValueProvider.Create (() => this.SmoothShapeSharpness));
+			m_UniformState.Set ("viewport_size", ValueProvider.Create (() => this.m_Viewport));
 			m_UniformState.Set ("blue", 1.0f);
 			m_UniformState.Set ("colors", new float[] { 0, 1, 0, 1 });
-			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
+			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (0, 1, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
 			m_UniformState.Set ("sampling_pattern", SamplingPattern(100));
 			
 			m_ParticleRenderingState =
@@ -204,7 +209,7 @@ namespace opentk.System3
 					GL.Disable (EnableCap.Blend);
 
 					SetCamera (window);
-					GL.Viewport(0, 0, 300, 300);
+					SetViewport(0, 0, m_SolidModeTextureSize, m_SolidModeTextureSize);
 					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
 				 },
 
@@ -235,7 +240,7 @@ namespace opentk.System3
 					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
 
-					GL.Viewport(0, 0, 300, 300);
+					SetViewport(0, 0, m_SolidModeTextureSize, m_SolidModeTextureSize);
 					GL.DrawArrays (BeginMode.Points, 0, 1);
 				 },
 
@@ -315,6 +320,7 @@ namespace opentk.System3
 			
 			m_TransformationStack.Push (m_Manip.RT);
 			m_UniformState.Set ("modelview_transform", m_Manip.RT);
+			m_UniformState.Set ("modelviewprojection_transform", m_TransformationStack);
 			m_UniformState.Set ("projection_transform", m_Projection);
 
 			PrepareState ();
@@ -354,11 +360,18 @@ namespace opentk.System3
 			return result;
 		}
 
+		private void SetViewport(int x, int y, int width, int height)
+		{
+			m_Viewport = new Vector2(width, height);
+			GL.Viewport (x, y, width, height);
+		}
+
 		private void SetCamera (GameWindow window)
 		{
 			float aspect = window.Height / (float)window.Width;
 			float projw = VIEWPORT_WIDTH;
-			GL.Viewport (0, 0, window.Width, window.Height);
+
+			SetViewport(0, 0, window.Width, window.Height);
 			
 			if (m_Projection != null)
 			{

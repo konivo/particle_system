@@ -8,6 +8,8 @@ uniform sampler2D normaldepth_texture;
 uniform sampler2D aoc_texture;
 uniform sampler2D uv_colorindex_texture;
 
+uniform vec4[3] colors2;
+
 in VertexData
 {
 	vec2 param;
@@ -15,7 +17,7 @@ in VertexData
 
 void main ()
 {
-	gl_FragColor = vec4(0, texture(aoc_texture, param).w, 0, 1);
-	//gl_FragColor = vec4(texture(normaldepth_texture, param).xyz, 1);
+	float aoc = texture(aoc_texture, param).x;
+	gl_FragColor = vec4(1, 1, 1, 1) * (1 - vec4(aoc, aoc, aoc, 1));
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

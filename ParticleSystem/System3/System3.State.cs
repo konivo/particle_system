@@ -48,7 +48,8 @@ namespace opentk.System3
 
 		private Vector2 m_Viewport;
 
-		private int m_SolidModeTextureSize = 1000;
+		private int m_SolidModeTextureSize = 500;
+		private int m_AocTextureSize = 500;
 
 		private void PrepareState ()
 		{
@@ -133,7 +134,7 @@ namespace opentk.System3
 				new DataTexture<float> {
 					Name = "AOC_Texture",
 					InternalFormat = PixelInternalFormat.R32f,
-					Data2D = new float[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Data2D = new float[m_AocTextureSize, m_AocTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -197,7 +198,7 @@ namespace opentk.System3
 			//
 			var firstPassSolid = new SeparateProgramPass<System3>
 			(
-				 "main",
+				 "solid1",
 
 				 //pass code
 				 (window) =>
@@ -240,7 +241,7 @@ namespace opentk.System3
 					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
 
-					SetViewport(0, 0, m_SolidModeTextureSize, m_SolidModeTextureSize);
+					SetViewport(0, 0, m_AocTextureSize, m_AocTextureSize);
 					GL.DrawArrays (BeginMode.Points, 0, 1);
 				 },
 
@@ -322,6 +323,9 @@ namespace opentk.System3
 			m_UniformState.Set ("modelview_transform", m_Manip.RT);
 			m_UniformState.Set ("modelviewprojection_transform", m_TransformationStack);
 			m_UniformState.Set ("projection_transform", m_Projection);
+			m_UniformState.Set ("projection_inv_transform", new MatrixInversion(m_Projection));
+			m_UniformState.Set ("modelview_inv_transform", new MatrixInversion(m_Manip.RT));
+			m_UniformState.Set ("modelviewprojection_inv_transform", new MatrixInversion(m_TransformationStack));
 
 			PrepareState ();
 		}

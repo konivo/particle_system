@@ -17,7 +17,13 @@ in VertexData
 
 void main ()
 {
+	vec2 cparam = 2 * (texture(uv_colorindex_texture, param).xy - 0.5f);
+	float dist = length(cparam);
+
 	float aoc = texture(aoc_texture, param).x;
-	gl_FragColor = vec4(1, 1, 1, 1) * (1 - vec4(aoc, aoc, aoc, 1));
+	vec4 color = vec4(vec3(1, 1, 1) * pow(1.0f - dist, smooth_shape_sharpness), 1);
+
+
+	gl_FragColor = color * (1 - vec4(aoc, aoc, aoc, 0)* 1.5);
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

@@ -66,7 +66,7 @@ void main ()
 	projected_i /= projected_i.w;
 
 	gl_FragDepth = normal_depth.w = (projected_i.z + 1) * 0.5;
-	normal_depth.xyz = normalize(intersection - Camera.pos.xyz) * 0.5f + 0.5f;
+	normal_depth.xyz = normalize(intersection - Sprite.pos.xyz) * 0.5f + 0.5f;
 
 	uv_colorindex_none = vec4(Camera.param, 0.5f, 0);
 }

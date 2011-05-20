@@ -48,8 +48,8 @@ namespace opentk.System3
 
 		private Vector2 m_Viewport;
 
-		private int m_SolidModeTextureSize = 500;
-		private int m_AocTextureSize = 500;
+		private int m_SolidModeTextureSize = 2048;
+		private int m_AocTextureSize = 512;
 
 		private void PrepareState ()
 		{
@@ -133,7 +133,7 @@ namespace opentk.System3
 				AOC_Texture =
 				new DataTexture<float> {
 					Name = "AOC_Texture",
-					InternalFormat = PixelInternalFormat.R32f,
+					InternalFormat = PixelInternalFormat.R8,
 					Data2D = new float[m_AocTextureSize, m_AocTextureSize],
 					Params = new TextureBase.Parameters
 					{

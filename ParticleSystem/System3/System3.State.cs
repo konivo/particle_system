@@ -48,7 +48,7 @@ namespace opentk.System3
 
 		private Vector2 m_Viewport;
 
-		private int m_SolidModeTextureSize = 2048;
+		private int m_SolidModeTextureSize = 1024;
 		private int m_AocTextureSize = 512;
 
 		private void PrepareState ()
@@ -121,13 +121,13 @@ namespace opentk.System3
 				UV_ColorIndex_None_Texture =
 				new DataTexture<Vector3> {
 					Name = "UV_ColorIndex_None_Texture",
-					InternalFormat = PixelInternalFormat.Rgba16f,
+					InternalFormat = PixelInternalFormat.Rgba8,
 					Data2D = TestTexture(m_SolidModeTextureSize, m_SolidModeTextureSize),
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Linear,
-						MagFilter = TextureMagFilter.Linear,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
 				}};
 
 				AOC_Texture =
@@ -151,8 +151,8 @@ namespace opentk.System3
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Linear,
-						MagFilter = TextureMagFilter.Linear,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
 				}};
 
 				Depth_Texture =
@@ -164,8 +164,8 @@ namespace opentk.System3
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Linear,
-						MagFilter = TextureMagFilter.Linear,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
 				}};
 			}
 			
@@ -235,10 +235,8 @@ namespace opentk.System3
 				 //pass code
 				 (window) =>
 				 {
-					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+					GL.Clear(ClearBufferMask.ColorBufferBit);
 					GL.Disable (EnableCap.DepthTest);
-					GL.DepthMask(false);
-					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
 
 					SetViewport(0, 0, m_AocTextureSize, m_AocTextureSize);

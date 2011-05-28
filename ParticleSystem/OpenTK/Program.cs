@@ -77,7 +77,7 @@ namespace OpenTK
 			if (Linked.Value)
 				Console.WriteLine ("Program <{0}> linked:\n{1}", Name, Log);
 			else
-				Console.WriteLine ("Program <{0}> error:\n{1}", Name, Log);
+				Console.WriteLine ("Program <{0}> error:\n{1}\n----------\n{2}", Name, Log, string.Join(Environment.NewLine, ShaderLogs));
 		}
 
 		internal void EnsureLinked ()

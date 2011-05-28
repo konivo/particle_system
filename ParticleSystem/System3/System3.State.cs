@@ -50,6 +50,7 @@ namespace opentk.System3
 
 		private int m_SolidModeTextureSize = 1024;
 		private int m_AocTextureSize = 512;
+		private int m_AocSampleCount = 64;
 
 		private void PrepareState ()
 		{
@@ -133,7 +134,7 @@ namespace opentk.System3
 				AOC_Texture =
 				new DataTexture<float> {
 					Name = "AOC_Texture",
-					InternalFormat = PixelInternalFormat.R8,
+					InternalFormat = PixelInternalFormat.R16,
 					Data2D = new float[m_AocTextureSize, m_AocTextureSize],
 					Params = new TextureBase.Parameters
 					{
@@ -186,7 +187,8 @@ namespace opentk.System3
 			m_UniformState.Set ("blue", 1.0f);
 			m_UniformState.Set ("colors", new float[] { 0, 1, 0, 1 });
 			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (0, 1, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
-			m_UniformState.Set ("sampling_pattern", SamplingPattern(100));
+			m_UniformState.Set ("sampling_pattern", MathHelper2.RandomVectorSet(m_AocSampleCount, new Vector2(1, 1) ));
+			m_UniformState.Set ("sampling_pattern_len", m_AocSampleCount);
 			
 			m_ParticleRenderingState =
 				new ArrayObject (
@@ -345,18 +347,6 @@ namespace opentk.System3
 						result[i,j] = new Vector3(0, 0, 0);
 					else result[i, j] = new Vector3(len, 0, 0);
 				}
-			}
-
-			return result;
-		}
-
-		private Vector2[] SamplingPattern (int w)
-		{
-			var result = new Vector2[w];
-
-			for (int i = 0; i < w; i++)
-			{
-				result[i] = (Vector2)MathHelper2.RandomVector2(1);
 			}
 
 			return result;

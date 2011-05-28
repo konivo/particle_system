@@ -6,20 +6,23 @@ uniform mat4 projection_inv_transform;
 uniform vec2 viewport_size;
 
 //todo: shall be uniformly distributed. Look for some advice, how to make it properly
-uniform vec2[100] sampling_pattern;
+uniform vec2[96] sampling_pattern;
+uniform int sampling_pattern_len;
 
 //
 uniform sampler2D normaldepth_texture;
 
 //maximum distance of an occluder in the world space
-const float OCCLUDER_MAX_DISTANCE = 5;
+const float OCCLUDER_MAX_DISTANCE = 25;
 
 //these two constants will limit how big area in image space will be sampled.
 //farther areas will be smaller in size and thus will contain less samples,
 //less far areas will be bigger in screen size and will be covered by more samples.
 //Samples count should change with square of projected screen size?
-const float OCCLUDER_MIN_PROJECTED_SIZE = 2;
-const float OCCLUDER_MAX_PROJECTED_SIZE = 200;
+const float OCCLUDER_DISTANCE_PROJECTED_MIN_SIZE = 2;
+const float OCCLUDER_DISTANCE_PROJECTED_MAX_SIZE = 200;
+//
+const float MINIMAL_SAMPLES_COUNT_RATIO = 0.02;
 //
 const float PI = 3.141592654f;
 
@@ -60,6 +63,35 @@ vec4 reproject (mat4 transform, vec4 vector)
 }
 
 //
+float compute_occluded_radius_projection(float camera_space_dist)
+{
+	return
+		clamp(reproject(projection_transform, vec4(OCCLUDER_MAX_DISTANCE, 0, camera_space_dist, 1)).x / 2,
+	  			OCCLUDER_DISTANCE_PROJECTED_MIN_SIZE / viewport_size.x,
+	  			OCCLUDER_DISTANCE_PROJECTED_MAX_SIZE / viewport_size.x);
+}
+
+//
+int compute_step_from_occluded_screen_size(float rf)
+{
+//compute number of samples needed (step size)
+	float ssize = ceil(sampling_pattern_len * clamp(MINIMAL_SAMPLES_COUNT_RATIO, 0, 1));
+	float msize = ceil(sampling_pattern_len * clamp(1 - MINIMAL_SAMPLES_COUNT_RATIO, 0, 1));
+
+	float min_dist_squared = pow(OCCLUDER_DISTANCE_PROJECTED_MIN_SIZE, 2);
+	float max_dist_squared = pow(OCCLUDER_DISTANCE_PROJECTED_MAX_SIZE, 2);
+
+//90/(40000 - 100) * (x ^ 2 - 100) + 10
+ 	int step =
+		int(
+ 			sampling_pattern_len/
+ 				((msize / (max_dist_squared - min_dist_squared)) * (pow(rf * viewport_size.x, 2) - min_dist_squared ) +  ssize)) ;
+ 	step = clamp(step, 1, sampling_pattern_len);
+
+ 	return step;
+}
+
+//
 void main ()
 {
 	aoc = 0.0f;
@@ -71,14 +103,13 @@ void main ()
 	vec4 p_campos = reproject(projection_inv_transform, p_clip);
 
 //screen space radius of sphere of influence  (projection of its size in range -1, 1)
-  float rf =	clamp(
-					  		reproject(projection_transform, vec4(OCCLUDER_MAX_DISTANCE, 0, p_campos.z, 1)).x / 2,
-					  		OCCLUDER_MIN_PROJECTED_SIZE / viewport_size.x,
-					  		OCCLUDER_MAX_PROJECTED_SIZE / viewport_size.x);
- 	int step = int(ceil(sampling_pattern.length/ pow(rf * viewport_size.x, 2)));
+  float rf =	compute_occluded_radius_projection( p_campos.z );
+
+//compute number of samples needed (step size)
+ 	int step = compute_step_from_occluded_screen_size(rf);
 
 //for each sample compute occlussion estimation and add it to result
-	for(int i = 0; i < sampling_pattern.length; i+= step)
+	for(int i = 0; i < sampling_pattern_len; i+= step)
 	{
 		vec2 oc_param = param + sampling_pattern[i] * rf;
 
@@ -88,7 +119,17 @@ void main ()
 
 		float o_r =  reproject(projection_inv_transform, vec4(1/viewport_size.x, 0, o_nd.w, 1)).x;
 
-		float s_omega = 2 * PI * (1 - cos( asin( o_r/ distance(o_pos, p_pos))));
-		aoc += s_omega * max(dot( normalize(o_pos.xyz - p_pos.xyz), p_nd.xyz), 0);
+		//correction to prevent occlusion from itself or from neighbours which are on the same tangent plane
+		o_pos -= o_r * vec4(o_nd.xyz, 0);
+
+		float o_p_distance = distance(o_pos, p_pos);
+		float s_omega = 2 * PI * (1 - cos( asin( o_r/ o_p_distance)));
+		aoc +=
+			o_p_distance <= OCCLUDER_MAX_DISTANCE ?
+			s_omega * max(dot( normalize(o_pos.xyz - p_pos.xyz), p_nd.xyz), 0):
+			0;
 	}
+
+	//aoc = step / float(sampling_pattern_len);
+	aoc *= 100;
 }

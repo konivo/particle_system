@@ -7,10 +7,15 @@ namespace OpenTK
 	public static class MathHelper2
 	{
 		private static ThreadLocal<Random> m_Rnd = new ThreadLocal<Random>(() => new Random());
-		private static ThreadLocal<Random> m_Rnd1 = new ThreadLocal<Random>(() => new Random(1));
-		private static ThreadLocal<Random> m_Rnd2 = new ThreadLocal<Random>(() => new Random(2));
-		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new Random(3));
-		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new Random(4));
+		private static ThreadLocal<Random> m_Rnd1 = new ThreadLocal<Random>(() => new MersenneTwister(154352));
+		private static ThreadLocal<Random> m_Rnd2 = new ThreadLocal<Random>(() => new MersenneTwister(245346666));
+		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new MersenneTwister(342));
+		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new MersenneTwister(464353546));
+
+//		private static ThreadLocal<Random> m_Rnd1 = new ThreadLocal<Random>(() => new Random(154352));
+//		private static ThreadLocal<Random> m_Rnd2 = new ThreadLocal<Random>(() => new Random(245346666));
+//		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new Random(342));
+//		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new Random(464353546));
 
 		public static Vector4d RandomVector4 (double magnitude)
 		{
@@ -55,31 +60,38 @@ namespace OpenTK
 		public static Vector2d[] RandomVectorSet (int w, Vector2d magnitude)
 		{
 			var result = new Vector2d[w];
-			//var position = RandomVector(magnitude);
+
+//			var magnitudeDelta = Vector2d.Multiply(magnitude, 1.0 / w);
+//			for (int i = 0; i < w; i++)
+//			{
+//				var highnoise = MathHelper2.RandomVector(magnitudeDelta);
+//				var basedir = MathHelper2.RandomVector(magnitude);
+//				var rand = highnoise + Vector2d.Multiply(basedir, magnitude * i / (w * basedir.Length));
+//				result[i] = rand;
+//			}
+
 			var sqr = (int)Math.Sqrt(w);
+			if(sqr <= 1)
+				return result;
 
-
-			for (int i = 0; i < w; i++)
+			for (int i = 0; i < sqr; i++)
 			{
-				Vector2d rand;
-//
-//				while((rand = MathHelper2.RandomVector2(1)).Length < 0.1 || rand.Length > 0.9);
-//				position = result[i] = Modulo(position + Vector2d.Multiply(rand, magnitude), magnitude);
-
-				while((rand = MathHelper2.RandomVector2(1)).Length < 0.1);
-
-				result[i] = rand;
-			}
-
-			for (int i = -sqr/2; i < -sqr/2 + sqr; i++)
-			{
-				for(int j = -sqr/2; j < -sqr/2 + sqr; j++)
+				for(int j = 0; j < sqr; j++)
 				{
-					result[(i + sqr/2) * sqr + (j + sqr/2)] = new Vector2d(magnitude.X * (float)i / sqr, magnitude.Y * (float)j / sqr);
+					var delta = 2.0 / (sqr - 1);
+					var index = i * sqr + j;
+
+					if(index >= w)
+					 break;
+
+					var param = new Vector2d(magnitude.X * ( -1 + delta * i), magnitude.Y * ( -1 + delta * j));
+					var highnoise = MathHelper2.RandomVector(new Vector2d(delta, delta));
+
+					result[index] = highnoise + Vector2d.Multiply(param, new Vector2d(Math.Abs(param.X), Math.Abs(param.Y)));
 				}
 			}
 
-			//var random_order = Enumerable.Range(0, w).Select(m_Rnd.Value.Next(w));
+			//var str = string.Join(Environment.NewLine, result);
 
 			return result;
 		}

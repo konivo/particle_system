@@ -84,6 +84,8 @@
     <Compile Include="OpenTK\FramebufferObject.cs" />
     <Compile Include="OpenTK\State.cs" />
     <Compile Include="OpenTK\MatrixValueProviders.cs" />
+    <Compile Include="OpenTK\UniformRandomGenerator.cs" />
+    <Compile Include="OpenTK\MersenneTwister.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

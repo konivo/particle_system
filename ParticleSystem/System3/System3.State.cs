@@ -49,7 +49,7 @@ namespace opentk.System3
 		private Vector2 m_Viewport;
 
 		private int m_SolidModeTextureSize = 1024;
-		private int m_AocTextureSize = 512;
+		private int m_AocTextureSize = 1024;
 		private int m_AocSampleCount = 64;
 
 		private void PrepareState ()
@@ -211,6 +211,7 @@ namespace opentk.System3
 					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
 
+					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
 					SetCamera (window);
 					SetViewport(0, 0, m_SolidModeTextureSize, m_SolidModeTextureSize);
 					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
@@ -241,6 +242,7 @@ namespace opentk.System3
 					GL.Disable (EnableCap.DepthTest);
 					GL.Disable (EnableCap.Blend);
 
+					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
 					SetViewport(0, 0, m_AocTextureSize, m_AocTextureSize);
 					GL.DrawArrays (BeginMode.Points, 0, 1);
 				 },
@@ -270,6 +272,7 @@ namespace opentk.System3
 					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
 
+					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
 					SetCamera(window);
 					GL.DrawArrays (BeginMode.Points, 0, 1);
 				 },
@@ -300,6 +303,7 @@ namespace opentk.System3
 					GL.BlendFunc (BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
 					GL.BlendEquation (BlendEquationMode.FuncAdd);
 
+					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
 					SetCamera (window);
 					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
 				 },

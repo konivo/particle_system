@@ -13,16 +13,18 @@ uniform int sampling_pattern_len;
 uniform sampler2D normaldepth_texture;
 
 //maximum distance of an occluder in the world space
-const float OCCLUDER_MAX_DISTANCE = 25;
+const float OCCLUDER_MAX_DISTANCE = 2.5;
 
 //these two constants will limit how big area in image space will be sampled.
 //farther areas will be smaller in size and thus will contain less samples,
 //less far areas will be bigger in screen size and will be covered by more samples.
 //Samples count should change with square of projected screen size?
-const float OCCLUDER_DISTANCE_PROJECTED_MIN_SIZE = 2;
-const float OCCLUDER_DISTANCE_PROJECTED_MAX_SIZE = 200;
-//
-const float MINIMAL_SAMPLES_COUNT_RATIO = 0.02;
+const float PROJECTED_OCCLUDER_DISTANCE_MIN_SIZE = 2;
+const float PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE = 200;
+
+//determines how big fraction of the samples will be used for the minimal computed projection of occluder distance
+const float MINIMAL_SAMPLES_COUNT_RATIO = 1.02;
+
 //
 const float PI = 3.141592654f;
 
@@ -41,7 +43,6 @@ out Fragdata
 //
 vec4 get_normal_depth (vec2 param)
 {
-//todo: p_nd.w is in screen space, thus in range 0, 1. We need it to be in range -1, 1, also account with offsets and so on
 	vec4 result = texture(normaldepth_texture, param);
 	result = result * 2 - 1;
 
@@ -66,29 +67,33 @@ vec4 reproject (mat4 transform, vec4 vector)
 float compute_occluded_radius_projection(float camera_space_dist)
 {
 	return
-		clamp(reproject(projection_transform, vec4(OCCLUDER_MAX_DISTANCE, 0, camera_space_dist, 1)).x / 2,
-	  			OCCLUDER_DISTANCE_PROJECTED_MIN_SIZE / viewport_size.x,
-	  			OCCLUDER_DISTANCE_PROJECTED_MAX_SIZE / viewport_size.x);
+		clamp(reproject(projection_transform, vec4(OCCLUDER_MAX_DISTANCE, 0, camera_space_dist, 1)).x,
+	  			PROJECTED_OCCLUDER_DISTANCE_MIN_SIZE / viewport_size.x,
+	  			PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE / viewport_size.x);
 }
 
 //
 int compute_step_from_occluded_screen_size(float rf)
 {
+//compute projection screen size
+	rf *= viewport_size.x;
+
 //compute number of samples needed (step size)
-	float ssize = ceil(sampling_pattern_len * clamp(MINIMAL_SAMPLES_COUNT_RATIO, 0, 1));
-	float msize = ceil(sampling_pattern_len * clamp(1 - MINIMAL_SAMPLES_COUNT_RATIO, 0, 1));
+	float ssize = sampling_pattern_len * clamp(MINIMAL_SAMPLES_COUNT_RATIO, 0, 1);
+	float msize = sampling_pattern_len * (1 - clamp(MINIMAL_SAMPLES_COUNT_RATIO, 0, 1));
 
-	float min_dist_squared = pow(OCCLUDER_DISTANCE_PROJECTED_MIN_SIZE, 2);
-	float max_dist_squared = pow(OCCLUDER_DISTANCE_PROJECTED_MAX_SIZE, 2);
+	float min_dist_squared = pow(PROJECTED_OCCLUDER_DISTANCE_MIN_SIZE, 2);
+	float max_dist_squared = pow(PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE, 2);
+	float rf_squared = pow(rf, 2);
 
-//90/(40000 - 100) * (x ^ 2 - 100) + 10
- 	int step =
-		int(
- 			sampling_pattern_len/
- 				((msize / (max_dist_squared - min_dist_squared)) * (pow(rf * viewport_size.x, 2) - min_dist_squared ) +  ssize)) ;
- 	step = clamp(step, 1, sampling_pattern_len);
+//linear interpolation between (msize + ssize) and ssize, parameter is squared projection size
+	float samples_cnt =
+		(msize / (max_dist_squared - min_dist_squared)) *
+		(rf_squared - min_dist_squared) +  ssize;
 
- 	return step;
+ 	float step = clamp(sampling_pattern_len / samples_cnt, 1, sampling_pattern_len);
+
+ 	return int(step);
 }
 
 //
@@ -131,5 +136,7 @@ void main ()
 	}
 
 	//aoc = step / float(sampling_pattern_len);
+	//aoc = rf * viewport_size.x/ PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE;
+	//
 	aoc *= 100;
 }

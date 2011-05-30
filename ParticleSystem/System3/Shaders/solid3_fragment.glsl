@@ -26,7 +26,6 @@ in VertexData
 //
 vec4 get_normal_depth (vec2 param)
 {
-//todo: p_nd.w is in screen space, thus in range 0, 1. We need it to be in range -1, 1, also account with offsets and so on
 	vec4 result = texture(normaldepth_texture, param);
 	result = result * 2 - 1;
 
@@ -45,7 +44,8 @@ void main ()
 
 	vec4 diffuse = color * dot(light.dir, nd.xyz);
 
-	gl_FragColor = vec4(1, 1, 1, 1) * (1 - vec4(aoc, aoc, aoc, 0));
+	//gl_FragColor = vec4(1, 1, 1, 1) * (1 - vec4(aoc, aoc, aoc, 0));
+	gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1) * (1 - vec4(aoc, aoc, aoc, 0));
 	//gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1);
 	//gl_FragColor = vec4(aoc, aoc, aoc, 1);
 	gl_FragDepth = texture(normaldepth_texture, param).w;

@@ -49,7 +49,7 @@ namespace opentk.System3
 		private Vector2 m_Viewport;
 
 		private int m_SolidModeTextureSize = 1024;
-		private int m_AocTextureSize = 1024;
+		private int m_AocTextureSize = 512;
 		private int m_AocSampleCount = 64;
 
 		private void PrepareState ()
@@ -187,7 +187,7 @@ namespace opentk.System3
 			m_UniformState.Set ("blue", 1.0f);
 			m_UniformState.Set ("colors", new float[] { 0, 1, 0, 1 });
 			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (0, 1, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
-			m_UniformState.Set ("sampling_pattern", MathHelper2.RandomVectorSet(m_AocSampleCount, new Vector2(1, 1) ));
+			m_UniformState.Set ("sampling_pattern", MathHelper2.RegularVectorSet(m_AocSampleCount, new Vector2(1, 1) ));
 			m_UniformState.Set ("sampling_pattern_len", m_AocSampleCount);
 			
 			m_ParticleRenderingState =

@@ -61,15 +61,24 @@ namespace OpenTK
 		{
 			var result = new Vector2d[w];
 
-//			var magnitudeDelta = Vector2d.Multiply(magnitude, 1.0 / w);
-//			for (int i = 0; i < w; i++)
-//			{
-//				var highnoise = MathHelper2.RandomVector(magnitudeDelta);
-//				var basedir = MathHelper2.RandomVector(magnitude);
-//				var rand = highnoise + Vector2d.Multiply(basedir, magnitude * i / (w * basedir.Length));
-//				result[i] = rand;
-//			}
+			var magnitudeDelta = Vector2d.Multiply(magnitude, 1.0 / w);
+			for (int i = 0; i < w; i++)
+			{
+				var highnoise = MathHelper2.RandomVector(magnitudeDelta);
+				var basedir = MathHelper2.RandomVector(magnitude);
+				var rand = highnoise + Vector2d.Multiply(basedir, magnitude * i / (w * basedir.Length));
+				result[i] = rand;
+			}
 
+			//var str = string.Join(Environment.NewLine, result);
+
+			return result;
+		}
+
+		//todo: do it better, it has huge impact on ssao
+		public static Vector2d[] RegularVectorSet (int w, Vector2d magnitude)
+		{
+			var result = new Vector2d[w];
 			var sqr = (int)Math.Sqrt(w);
 			if(sqr <= 1)
 				return result;
@@ -84,16 +93,20 @@ namespace OpenTK
 					if(index >= w)
 					 break;
 
-					var param = new Vector2d(magnitude.X * ( -1 + delta * i), magnitude.Y * ( -1 + delta * j));
-					var highnoise = MathHelper2.RandomVector(new Vector2d(delta, delta));
-
-					result[index] = highnoise + Vector2d.Multiply(param, new Vector2d(Math.Abs(param.X), Math.Abs(param.Y)));
+					result[index] = new Vector2d(magnitude.X * ( -1 + delta * i), magnitude.Y * ( -1 + delta * j));
 				}
 			}
 
 			//var str = string.Join(Environment.NewLine, result);
 
 			return result;
+		}
+
+		//todo: do it better, it has huge impact on ssao
+		public static Vector2[] RegularVectorSet (int w, Vector2 magnitude)
+		{
+			var result = RegularVectorSet(w, (Vector2d) magnitude);
+			return result.Select(x => (Vector2)x).ToArray();
 		}
 
 		//todo: do it better, it has huge impact on ssao

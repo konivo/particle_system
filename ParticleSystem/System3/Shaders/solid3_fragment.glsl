@@ -44,7 +44,7 @@ void main ()
 
 	vec4 diffuse = color * dot(light.dir, nd.xyz);
 
-	//gl_FragColor = vec4(1, 1, 1, 1) * (1 - vec4(aoc, aoc, aoc, 0));
+	//gl_FragColor = vec4(aoc, aoc, aoc, 1);
 	gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1) * (1 - vec4(aoc, aoc, aoc, 0));
 	//gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1);
 	//gl_FragColor = vec4(aoc, aoc, aoc, 1);

@@ -48,7 +48,7 @@ namespace opentk.System3
 
 		private Vector2 m_Viewport;
 
-		private int m_SolidModeTextureSize = 1024;
+		private int m_SolidModeTextureSize = 2048;
 		private int m_AocTextureSize = 512;
 		private int m_AocSampleCount = 64;
 
@@ -183,12 +183,9 @@ namespace opentk.System3
 			m_UniformState.Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape));
 			m_UniformState.Set ("particle_brightness", ValueProvider.Create (() => this.ParticleBrightness));
 			m_UniformState.Set ("smooth_shape_sharpness", ValueProvider.Create (() => this.SmoothShapeSharpness));
-			m_UniformState.Set ("viewport_size", ValueProvider.Create (() => this.m_Viewport));
 			m_UniformState.Set ("blue", 1.0f);
 			m_UniformState.Set ("colors", new float[] { 0, 1, 0, 1 });
 			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (0, 1, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
-			m_UniformState.Set ("sampling_pattern", MathHelper2.RegularVectorSet(m_AocSampleCount, new Vector2(1, 1) ));
-			m_UniformState.Set ("sampling_pattern_len", m_AocSampleCount);
 			
 			m_ParticleRenderingState =
 				new ArrayObject (
@@ -230,40 +227,26 @@ namespace opentk.System3
 				 )
 			);
 
-			//
-			var aocPassSolid = new SeparateProgramPass<System3>
+			var aocPassSolid = RenderPassFactory.CreateAoc
 			(
-				 "aoc",
-
-				 //pass code
-				 (window) =>
-				 {
-					GL.Clear(ClearBufferMask.ColorBufferBit);
-					GL.Disable (EnableCap.DepthTest);
-					GL.Disable (EnableCap.Blend);
-
-					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
-					SetViewport(0, 0, m_AocTextureSize, m_AocTextureSize);
-					GL.DrawArrays (BeginMode.Points, 0, 1);
-				 },
-
-				 //pass state
-				 m_ParticleRenderingState,
-				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { VariableName = "Fragdata.aoc", Texture = AOC_Texture }
-				 ),
-				 m_UniformState,
-				 new TextureBindingSet(
-				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture }
-				 )
+				 NormalDepth_Texture,
+				 AOC_Texture,
+				 m_TransformationStack,
+				 new MatrixInversion(m_TransformationStack),
+				 m_Projection,
+				 new MatrixInversion(m_Projection),
+				 ValueProvider.Create (() => m_AocSampleCount)
 			);
 
 			//
-			var thirdPassSolid = new SeparateProgramPass<System3>
+			var thirdPassSolid = RenderPassFactory.CreateFullscreenQuad
 			(
-				 "solid3",
-
-				 //pass code
+				 "solid3", "System3",
+				 ValueProvider.Create(() => m_Viewport),
+				 (window) =>
+				 {
+					SetCamera (window);
+				 },
 				 (window) =>
 				 {
 					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
@@ -271,13 +254,8 @@ namespace opentk.System3
 					GL.DepthMask(true);
 					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
-
-					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
-					SetCamera(window);
-					GL.DrawArrays (BeginMode.Points, 0, 1);
 				 },
-
-				 //pass state
+				//pass state
 				 FramebufferBindingSet.Default,
 				 m_ParticleRenderingState,
 				 m_UniformState,

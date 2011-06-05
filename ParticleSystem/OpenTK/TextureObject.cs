@@ -219,11 +219,13 @@ namespace OpenTK
 				m_Data2D = value;
 				base.Target = TextureTarget.Texture2D;
 
-				if (m_Data2D != null && IsCreated)
+				if (m_Data2D != null)
 				{
 					base.Height = m_Data2D.GetLength(0);
 					base.Width = m_Data2D.GetLength(1);
-					Initialize (Handle);
+
+					if(IsCreated)
+						Initialize (Handle);
 				}
 			}
 		}

@@ -86,6 +86,7 @@
     <Compile Include="OpenTK\MatrixValueProviders.cs" />
     <Compile Include="OpenTK\UniformRandomGenerator.cs" />
     <Compile Include="OpenTK\MersenneTwister.cs" />
+    <Compile Include="RenderPassFactory\RenderPassFactory.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -98,6 +99,8 @@
     <Folder Include="OpenTK\Extensions\" />
     <Folder Include="PropertyGridCustom\" />
     <Folder Include="OrbitManipulator\" />
+    <Folder Include="RenderPassFactory\" />
+    <Folder Include="RenderPassFactory\Shaders\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -113,12 +116,12 @@
     <EmbeddedResource Include="System3\Shaders\light_fragment.glsl" />
     <EmbeddedResource Include="System3\Shaders\main_light_vertex.glsl" />
     <EmbeddedResource Include="System3\Shaders\main_light_geometry.glsl" />
-    <EmbeddedResource Include="System3\Shaders\aoc_fragment.glsl" />
-    <EmbeddedResource Include="System3\Shaders\aoc_solid3_vertex.glsl" />
     <EmbeddedResource Include="System3\Shaders\solid3_fragment.glsl" />
-    <EmbeddedResource Include="System3\Shaders\aoc_solid3_geometry.glsl" />
     <EmbeddedResource Include="System3\Shaders\solid1_fragment.glsl" />
     <EmbeddedResource Include="System3\Shaders\solid1_geometry.glsl" />
     <EmbeddedResource Include="System3\Shaders\solid1_vertex.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\aoc_fragment.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\fullquad_geometry.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\fullquad_vertex.glsl" />
   </ItemGroup>
 </Project>

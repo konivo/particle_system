@@ -40,6 +40,7 @@ void main ()
 	float dist = length(cparam);
 
 	float aoc = texture(aoc_texture, param).x;
+	aoc = pow(aoc, 2)* 0.7;
 	vec4 color = vec4(vec3(1, 1, 1) * pow(1.0f - dist, smooth_shape_sharpness), 1);
 
 	vec4 diffuse = color * dot(light.dir, nd.xyz);

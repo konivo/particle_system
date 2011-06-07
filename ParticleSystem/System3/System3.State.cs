@@ -138,8 +138,8 @@ namespace opentk.System3
 					Data2D = new float[m_AocTextureSize, m_AocTextureSize],
 					Params = new TextureBase.Parameters
 					{
-						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Linear,
+						GenerateMipmap = true,
+						MinFilter = TextureMinFilter.LinearMipmapLinear,
 						MagFilter = TextureMagFilter.Linear,
 				}};
 

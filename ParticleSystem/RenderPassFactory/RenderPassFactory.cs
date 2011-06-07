@@ -55,7 +55,7 @@ uniform sampler2D normaldepth_texture;
 
 			var uniformState = new UniformState ();
 			uniformState.Set ("viewport_size", viewport);
-			uniformState.Set ("sampling_pattern", MathHelper2.RegularVectorSet(samplesCount.Value, new Vector2(1, 1) ));
+			uniformState.Set ("sampling_pattern", MathHelper2.RandomVectorSet(samplesCount.Value, new Vector2(1, 1) ));
 			uniformState.Set ("sampling_pattern_len", samplesCount);
 
 			uniformState.Set ("modelviewprojection_transform", modelviewprojection);

@@ -10,6 +10,10 @@ namespace opentk
 	/// </summary>
 	public abstract class RenderPass
 	{
+		/// <summary>
+		/// provides the State which is to be activated during the Render call
+		/// </summary>
+		//todo: refactor and define factory method for retrieving set of StateParts
 		protected virtual State State
 		{
 			get
@@ -18,6 +22,12 @@ namespace opentk
 			}
 		}
 
+		/// <summary>
+		/// template method for rendering logic. Override when the template is not sufficient
+		/// </summary>
+		/// <param name="window">
+		/// A <see cref="GameWindow"/>
+		/// </param>
 		public virtual void Render (GameWindow window)
 		{
 			BeforeState(window);
@@ -25,18 +35,38 @@ namespace opentk
 			AfterState(window);
 		}
 
+		//
 		protected virtual void BeforeState(GameWindow window)
 		{		}
 
+		//
 		protected virtual void AfterState(GameWindow window)
 		{		}
 
+		/// <summary>
+		///
+		/// </summary>
+		/// <returns>
+		/// A <see cref="IEnumerable<Shader>"/>
+		/// </returns>
 		public virtual IEnumerable<Shader> GetShaders ()
 		{
 			var parentNamespace = GetType ().Namespace.Split ('.').Last ();
 			return GetShaders(parentNamespace, "");
 		}
 
+		/// <summary>
+		/// returns set of shaders each of which contains in its resource identifier both name1 and name2
+		/// </summary>
+		/// <param name="name1">
+		/// A <see cref="System.String"/>
+		/// </param>
+		/// <param name="name2">
+		/// A <see cref="System.String"/>
+		/// </param>
+		/// <returns>
+		/// A <see cref="IEnumerable<Shader>"/>
+		/// </returns>
 		public static IEnumerable<Shader> GetShaders (string name1, string name2)
 		{
 			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()

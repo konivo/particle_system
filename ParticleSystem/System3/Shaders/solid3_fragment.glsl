@@ -43,11 +43,12 @@ void main ()
 	aoc = pow(aoc, 2)* 0.7;
 	vec4 color = vec4(vec3(1, 1, 1) * pow(1.0f - dist, smooth_shape_sharpness), 1);
 
-	vec4 diffuse = color * dot(light.dir, nd.xyz);
+	vec4 diffuse = color * dot(light.dir, nd.xyz) + vec4(0.2, 0.2, 0.2, 1);
 
 	//gl_FragColor = vec4(aoc, aoc, aoc, 1);
-	gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1) * (1 - vec4(aoc, aoc, aoc, 0));
+	gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1) * (1 - vec4(aoc, aoc, aoc, aoc)) + aoc * vec4(-0.2, -0.2, -0.2, 1);
 	//gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1);
 	//gl_FragColor = vec4(aoc, aoc, aoc, 1);
+	//gl_FragColor = diffuse * (1 - vec4(aoc, aoc, aoc, aoc)) + aoc * vec4(-0.1, -0.1, -0.1, 1);
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

@@ -17,7 +17,7 @@ const float OCCLUDER_MAX_DISTANCE = 35.5;
 
 //if true, occluder projection will be equal to max size.
 //todo: when true, occluder max distance has to be recomputed
-const bool USE_CONSTANT_OCCLUDER_PROJECTION = true;
+const bool USE_CONSTANT_OCCLUDER_PROJECTION = false;
 
 //these two constants will limit how big area in image space will be sampled.
 //farther areas will be smaller in size and thus will contain less samples,
@@ -160,9 +160,6 @@ void main ()
 			0;
 	}
 
-	//aoc = step / float(sampling_pattern_len);
-	//aoc = rf * viewport_size.x/ PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE;
-	//
-	aoc = pow(aoc, 0.15);
+	aoc = pow(aoc, 0.1);
 
 }

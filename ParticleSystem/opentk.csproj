@@ -87,6 +87,8 @@
     <Compile Include="OpenTK\UniformRandomGenerator.cs" />
     <Compile Include="OpenTK\MersenneTwister.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.cs" />
+    <Compile Include="System4\System4.cs" />
+    <Compile Include="System4\System4.State.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -101,6 +103,8 @@
     <Folder Include="OrbitManipulator\" />
     <Folder Include="RenderPassFactory\" />
     <Folder Include="RenderPassFactory\Shaders\" />
+    <Folder Include="System4\" />
+    <Folder Include="System4\Shaders\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -123,5 +127,7 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\aoc_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\fullquad_geometry.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\fullquad_vertex.glsl" />
+    <EmbeddedResource Include="System4\Shaders\raymarch_fragment.glsl" />
+    <EmbeddedResource Include="System4\Shaders\lighting_fragment.glsl" />
   </ItemGroup>
 </Project>

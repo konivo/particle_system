@@ -33,7 +33,7 @@ namespace opentk
 
 			win.RenderFrame += (sender, aaa) => { Application.DoEvents (); };
 
-			using(var system = (new System3.System3 ()).GetInstance (win))
+			using(var system = (new System4.System4 ()).GetInstance (win))
 			{
 				system.PropertyChanged += (sender, e) => propertyGrid1.Refresh();
 

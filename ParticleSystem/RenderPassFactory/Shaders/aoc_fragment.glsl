@@ -13,21 +13,21 @@ uniform int sampling_pattern_len;
 uniform sampler2D normaldepth_texture;
 
 //maximum distance of an occluder in the world space
-const float OCCLUDER_MAX_DISTANCE = 35.5;
+uniform float OCCLUDER_MAX_DISTANCE = 35.5;
 
 //if true, occluder projection will be equal to max size.
 //todo: when true, occluder max distance has to be recomputed
-const bool USE_CONSTANT_OCCLUDER_PROJECTION = false;
+uniform bool USE_CONSTANT_OCCLUDER_PROJECTION = false;
 
 //these two constants will limit how big area in image space will be sampled.
 //farther areas will be smaller in size and thus will contain less samples,
 //less far areas will be bigger in screen size and will be covered by more samples.
 //Samples count should change with square of projected screen size?
-const float PROJECTED_OCCLUDER_DISTANCE_MIN_SIZE = 2;
-const float PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE = 35;
+uniform float PROJECTED_OCCLUDER_DISTANCE_MIN_SIZE = 2;
+uniform float PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE = 35;
 
 //determines how big fraction of the samples will be used for the minimal computed projection of occluder distance
-const float MINIMAL_SAMPLES_COUNT_RATIO = 0.1;
+uniform float MINIMAL_SAMPLES_COUNT_RATIO = 0.1;
 
 //
 const float PI = 3.141592654f;
@@ -115,7 +115,7 @@ vec2 get_sampling_point(int i)
 		mat2(0, -1, 1, 0),
 		mat2(0, 1, -1, 0));
 
-	int index = int(gl_FragCoord.x  * gl_FragCoord.y) * 1664525 + 1013904223;
+	int index = int(gl_FragCoord.x) * int(gl_FragCoord.y) * 1664525 + 1013904223;
 	index = (index >> 16) & 0x3;
 
  	return rot_point[index] * point;
@@ -147,7 +147,7 @@ void main ()
 		vec4 o_clip = get_clip_coordinates( oc_param, o_nd.w);
 		vec4 o_pos = reproject( modelviewprojection_inv_transform, o_clip);
 
-		float o_r =  reproject(projection_inv_transform, vec4(0.5 / viewport_size.x, 0, o_nd.w, 1)).x;
+		float o_r =  reproject(projection_inv_transform, vec4(1.0 / viewport_size.x, 0, o_nd.w, 1)).x;
 
 		//correction to prevent occlusion from itself or from neighbours which are on the same tangent plane
 		o_pos -= o_r * vec4(o_nd.xyz, 0);

@@ -46,6 +46,11 @@ namespace OpenTK
 			return new _ValueProvider<T>(getter, invalidator);
 		}
 
+		public static IValueProvider<T> Create<T> (T val)
+		{
+			return Create(() => val);
+		}
+
 	}
 	
 	

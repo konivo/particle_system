@@ -110,6 +110,11 @@ namespace OpenTK
 				var mat = (int)val;
 				GL.Uniform1 (location, mat);
 			}
+			else if (val is bool)
+			{
+				var vval = (bool)val;
+				GL.Uniform1 (location, vval? 1 : 0);
+			}
 			else if (val is Array)
 			{
 				var elementtype = val.GetType ().GetElementType ();

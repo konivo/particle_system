@@ -141,6 +141,15 @@ namespace opentk.System3
 			set;
 		}
 
+		[Category("Aoc properties")]
+		[TypeConverter(typeof(AocParametersConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the ssao.")]
+		public AocParameters AocParameters
+		{
+			get;
+			private set;
+		}
+
 		[Category("Map properties")]
 		[TypeConverter(typeof(ChaoticMapConverter))]
 		[DescriptionAttribute("Expand to see the parameters of the map.")]
@@ -169,9 +178,10 @@ namespace opentk.System3
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
 			var result = new System3 {
-				PARTICLES_COUNT = 300, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0001,
-				Fov = 0.6,
-				ParticleScaleFactor = 3000, ParticleBrightness = 1, ParticleShape = System3.ParticleShapeType.SolidSpere, MapMode = false };
+				PARTICLES_COUNT = 6000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0001,
+				Fov = 0.2,
+				Projection = ProjectionType.Frustum,
+				ParticleScaleFactor = 600, ParticleBrightness = 1, ParticleShape = System3.ParticleShapeType.SolidSpere, MapMode = false};
 			return result;
 		}
 		

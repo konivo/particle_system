@@ -49,13 +49,16 @@ namespace opentk.System3
 		private Vector2 m_Viewport;
 
 		private int m_SolidModeTextureSize = 2048;
-		private int m_AocTextureSize = 512;
-		private int m_AocSampleCount = 64;
 
 		private void PrepareState ()
 		{
 			if (m_Passes != null)
 			{
+				if(AocParameters.AocTextureSize != AOC_Texture.Width)
+				{
+					((DataTexture<float>) AOC_Texture).Data2D = new float[ AocParameters.AocTextureSize, AocParameters.AocTextureSize];
+				}
+
 				if (PARTICLES_COUNT != PositionBuffer.Data.Length)
 				{
 					PositionBuffer.Data = new Vector4[PARTICLES_COUNT];
@@ -101,6 +104,20 @@ namespace opentk.System3
 				
 				return;
 			}
+
+			m_PublishSize = 100000;
+
+			AocParameters = new AocParameters
+			{
+				AocTextureSize = 512,
+				OccConstantArea = false,
+				OccMaxDist = 35,
+				OccMinSampleRatio = 0.1f,
+				OccPixmax = 200,
+				OccPixmin = 10,
+				SamplesCount = 64
+			};
+
 			
 			unsafe
 			{
@@ -135,12 +152,12 @@ namespace opentk.System3
 				new DataTexture<float> {
 					Name = "AOC_Texture",
 					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[m_AocTextureSize, m_AocTextureSize],
+					Data2D = new float[AocParameters.AocTextureSize, AocParameters.AocTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = true,
 						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Linear,
+						MagFilter = TextureMagFilter.Nearest,
 				}};
 
 				NormalDepth_Texture =
@@ -169,8 +186,6 @@ namespace opentk.System3
 						MagFilter = TextureMagFilter.Nearest,
 				}};
 			}
-			
-			m_PublishSize = 100000;
 			
 			var ortho = Matrix4.CreateOrthographic (1, 1, (float)NEAR, (float)FAR);
 			
@@ -235,7 +250,12 @@ namespace opentk.System3
 				 new MatrixInversion(m_TransformationStack),
 				 m_Projection,
 				 new MatrixInversion(m_Projection),
-				 ValueProvider.Create (() => m_AocSampleCount)
+				 ValueProvider.Create (() => AocParameters.SamplesCount),
+				 ValueProvider.Create (() => AocParameters.OccMaxDist),
+				 ValueProvider.Create (() => AocParameters.OccPixmax),
+				 ValueProvider.Create (() => AocParameters.OccPixmin),
+				 ValueProvider.Create (() => AocParameters.OccMinSampleRatio),
+				 ValueProvider.Create (() => AocParameters.OccConstantArea)
 			);
 
 			//
@@ -294,6 +314,8 @@ namespace opentk.System3
 				   new TextureBinding { VariableName = "custom_texture", Texture = Texture }
 				 )
 			);
+
+
 
 			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, aocPassSolid, thirdPassSolid };
 			m_EmitModePasses = new RenderPass[]{ firstPassEmit };

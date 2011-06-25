@@ -176,7 +176,6 @@ namespace OpenTK
         /// Returns the next pseudo-random <see cref="UInt32"/>.
         /// </summary>
         /// <returns>A pseudo-random <see cref="UInt32"/> value.</returns>
-        [CLSCompliant(false)]
         public virtual UInt32 NextUInt32()
         {
             return GenerateUInt32();
@@ -192,7 +191,6 @@ namespace OpenTK
         /// <returns>
         /// A pseudo-random <see cref="UInt32"/> value which is at most <paramref name="maxValue"/>.
         /// </returns>
-        [CLSCompliant(false)]
         public virtual UInt32 NextUInt32(UInt32 maxValue)
         {
             return (UInt32)(GenerateUInt32() / ((Double)UInt32.MaxValue / maxValue));
@@ -211,7 +209,6 @@ namespace OpenTK
         /// <exception cref="ArgumentOutOfRangeException">
         /// If <c><paramref name="minValue"/> &gt;= <paramref name="maxValue"/></c>.
         /// </exception>
-        [CLSCompliant(false)]
         public virtual UInt32 NextUInt32(UInt32 minValue, UInt32 maxValue) /* throws ArgumentOutOfRangeException */
         {
             if (minValue >= maxValue)
@@ -418,7 +415,6 @@ namespace OpenTK
         /// Generates a new pseudo-random <see cref="UInt32"/>.
         /// </summary>
         /// <returns>A pseudo-random <see cref="UInt32"/>.</returns>
-        [CLSCompliant(false)]
         protected UInt32 GenerateUInt32()
         {
             UInt32 y;

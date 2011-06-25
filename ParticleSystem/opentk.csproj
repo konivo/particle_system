@@ -89,6 +89,8 @@
     <Compile Include="RenderPassFactory\RenderPassFactory.cs" />
     <Compile Include="System4\System4.cs" />
     <Compile Include="System4\System4.State.cs" />
+    <Compile Include="System3\AocParameters.cs" />
+    <Compile Include="System3\AocParametersConverter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

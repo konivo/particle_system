@@ -91,6 +91,11 @@
     <Compile Include="System4\System4.State.cs" />
     <Compile Include="System3\AocParameters.cs" />
     <Compile Include="System3\AocParametersConverter.cs" />
+    <Compile Include="System21\System21.cs" />
+    <Compile Include="System21\System21.SImulation.cs" />
+    <Compile Include="System21\System21.State.cs" />
+    <Compile Include="System21\AocParameters.cs" />
+    <Compile Include="System21\AocParametersConverter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -107,6 +112,7 @@
     <Folder Include="RenderPassFactory\Shaders\" />
     <Folder Include="System4\" />
     <Folder Include="System4\Shaders\" />
+    <Folder Include="System21\Shaders\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -131,5 +137,14 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\fullquad_vertex.glsl" />
     <EmbeddedResource Include="System4\Shaders\raymarch_fragment.glsl" />
     <EmbeddedResource Include="System4\Shaders\lighting_fragment.glsl" />
+    <EmbeddedResource Include="System21\Shaders\light_fragment.glsl" />
+    <EmbeddedResource Include="System21\Shaders\main_fragment.glsl" />
+    <EmbeddedResource Include="System21\Shaders\main_light_geometry.glsl" />
+    <EmbeddedResource Include="System21\Shaders\main_light_vertex.glsl" />
+    <EmbeddedResource Include="System21\Shaders\solid1_fragment.glsl" />
+    <EmbeddedResource Include="System21\Shaders\solid1_geometry.glsl" />
+    <EmbeddedResource Include="System21\Shaders\solid1_vertex.glsl" />
+    <EmbeddedResource Include="System21\Shaders\solid3_fragment.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\blur_fragment.glsl" />
   </ItemGroup>
 </Project>

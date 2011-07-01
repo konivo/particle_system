@@ -64,6 +64,60 @@ namespace opentk
 			//pass state
 			}, new FramebufferBindingSet (new DrawFramebufferBinding { VariableName = "Fragdata.aoc", Texture = aoc }), uniformState, new TextureBindingSet (new TextureBinding { VariableName = "normaldepth_texture", Texture = normalDepth }));
 		}
+
+		//computed world-space normal and clipping space depth (depth in range 0, 1)
+		//where the result will be stored, results will be stored to the first component of the texture
+		//how many samples will be used for occlusion estimation
+		public static RenderPass CreateBlur (
+		                                    TextureBase source,
+		                                    TextureBase interm,
+		                                    TextureBase result
+		                                    )
+		{
+			var viewport = ValueProvider.Create (() => new Vector2 (result.Width, result.Height));
+			var horizontal = false;
+			var uniformState = new UniformState ();
+			uniformState.Set ("viewport_size", viewport);
+			uniformState.Set ("horizontal", ValueProvider.Create (() => horizontal));
+
+			var _1stPass = CreateFullscreenQuad ("blur", "RenderPassFactory", viewport,
+			window =>
+			{
+				horizontal = false;
+			}
+			,
+			window =>
+			{
+				GL.Clear (ClearBufferMask.ColorBufferBit);
+				GL.Disable (EnableCap.DepthTest);
+				GL.Disable (EnableCap.Blend);
+			//pass state
+			},
+			new FramebufferBindingSet (
+			new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = interm }),
+			uniformState,
+			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = source }));
+
+			var _2ndPass = CreateFullscreenQuad ("blur", "RenderPassFactory", viewport,
+			window =>
+			{
+				horizontal = true;
+			}
+			,
+			window =>
+			{
+				GL.Clear (ClearBufferMask.ColorBufferBit);
+				GL.Disable (EnableCap.DepthTest);
+				GL.Disable (EnableCap.Blend);
+			//pass state
+			},
+			new FramebufferBindingSet (
+			new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = result }),
+			uniformState,
+			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = interm }));
+
+			return new CompoundRenderPass(_1stPass, _2ndPass);
+		}
 	}
 }
 

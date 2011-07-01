@@ -168,5 +168,26 @@ namespace opentk
 			return GetShaders(PassName, PassNamespace);
 		}
 	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public class CompoundRenderPass : RenderPass
+	{
+		private RenderPass[] m_Passes;
+
+		public CompoundRenderPass (params RenderPass[] passes)
+		{
+			m_Passes = passes;
+		}
+
+		public override void Render (GameWindow window)
+		{
+			foreach (var item in m_Passes)
+			{
+				item.Render(window);
+			}
+		}
+	}
 }
 

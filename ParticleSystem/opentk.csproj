@@ -146,5 +146,6 @@
     <EmbeddedResource Include="System21\Shaders\solid1_vertex.glsl" />
     <EmbeddedResource Include="System21\Shaders\solid3_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\blur_fragment.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\bilateralfilter_fragment.glsl" />
   </ItemGroup>
 </Project>

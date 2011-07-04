@@ -29,8 +29,14 @@ uniform float PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE = 35;
 //determines how big fraction of the samples will be used for the minimal computed projection of occluder distance
 uniform float MINIMAL_SAMPLES_COUNT_RATIO = 0.1;
 
+uniform float AOC_STRENGTH = 0.1;
+
 //
 const float PI = 3.141592654f;
+const float TWO_PI = 2 * 3.141592654f;
+
+//
+vec2 SAMPLING_RANDOMIZATION_VECTOR;
 
 //param in range (0, 0) to (1, 1)
 in VertexData
@@ -105,26 +111,26 @@ int compute_step_from_occluded_screen_size(vec2 rf)
  	return int(step);
 }
 
+void init_sampling()
+{
+	int index = int(gl_FragCoord.x) * int(gl_FragCoord.y) * 1664525 + 1013904223;
+	index = (index >> 16) & 0x1FF;
+
+	float angle = TWO_PI * (index % 360 / 360.0f);
+	SAMPLING_RANDOMIZATION_VECTOR = vec2( cos(angle), sin(angle));
+}
+
 //
 vec2 get_sampling_point(int i)
 {
-	vec2 point = sampling_pattern[i];
-	mat2[] rot_point = mat2[](
-		mat2(1, 0, 0, 1),
-		mat2(-1, 0, 0, -1),
-		mat2(0, -1, 1, 0),
-		mat2(0, 1, -1, 0));
-
-	int index = int(gl_FragCoord.x) * int(gl_FragCoord.y) * 1664525 + 1013904223;
-	index = (index >> 16) & 0x3;
-
- 	return rot_point[index] * point;
+	return reflect(sampling_pattern[i], SAMPLING_RANDOMIZATION_VECTOR);
 }
 
 //
 void main ()
 {
 	aoc = 0.0f;
+	init_sampling();
 
 //p is the sample, for which aoc is computed
 	vec4 p_nd = get_normal_depth(param);
@@ -160,6 +166,5 @@ void main ()
 			0;
 	}
 
-	aoc = pow(aoc, 0.1);
-
+	aoc = pow(aoc, 0.25) * AOC_STRENGTH;
 }

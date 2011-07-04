@@ -101,11 +101,12 @@ namespace opentk.System21
 			{
 				AocTextureSize = 512,
 				OccConstantArea = false,
-				OccMaxDist = 35,
-				OccMinSampleRatio = 0.1f,
-				OccPixmax = 200,
-				OccPixmin = 10,
-				SamplesCount = 64
+				OccMaxDist = 40,
+				OccMinSampleRatio = 0.5f,
+				OccPixmax = 100,
+				OccPixmin = 2,
+				SamplesCount = 32,
+				AocStrength = 2
 			};
 
 
@@ -264,10 +265,11 @@ namespace opentk.System21
 				 ValueProvider.Create (() => AocParameters.OccPixmax),
 				 ValueProvider.Create (() => AocParameters.OccPixmin),
 				 ValueProvider.Create (() => AocParameters.OccMinSampleRatio),
-				 ValueProvider.Create (() => AocParameters.OccConstantArea)
+				 ValueProvider.Create (() => AocParameters.OccConstantArea),
+				 ValueProvider.Create (() => AocParameters.AocStrength)
 			);
 
-			var aocBlur = RenderPassFactory.CreateBlur
+			var aocBlur = RenderPassFactory.CreateBilateralFilter
 			(
 				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV
 			);

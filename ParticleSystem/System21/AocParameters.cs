@@ -54,6 +54,12 @@ namespace opentk.System21
 			get;
 			set;
 		}
+
+		public float AocStrength
+		{
+			get;
+			set;
+		}
 	}
 }
 

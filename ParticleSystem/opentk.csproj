@@ -147,5 +147,8 @@
     <EmbeddedResource Include="System21\Shaders\solid3_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\blur_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\bilateralfilter_fragment.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\fxaa3_fragment.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\Fxaa3_8.include" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\rendertexture_fragment.glsl" />
   </ItemGroup>
 </Project>

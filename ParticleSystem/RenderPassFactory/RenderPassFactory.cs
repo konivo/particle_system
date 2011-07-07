@@ -97,6 +97,17 @@ namespace opentk
 		}
 
 		//
+		public static RenderPass CreateFxaa3Filter
+		(
+			 TextureBase source,
+			 TextureBase result)
+		{
+			return CreateFilter("fxaa3", "RenderPassFactory", source, result);
+		}
+
+		/// <summary>
+		/// creates non-separable filter pass
+		/// </summary>
 		public static RenderPass CreateFilter
 		(
 			 string filterName,
@@ -125,7 +136,10 @@ namespace opentk
 			return _1stPass;
 		}
 
-		//
+		/// <summary>
+		/// create two passes in one compound pass. First pass has set "horizontal" uniform boolean to true,
+		/// the second has it set to false.
+		/// </summary>
 		public static RenderPass CreateSeparableFilter
 		(
 			 string filterName,
@@ -177,6 +191,39 @@ namespace opentk
 			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = interm }));
 
 			return new CompoundRenderPass(_1stPass, _2ndPass);
+		}
+
+		/// <summary>
+		/// given color and depth textures, render them.
+		/// </summary>
+		public static RenderPass CreateRenderTextureToBuffer
+		(
+			 TextureBase source,
+			 TextureBase depth_source,
+			 IValueProvider<Vector2> viewportSize,
+			 Action<GameWindow> beforeState,
+			 Action<GameWindow> beforeRender,
+			 params StatePart[] stateParts
+		)
+		{
+			//TODO: BUG see System21.State.cs: line 351. Order of states has also some influence
+			var states = new StatePart[]{
+				new TextureBindingSet
+				(
+				 new TextureBinding { VariableName = "source_texture", Texture = source },
+				 new TextureBinding { VariableName = "depth_texture", Texture = depth_source }
+				)
+			};
+
+			states = stateParts.Concat(states).ToArray();
+
+			return CreateFullscreenQuad
+			(
+				 "rendertexture", "RenderPassFactory",
+				 viewportSize,
+				 beforeState,
+				 beforeRender,
+				 states);
 		}
 	}
 }

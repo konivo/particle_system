@@ -32,6 +32,8 @@ namespace opentk.System21
 		private TextureBase AOC_Texture_Blurred_HV;
 		private TextureBase NormalDepth_Texture;
 		private TextureBase Depth_Texture;
+		private TextureBase BeforeAA_Texture;
+		private TextureBase AA_Texture;
 
 		//
 		private Grid m_Grid;
@@ -200,6 +202,30 @@ namespace opentk.System21
 						MinFilter = TextureMinFilter.Nearest,
 						MagFilter = TextureMagFilter.Nearest,
 				}};
+
+				BeforeAA_Texture =
+				new DataTexture<Vector4> {
+					Name = "BeforeAA_Texture",
+					InternalFormat = PixelInternalFormat.Rgba8,
+					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
+
+				AA_Texture =
+				new DataTexture<Vector4> {
+					Name = "AA_Texture",
+					InternalFormat = PixelInternalFormat.Rgba8,
+					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
 			}
 			
 			var ortho = Matrix4.CreateOrthographic (1, 1, (float)NEAR, (float)FAR);
@@ -279,21 +305,19 @@ namespace opentk.System21
 			var thirdPassSolid = RenderPassFactory.CreateFullscreenQuad
 			(
 				 "solid3", "System21",
-				 ValueProvider.Create(() => m_Viewport),
-				 (window) =>
-				 {
-					SetCamera (window);
-				 },
+				 ValueProvider.Create(() => new Vector2(m_SolidModeTextureSize, m_SolidModeTextureSize)),
+				 (window) => { },
 				 (window) =>
 				 {
 					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-					GL.Enable (EnableCap.DepthTest);
-					GL.DepthMask(true);
-					GL.DepthFunc (DepthFunction.Less);
+					GL.Disable (EnableCap.DepthTest);
 					GL.Disable (EnableCap.Blend);
 				 },
-				//pass state
-				 FramebufferBindingSet.Default,
+				 //pass state
+				 new FramebufferBindingSet(
+				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture },
+				   new DrawFramebufferBinding { VariableName = "Fragdata.color_luma", Texture = BeforeAA_Texture}
+				 ),
 				 m_ParticleRenderingState,
 				 m_UniformState,
 				 new TextureBindingSet(
@@ -302,6 +326,33 @@ namespace opentk.System21
 				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
 				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture_Blurred_HV }
 				 )
+			);
+
+			var antialiasPass = RenderPassFactory.CreateFxaa3Filter
+			(
+				 BeforeAA_Texture, AA_Texture
+			);
+
+			var finalRender = RenderPassFactory.CreateRenderTextureToBuffer
+			(
+				 AA_Texture,
+				 Depth_Texture,
+				 ValueProvider.Create(() => m_Viewport),
+				 (window) =>
+				 {
+					SetCamera (window);
+				 },
+				 (window) =>
+				 {
+					GL.Clear (ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+					GL.Disable (EnableCap.DepthTest);
+					GL.Disable (EnableCap.Blend);
+				 },
+				//TODO: BUG m_ParticleRenderingState is necessary, but it shouldn't be
+				FramebufferBindingSet.Default,
+				m_ParticleRenderingState
+				//m_UniformState
+
 			);
 
 			//
@@ -332,7 +383,7 @@ namespace opentk.System21
 				 )
 			);
 
-			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, aocPassSolid, aocBlur, thirdPassSolid };
+			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender };
 			m_EmitModePasses = new RenderPass[]{ firstPassEmit };
 
 			m_Manip = new OrbitManipulator (m_Projection);

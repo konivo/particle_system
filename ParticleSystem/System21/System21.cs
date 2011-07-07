@@ -129,7 +129,7 @@ namespace opentk.System21
 				pass.Render(window);
 
 			m_Grid.Render (window);
-			m_DebugView.Render(window);
+			//m_DebugView.Render(window);
 
 			window.SwapBuffers ();
 		}
@@ -137,7 +137,7 @@ namespace opentk.System21
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
 			var result = new System21 { PARTICLES_COUNT = 2000, VIEWPORT_WIDTH = 20, Fov = 0.9, NEAR = 1, FAR = 1000,
-			ParticleScaleFactor = 1, Projection = System21.ProjectionType.Frustum };
+			ParticleScaleFactor = 2, Projection = System21.ProjectionType.Frustum };
 			return result;
 		}
 

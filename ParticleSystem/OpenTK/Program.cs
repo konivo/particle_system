@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace OpenTK
 {
@@ -108,7 +109,12 @@ namespace OpenTK
 	/// </summary>
 	public class Shader : IDisposable, IHandle
 	{
+		private static readonly Regex m_IncludeRegex = new Regex(
+			@"\#pragma include \<(?<includename>.+)\>",
+			RegexOptions.Compiled);
+
 		public readonly string Code;
+
 		public readonly ShaderType Type;
 		public readonly string Name;
 
@@ -127,6 +133,11 @@ namespace OpenTK
 		{
 			get;
 			private set;
+		}
+
+		public string ExpandedCode
+		{
+			get; private set;
 		}
 
 		public Shader (string name, ShaderType type, string code)
@@ -150,7 +161,21 @@ namespace OpenTK
 
 		public void Compile ()
 		{
-			GL.ShaderSource (Handle, Code);
+			ExpandedCode =
+				m_IncludeRegex.Replace(Code,
+				m =>
+				{
+					try
+					{
+						return opentk.ResourcesHelper.GetTexts(m.Groups["includename"].Value, "", System.Text.Encoding.UTF8).Single();
+					}
+					catch (Exception ex)
+					{
+						throw new ApplicationException(string.Format("cannot find resource for inclusion: {0}", m.Groups["includename"].Value), ex);
+					}
+				});
+
+			GL.ShaderSource (Handle, ExpandedCode);
 			GL.CompileShader (Handle);
 			
 			int result;

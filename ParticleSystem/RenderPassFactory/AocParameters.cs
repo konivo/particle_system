@@ -7,7 +7,7 @@ using opentk.GridRenderPass;
 using opentk.Manipulators;
 using System.ComponentModel;
 
-namespace opentk.System3
+namespace opentk
 {
 	/// <summary>
 	///
@@ -50,6 +50,12 @@ namespace opentk.System3
 		}
 
 		public int AocTextureSize
+		{
+			get;
+			set;
+		}
+
+		public float AocStrength
 		{
 			get;
 			set;

@@ -115,6 +115,7 @@ namespace opentk.System3
 				OccMinSampleRatio = 0.1f,
 				OccPixmax = 200,
 				OccPixmin = 10,
+				AocStrength = 1.2f,
 				SamplesCount = 64
 			};
 
@@ -255,7 +256,8 @@ namespace opentk.System3
 				 ValueProvider.Create (() => AocParameters.OccPixmax),
 				 ValueProvider.Create (() => AocParameters.OccPixmin),
 				 ValueProvider.Create (() => AocParameters.OccMinSampleRatio),
-				 ValueProvider.Create (() => AocParameters.OccConstantArea)
+				 ValueProvider.Create (() => AocParameters.OccConstantArea),
+				 ValueProvider.Create (() => AocParameters.AocStrength)
 			);
 
 			//

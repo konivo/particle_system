@@ -71,7 +71,7 @@ namespace opentk
 			
 			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
 				where res.Contains ("glsl") && res.Contains (parentNamespace) && res.Contains(name)
-				select new Shader (res, ResourcesHelper.GetText (res, System.Text.Encoding.UTF8));
+				select Shader.GetShader(res, ResourcesHelper.GetText (res, System.Text.Encoding.UTF8));
 			
 			return shaders;
 		}

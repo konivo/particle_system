@@ -31,7 +31,7 @@ namespace opentk.System4
 		//
 		private Vector2 m_Viewport;
 		//
-		private int m_SolidModeTextureSize = 2048;
+		private int m_SolidModeTextureSize = 1024;
 		//
 		private int m_AocTextureSize = 512;
 		//

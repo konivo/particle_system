@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.ComponentModel;
 using System.Globalization;
-namespace opentk.System21
+namespace opentk
 {
 	public class AocParametersConverter: ExpandableObjectConverter
 	{

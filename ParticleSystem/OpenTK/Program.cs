@@ -53,12 +53,6 @@ namespace OpenTK
 			Console.WriteLine ("Program <{0}> declared, shaders: {1}", Name, String.Join (", ", shaders.Select (x => x.Name)));
 		}
 
-		public Program (string name, params Tuple<ShaderType, string[]>[] shaders) : this(name, (from s in shaders
-			from shader in s.Item2
-			select new Shader (s.Item1, shader)).ToArray ())
-		{
-		}
-
 		private void Link ()
 		{
 			foreach (var item in Shaders)
@@ -109,38 +103,57 @@ namespace OpenTK
 	/// </summary>
 	public class Shader : IDisposable, IHandle
 	{
+		//
 		private static readonly Regex m_IncludeRegex = new Regex(
 			@"\#pragma include \<(?<includename>.+)\>",
 			RegexOptions.Compiled);
-
+		//
+		private static readonly Dictionary<string, Shader> m_ShaderPool = new Dictionary<string, Shader>();
+		/// <summary>
+		///
+		/// </summary>
 		public readonly string Code;
-
+		/// <summary>
+		///
+		/// </summary>
 		public readonly ShaderType Type;
+		/// <summary>
+		///
+		/// </summary>
 		public readonly string Name;
-
+		/// <summary>
+		///
+		/// </summary>
 		public int Handle
 		{
 			get;
 			private set;
 		}
-
+		/// <summary>
+		///
+		/// </summary>
 		public bool? Compiled
 		{
 			get;
 			private set;
 		}
+		/// <summary>
+		///
+		/// </summary>
 		public string Log
 		{
 			get;
 			private set;
 		}
-
+		/// <summary>
+		///
+		/// </summary>
 		public string ExpandedCode
 		{
 			get; private set;
 		}
 
-		public Shader (string name, ShaderType type, string code)
+		private Shader (string name, ShaderType type, string code)
 		{
 			Name = name;
 			Code = code;
@@ -151,12 +164,32 @@ namespace OpenTK
 			Console.WriteLine ("Shader {0}:{1} declared", Name, Type);
 		}
 
-		public Shader (ShaderType type, string code) : this(Guid.NewGuid ().ToString (), type, code)
+		private Shader (ShaderType type, string code) : this(Guid.NewGuid ().ToString (), type, code)
 		{
 		}
 
-		public Shader (string name, string code) : this(name, GetShaderTypeFromName (name), code)
+		private Shader (string name, string code) : this(name, GetShaderTypeFromName (name), code)
 		{
+		}
+
+		public static Shader GetShader(string name, string code)
+		{
+			Shader result = null;
+
+			if(!m_ShaderPool.TryGetValue(name, out result))
+				m_ShaderPool.Add(name, result =  new Shader(name, code));
+
+			return result;
+		}
+
+		public static Shader GetShader(string name, ShaderType type, string code)
+		{
+			Shader result = null;
+
+			if(!m_ShaderPool.TryGetValue(name, out result))
+				m_ShaderPool.Add(name, result =  new Shader(name, type, code));
+
+			return result;
 		}
 
 		public void Compile ()
@@ -201,6 +234,8 @@ namespace OpenTK
 		#region IDisposable implementation
 		public void Dispose ()
 		{
+			m_ShaderPool.Remove(this.Name);
+			Compiled = false;
 			GL.DeleteShader (Handle);
 		}
 		#endregion

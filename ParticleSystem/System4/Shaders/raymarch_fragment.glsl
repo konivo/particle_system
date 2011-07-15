@@ -96,7 +96,7 @@ vec3 torus_sdb_grad(vec3 pos)
 
 mat3 DomainMorphFunction(vec3 pos)
 {
-	float phi = pos.y * 0.2;
+	float phi = pos.y * 0.1;
 
 	mat3 rotmatrix = mat3(
 		cos(phi), 0, sin(phi),
@@ -152,13 +152,19 @@ float SDBValue(vec3 pos)
 	mpos = DomainMorphFunction(pos) * pos;
 
 	//return sphere_sdb(vec4(0, 0, 0, 20), mpos);
-	return torus_sdb(mpos);
+	return torus_sdb(mpos) * 0.1;
 }
 
 vec3 Gradient(vec3 pos)
 {
-	vec3 rs = vec3(pos.xy,0);
-	rs = pos - (50*rs)/length(rs);
+	mat3 dm = dDomainMorphFunction(pos);
+
+	vec3 rs = torus_sdb_grad(pos);
+	rs = vec3 (
+						dot(dm[0], rs),
+						dot(dm[1], rs),
+						dot(dm[2], rs));
+
 	return normalize(rs);
 }
 

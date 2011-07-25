@@ -29,6 +29,19 @@ namespace opentk.System3
 			TextureSmoothDot = 0x3
 		}
 
+		public enum SeedDistributionType
+		{
+			RegularGrid = 0x1,
+			Random = 0x2
+		}
+
+		public enum MapModeType
+		{
+			SingleStep = 0x1,
+			Iterated = 0x2,
+			Timedomain = 0x3
+		}
+
 		[Flags]
 		public enum ParticleAttributes
 		{
@@ -99,7 +112,13 @@ namespace opentk.System3
 			set;
 		}
 
-		public bool MapMode
+		public MapModeType MapMode
+		{
+			get;
+			set;
+		}
+
+		public bool SingleStepSimulation
 		{
 			get;
 			set;
@@ -112,6 +131,12 @@ namespace opentk.System3
 		}
 
 		public float ParticleBrightness
+		{
+			get;
+			set;
+		}
+
+		public SeedDistributionType SeedDistribution 
 		{
 			get;
 			set;
@@ -179,9 +204,10 @@ namespace opentk.System3
 		{
 			var result = new System3 {
 				PARTICLES_COUNT = 6000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0001,
-				Fov = 0.2,
+				Fov = 0.9,
 				Projection = ProjectionType.Frustum,
-				ParticleScaleFactor = 600, ParticleBrightness = 1, ParticleShape = System3.ParticleShapeType.SolidSpere, MapMode = false};
+				SeedDistribution = System3.SeedDistributionType.RegularGrid,
+				ParticleScaleFactor = 600, ParticleBrightness = 100, ParticleShape = System3.ParticleShapeType.SolidSpere, MapMode = System3.MapModeType.Timedomain};
 			return result;
 		}
 		

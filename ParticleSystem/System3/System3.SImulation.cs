@@ -35,9 +35,27 @@ namespace opentk.System3
 				Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = Meta[i].Leader };
 				return;
 			}
-			
+
 			var size = (float)(Math.Pow (m_Rnd.NextDouble (), 2) * 0.001);
 			var newpos = (Vector3)MathHelper2.RandomVector3 (12);
+
+			if(SeedDistribution == System3.SeedDistributionType.RegularGrid)
+			{
+				var gridStepSize = 0.1f;
+				var gridLongStepSize = 5 * 2.5f;
+				var gridCount = (int)Math.Floor(Math.Pow(Position.Length, 1/3.0) * 25);
+				var gridCount2 = (int)Math.Ceiling(Math.Pow(Position.Length, 1/3.0) / 5);
+				var gridOrigin = - (gridCount * gridStepSize) / 2;
+
+				var gc2 = gridCount * gridCount2;
+
+				int ix = i / gc2;
+				int iy = (i - gc2 * ix) / gridCount;
+				int iz = i - gc2 * ix - iy * gridCount;
+
+				newpos = Vector3.Multiply(new Vector3(ix, iy, iz), new Vector3(gridLongStepSize, gridLongStepSize, gridStepSize)) +
+					new Vector3(gridOrigin, gridOrigin, gridOrigin);
+			}
 			
 			Dimension[i] = new Vector4 (size, size, size, size);
 			Position[i] = new Vector4 (newpos.X, newpos.Y, newpos.Z, 1);
@@ -68,7 +86,7 @@ namespace opentk.System3
 			StepsPerFrame = StepsPerFrame > 0 ? StepsPerFrame : 1;
 			m_SpeedUpperBound = m_SpeedUpperBound > 0? m_SpeedUpperBound * 0.75f: 1;
 			
-			if (MapMode)
+			if (MapMode == System3.MapModeType.Iterated)
 			{
 				var step = 150;
 				var ld = (Meta[0].Leader + 1) % step;
@@ -106,7 +124,20 @@ namespace opentk.System3
 						break;
 					}
 				}
-			}			
+			}
+			else if(MapMode == System3.MapModeType.SingleStep)
+			{
+				//prepare seed points
+				if (!m_MapModeComputed)
+				{
+					for (int i = 0; i < Position.Length; i++)
+					{
+						MakeBubble(i);
+						Position[i] = new Vector4 ((Vector3)fun ((Vector3d)Position[i].Xyz), 1);
+					}
+					m_MapModeComputed = true;
+				}
+			}
 			else
 			{
 				m_MapModeComputed = false;
@@ -129,7 +160,7 @@ namespace opentk.System3
 							//i is the trail's first element
 							var i = ti * TrailSize;
 							var pi = i + Meta[i].Leader;
-							
+
 							Meta[i].Leader += 1;
 							Meta[i].Leader %= TrailSize;
 							

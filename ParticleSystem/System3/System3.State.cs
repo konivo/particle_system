@@ -28,8 +28,12 @@ namespace opentk.System3
 		private TextureBase Texture;
 		private TextureBase UV_ColorIndex_None_Texture;
 		private TextureBase AOC_Texture;
+		private TextureBase AOC_Texture_Blurred_H;
+		private TextureBase AOC_Texture_Blurred_HV;
 		private TextureBase NormalDepth_Texture;
 		private TextureBase Depth_Texture;
+		private TextureBase BeforeAA_Texture;
+		private TextureBase AA_Texture;
 
 		//
 		private Grid m_Grid;
@@ -54,9 +58,9 @@ namespace opentk.System3
 		{
 			if (m_Passes != null)
 			{
-				if(AocParameters.AocTextureSize != AOC_Texture.Width)
+				if(AocParameters.TextureSize != AOC_Texture.Width)
 				{
-					((DataTexture<float>) AOC_Texture).Data2D = new float[ AocParameters.AocTextureSize, AocParameters.AocTextureSize];
+					((DataTexture<float>) AOC_Texture).Data2D = new float[ AocParameters.TextureSize, AocParameters.TextureSize];
 				}
 
 				if (PARTICLES_COUNT != PositionBuffer.Data.Length)
@@ -70,7 +74,7 @@ namespace opentk.System3
 
 				Simulate (DateTime.Now);
 				
-				if (MapMode)
+				if (MapMode != System3.MapModeType.Timedomain)
 				{
 					var publishSize = m_PublishSize;
 					m_PublishCounter += 1;
@@ -83,7 +87,6 @@ namespace opentk.System3
 					DimensionBuffer.PublishPart (start, end - start);
 					ColorBuffer.PublishPart (start, end - start);
 				}
-
 				else
 				{
 					PositionBuffer.Publish ();
@@ -109,14 +112,15 @@ namespace opentk.System3
 
 			AocParameters = new AocParameters
 			{
-				AocTextureSize = 512,
+				TextureSize = 512,
 				OccConstantArea = false,
 				OccMaxDist = 35,
 				OccMinSampleRatio = 0.1f,
-				OccPixmax = 200,
-				OccPixmin = 10,
-				AocStrength = 1.2f,
-				SamplesCount = 64
+				OccPixmax = 100,
+				OccPixmin = 1,
+				Strength = 1.8f,
+				SamplesCount = 128,
+				Bias = 0.15f
 			};
 
 			
@@ -153,11 +157,35 @@ namespace opentk.System3
 				new DataTexture<float> {
 					Name = "AOC_Texture",
 					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.AocTextureSize, AocParameters.AocTextureSize],
+					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
 					Params = new TextureBase.Parameters
 					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Linear,
+				}};
+
+				AOC_Texture_Blurred_H =
+				new DataTexture<float> {
+					Name = "AOC_Texture_H",
+					InternalFormat = PixelInternalFormat.R16,
+					Data2D = new float[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
+				}};
+
+				AOC_Texture_Blurred_HV =
+				new DataTexture<float> {
+					Name = "AOC_Texture_HV",
+					InternalFormat = PixelInternalFormat.R16,
+					Data2D = new float[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Nearest,
 						MagFilter = TextureMagFilter.Nearest,
 				}};
 
@@ -186,6 +214,30 @@ namespace opentk.System3
 						MinFilter = TextureMinFilter.Nearest,
 						MagFilter = TextureMagFilter.Nearest,
 				}};
+
+				BeforeAA_Texture =
+				new DataTexture<Vector4> {
+					Name = "BeforeAA_Texture",
+					InternalFormat = PixelInternalFormat.Rgba8,
+					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
+
+				AA_Texture =
+				new DataTexture<Vector4> {
+					Name = "AA_Texture",
+					InternalFormat = PixelInternalFormat.Rgba8,
+					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
+				}};
 			}
 			
 			var ortho = Matrix4.CreateOrthographic (1, 1, (float)NEAR, (float)FAR);
@@ -194,14 +246,10 @@ namespace opentk.System3
 			m_TransformationStack = new MatrixStack ().Push (m_Projection);
 			
 			m_UniformState = new UniformState ();
-			m_UniformState.Set ("color", new Vector4 (0, 0, 1, 1));
 			m_UniformState.Set ("particle_scale_factor", ValueProvider.Create (() => this.ParticleScaleFactor));
 			m_UniformState.Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape));
 			m_UniformState.Set ("particle_brightness", ValueProvider.Create (() => this.ParticleBrightness));
 			m_UniformState.Set ("smooth_shape_sharpness", ValueProvider.Create (() => this.SmoothShapeSharpness));
-			m_UniformState.Set ("blue", 1.0f);
-			m_UniformState.Set ("colors", new float[] { 0, 1, 0, 1 });
-			m_UniformState.Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (0, 1, 0, 0), new Vector4 (1, 1, 0.1f, 0) });
 			
 			m_ParticleRenderingState =
 				new ArrayObject (
@@ -251,19 +299,50 @@ namespace opentk.System3
 				 new MatrixInversion(m_TransformationStack),
 				 m_Projection,
 				 new MatrixInversion(m_Projection),
-				 ValueProvider.Create (() => AocParameters.SamplesCount),
-				 ValueProvider.Create (() => AocParameters.OccMaxDist),
-				 ValueProvider.Create (() => AocParameters.OccPixmax),
-				 ValueProvider.Create (() => AocParameters.OccPixmin),
-				 ValueProvider.Create (() => AocParameters.OccMinSampleRatio),
-				 ValueProvider.Create (() => AocParameters.OccConstantArea),
-				 ValueProvider.Create (() => AocParameters.AocStrength)
+				 AocParameters
+			);
+
+			var aocBlur = RenderPassFactory.CreateBilateralFilter
+			(
+				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV
 			);
 
 			//
 			var thirdPassSolid = RenderPassFactory.CreateFullscreenQuad
 			(
 				 "solid3", "System3",
+				 ValueProvider.Create(() => new Vector2(m_SolidModeTextureSize, m_SolidModeTextureSize)),
+				 (window) => { },
+				 (window) =>
+				 {
+					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+					GL.Enable (EnableCap.DepthTest);
+					GL.Disable (EnableCap.Blend);
+				 },
+				 //pass state
+				 new FramebufferBindingSet(
+				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture },
+				   new DrawFramebufferBinding { VariableName = "Fragdata.color_luma", Texture = BeforeAA_Texture}
+				 ),
+				 m_ParticleRenderingState,
+				 m_UniformState,
+				 new TextureBindingSet(
+				   new TextureBinding { VariableName = "custom_texture", Texture = Texture },
+				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture },
+				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
+				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture_Blurred_HV }
+				 )
+			);
+
+			var antialiasPass = RenderPassFactory.CreateFxaa3Filter
+			(
+				 BeforeAA_Texture, AA_Texture
+			);
+
+			var finalRender = RenderPassFactory.CreateRenderTextureToBuffer
+			(
+				 AA_Texture,
+				 Depth_Texture,
 				 ValueProvider.Create(() => m_Viewport),
 				 (window) =>
 				 {
@@ -271,22 +350,15 @@ namespace opentk.System3
 				 },
 				 (window) =>
 				 {
-					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+					GL.Clear (ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 					GL.Enable (EnableCap.DepthTest);
-					GL.DepthMask(true);
-					GL.DepthFunc (DepthFunction.Less);
 					GL.Disable (EnableCap.Blend);
 				 },
-				//pass state
-				 FramebufferBindingSet.Default,
-				 m_ParticleRenderingState,
-				 m_UniformState,
-				 new TextureBindingSet(
-				   new TextureBinding { VariableName = "custom_texture", Texture = Texture },
-				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture },
-				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
-				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture }
-				 )
+				//TODO: BUG m_ParticleRenderingState is necessary, but it shouldn't be
+				FramebufferBindingSet.Default,
+				m_ParticleRenderingState
+				//m_UniformState
+
 			);
 
 			//
@@ -319,7 +391,7 @@ namespace opentk.System3
 
 
 
-			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, aocPassSolid, thirdPassSolid };
+			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender };
 			m_EmitModePasses = new RenderPass[]{ firstPassEmit };
 
 			m_Manip = new OrbitManipulator (m_Projection);

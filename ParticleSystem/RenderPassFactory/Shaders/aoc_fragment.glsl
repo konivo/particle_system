@@ -5,18 +5,20 @@ uniform mat4 projection_transform;
 uniform mat4 projection_inv_transform;
 uniform vec2 viewport_size;
 
-//todo: shall be uniformly distributed. Look for some advice, how to make it properly
+//shall be uniformly distributed. Look for some advice, how to make it properly
+//they will be randomly rotated per pixel
 uniform vec2[256] sampling_pattern;
+//how many samples will be used for current pixel
 uniform int sampling_pattern_len;
 
-//
+//texture holding depth in projection space and normal in camera space
 uniform sampler2D normaldepth_texture;
 
 //maximum distance of an occluder in the world space
 uniform float OCCLUDER_MAX_DISTANCE = 35.5;
 
 //if true, occluder projection will be equal to max size.
-//todo: when true, occluder max distance has to be recomputed
+//TODO: when true, occluder max distance has to be recomputed
 uniform bool USE_CONSTANT_OCCLUDER_PROJECTION = false;
 
 //these two constants will limit how big area in image space will be sampled.
@@ -27,9 +29,12 @@ uniform float PROJECTED_OCCLUDER_DISTANCE_MIN_SIZE = 2;
 uniform float PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE = 35;
 
 //determines how big fraction of the samples will be used for the minimal computed projection of occluder distance
-uniform float MINIMAL_SAMPLES_COUNT_RATIO = 0.1;
+uniform float MINIMAL_SAMPLES_COUNT_RATIO = 0.5;
 
+//
 uniform float AOC_STRENGTH = 0.1;
+//
+uniform float AOC_BIAS = 0.1;
 
 //
 const float PI = 3.141592654f;
@@ -166,5 +171,5 @@ void main ()
 			0;
 	}
 
-	aoc = pow(aoc, 0.25) * AOC_STRENGTH;
+	aoc = pow(aoc, AOC_BIAS) * AOC_STRENGTH;
 }

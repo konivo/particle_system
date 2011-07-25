@@ -10,6 +10,8 @@ uniform sampler2D uv_colorindex_texture;
 
 uniform vec4[3] colors2;
 
+uniform vec3 ambient = vec3(.1, .1, .1);
+
 struct Light
 {
 	vec3 pos;
@@ -34,10 +36,12 @@ vec4 get_normal_depth (vec2 param)
 
 void main ()
 {
-	vec4 nd = get_normal_depth(param);
+	vec3 nd = get_normal_depth(param).rgb;
 	float aoc =  texture(aoc_texture, param).x;
-	aoc = pow(aoc, 2)* 0.7;
 
-	gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1) * (1 - vec4(aoc, aoc, aoc, aoc)) + aoc * vec4(-0.2, -0.2, -0.2, 1);
+	vec3 shadowedmat =  0.5 * (nd + normalize(vec3(1, 1, 1)) * dot(nd, normalize(vec3(1, 1, 1))));
+	vec3 color = nd * ( 1 - aoc) + ambient * vec3(shadowedmat);
+
+	gl_FragColor = vec4(color, 1);
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

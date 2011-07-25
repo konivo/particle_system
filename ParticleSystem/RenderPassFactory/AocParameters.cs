@@ -49,13 +49,19 @@ namespace opentk
 			set;
 		}
 
-		public int AocTextureSize
+		public int TextureSize
 		{
 			get;
 			set;
 		}
 
-		public float AocStrength
+		public float Strength
+		{
+			get;
+			set;
+		}
+
+		public float Bias
 		{
 			get;
 			set;

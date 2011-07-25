@@ -69,34 +69,127 @@ bool SphereContains(in vec4 s, in vec3 point)
 	return length(s.xyz - point) < s.w;
 }
 
+//====================================================================================
+
+
 float sphere_sdb(vec4 sphere, vec3 pos)
 {
 	return length(pos - sphere.xyz) - sphere.w;
 }
 
+//
 vec3 sphere_sdb_grad(vec4 sphere, vec3 pos)
 {
 	return normalize(pos - sphere.xyz);
 }
 
-float torus_sdb(vec3 pos)
+//
+float torus_sdb(float r1, float r2, vec3 pos)
 {
-	float d1 = (length(pos.xy) - 50);
-	d1 = sqrt(d1*d1 + pos.z*pos.z) - 10;
+	float d1 = (length(pos.xy) - r1);
+	d1 = sqrt(d1*d1 + pos.z*pos.z) - r2;
 
 	return d1;
 }
 
-vec3 torus_sdb_grad(vec3 pos)
+vec3 torus_sdb_grad(float r1, float r2, vec3 pos)
 {
 	vec3 rs = vec3(pos.xy,0);
-	rs = pos - (50*rs)/length(rs);
+	rs = pos - (r1*rs)/length(rs);
 	return normalize(rs);
 }
 
+//====================================================================================
+/*
+vec3 DomainMorphFunction(vec3 pos)
+{
+	return vec3(
+		sphere_sdb(vec4(-60, 0, 5, 30), pos),
+		sphere_sdb(vec4(3, 50, 0, 73), pos),
+		sphere_sdb(vec4(38, 0, -40, 80), pos));
+}
+
+mat3 dDomainMorphFunction(vec3 pos)
+{
+	float phi = pos.y * 0.1;
+
+	mat3 rotmatrix = mat3(
+		cos(phi), 0, sin(phi),
+		- 0.1 * sin(phi) * pos.x - 0.1 * cos(phi) * pos.z ,	1,	0.1 * cos(phi) * pos.x - 0.1 * sin(phi) * pos.z,
+		- sin(phi), 0, cos(phi)
+	);
+
+	return rotmatrix;
+}*/
+
+/*
+vec3 DomainMorphFunction(vec3 pos)
+{
+	vec3 v1 = vec3(
+
+				torus_sdb(40, 40, pos.yxz + vec3(0, 3, 0)),
+				torus_sdb(40,  30, pos - vec3(-5, 0, 11)),
+				torus_sdb(50, 50, pos.zyx - vec3(0, 0, 11)));
+
+	vec3 v2 = vec3(
+		torus_sdb(60, 60, v1.yxz - vec3(15, 10, 0)),
+		torus_sdb(100,  30, v1 - vec3(-5, 0, 11)),
+		torus_sdb(60, 40, v1.zyx - vec3(12, 2, -1)));
+
+	vec3 v3 = vec3(
+		torus_sdb(30, 2, v2.yxz - vec3(-5, 10, 0)),
+		torus_sdb(30,  20, v2 - vec3(5, 10, 11)),
+		torus_sdb(30, 30, v2.zyx - vec3(5, 0, -11)));
+
+	return v3;
+}
+
+mat3 dDomainMorphFunction(vec3 pos)
+{
+	float phi = pos.y * 0.1;
+
+	mat3 rotmatrix = mat3(
+		cos(phi), 0, sin(phi),
+		- 0.1 * sin(phi) * pos.x - 0.1 * cos(phi) * pos.z ,	1,	0.1 * cos(phi) * pos.x - 0.1 * sin(phi) * pos.z,
+		- sin(phi), 0, cos(phi)
+	);
+
+	return rotmatrix;
+}
+*/
+
+vec3 DomainMorphFunction(vec3 pos)
+{
+	vec3 v1 = pos;
+
+	v1 = vec3(sin(pos.x / 30) * 30, pos.y, pos.z);
+	v1 = v1 + vec3(0, 0, cos(pos.x/ 30) * 30);
+	//v1 = vec3(sin(pos.x / 30) * 30, pos.y , pos.z);
+
+	return v1;
+}
+
+mat3 dDomainMorphFunction(vec3 pos)
+{
+	float phi = pos.y * 0.1;
+
+	mat3 rotmatrix = mat3(
+		cos(phi), 0, sin(phi),
+		- 0.1 * sin(phi) * pos.x - 0.1 * cos(phi) * pos.z ,	1,	0.1 * cos(phi) * pos.x - 0.1 * sin(phi) * pos.z,
+		- sin(phi), 0, cos(phi)
+	);
+
+	return rotmatrix;
+}
+
+//====================================================================================
+
+/*
 mat3 DomainMorphFunction(vec3 pos)
 {
 	float phi = pos.y * 0.1;
+
+//matrices are specified in column-major order
 
 	mat3 rotmatrix = mat3(
 		cos(phi), 0, sin(phi),
@@ -113,57 +206,35 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 	mat3 rotmatrix = mat3(
 		cos(phi), 0, sin(phi),
-		-0.1*sin(phi)*pos.x - 0.1 * cos(phi) * pos.z ,	1,	0.1* cos(phi)*pos.x - 0.1 * sin(phi) * pos.z,
-		-sin(phi), 0, cos(phi)
+		- 0.1 * sin(phi) * pos.x - 0.1 * cos(phi) * pos.z ,	1,	0.1 * cos(phi) * pos.x - 0.1 * sin(phi) * pos.z,
+		- sin(phi), 0, cos(phi)
 	);
 
 	return rotmatrix;
-}
-
-/*
-vec3 DomainMorphFunction(vec3 pos)
-{
-	pos = pos.xzy;
-	float phi = pos.z * 0.2;
-
-	mat2 rotmatrix = mat2(
-		cos(phi), sin(phi), -sin(phi), cos(phi)
-	);
-
-	return vec3(rotmatrix * pos.xy, pos.z).xzy;
 }
 */
 
 
 float SDBValue(vec3 pos)
 {
-	vec3 mpos = vec3(
-		sphere_sdb(vec4(0, 1, 2, 4), pos),
-		sphere_sdb(vec4(1, -2, 0, 4), pos),
-		sphere_sdb(vec4(-1, 0, 1, 4), pos));
-
-	mpos = vec3(
-		sphere_sdb(vec4(-50, 0, 0, 70), pos),
-		sphere_sdb(vec4(0, -50, 0, 70), pos),
-		sphere_sdb(vec4(0, 0, -50, 70), pos));
-
-	//mpos = pos;
-
-	mpos = DomainMorphFunction(pos) * pos;
-
-	//return sphere_sdb(vec4(0, 0, 0, 20), mpos);
-	return torus_sdb(mpos) * 0.1;
+	vec3 mpos = DomainMorphFunction(pos);
+	//mpos = DomainMorphFunction(mpos.yzx);
+	//mpos = DomainMorphFunction(mpos.yzx);
+	/*mpos = DomainMorphFunction(mpos.yzx);
+	mpos = DomainMorphFunction(mpos.yzx);
+	mpos = DomainMorphFunction(mpos.yzx);
+	mpos = DomainMorphFunction(mpos.yzx);*/
+	return torus_sdb(50, 10, mpos) * 0.2;
+	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * 0.5;
 }
 
 vec3 Gradient(vec3 pos)
 {
 	mat3 dm = dDomainMorphFunction(pos);
+	vec3 ppos = DomainMorphFunction(pos) * pos;
 
-	vec3 rs = torus_sdb_grad(pos);
-	rs = vec3 (
-						dot(dm[0], rs),
-						dot(dm[1], rs),
-						dot(dm[2], rs));
+	vec3 rs = torus_sdb_grad(50, 10, ppos);
+	rs = rs * dm;
 
 	return normalize(rs);
 }

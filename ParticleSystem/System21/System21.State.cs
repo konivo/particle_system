@@ -60,11 +60,11 @@ namespace opentk.System21
 		{
 			if (m_Passes != null)
 			{
-				if(AocParameters.AocTextureSize != AOC_Texture.Width)
+				if(AocParameters.TextureSize != AOC_Texture.Width)
 				{
-					((DataTexture<float>) AOC_Texture).Data2D = new float[ AocParameters.AocTextureSize, AocParameters.AocTextureSize];
-					((DataTexture<float>) AOC_Texture_Blurred_H).Data2D = new float[ AocParameters.AocTextureSize, AocParameters.AocTextureSize];
-					((DataTexture<float>) AOC_Texture_Blurred_HV).Data2D = new float[ AocParameters.AocTextureSize, AocParameters.AocTextureSize];
+					((DataTexture<float>) AOC_Texture).Data2D = new float[ AocParameters.TextureSize, AocParameters.TextureSize];
+					((DataTexture<float>) AOC_Texture_Blurred_H).Data2D = new float[ AocParameters.TextureSize, AocParameters.TextureSize];
+					((DataTexture<float>) AOC_Texture_Blurred_HV).Data2D = new float[ AocParameters.TextureSize, AocParameters.TextureSize];
 				}
 
 				if (PARTICLES_COUNT != PositionBuffer.Data.Length)
@@ -101,14 +101,14 @@ namespace opentk.System21
 
 			AocParameters = new AocParameters
 			{
-				AocTextureSize = 512,
+				TextureSize = 512,
 				OccConstantArea = false,
 				OccMaxDist = 40,
 				OccMinSampleRatio = 0.5f,
 				OccPixmax = 100,
 				OccPixmin = 2,
 				SamplesCount = 32,
-				AocStrength = 2
+				Strength = 2
 			};
 
 
@@ -145,7 +145,7 @@ namespace opentk.System21
 				new DataTexture<float> {
 					Name = "AOC_Texture",
 					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.AocTextureSize, AocParameters.AocTextureSize],
+					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = true,
@@ -157,7 +157,7 @@ namespace opentk.System21
 				new DataTexture<float> {
 					Name = "AOC_Texture_H",
 					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.AocTextureSize, AocParameters.AocTextureSize],
+					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = true,
@@ -169,7 +169,7 @@ namespace opentk.System21
 				new DataTexture<float> {
 					Name = "AOC_Texture_HV",
 					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.AocTextureSize, AocParameters.AocTextureSize],
+					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = true,
@@ -292,7 +292,7 @@ namespace opentk.System21
 				 ValueProvider.Create (() => AocParameters.OccPixmin),
 				 ValueProvider.Create (() => AocParameters.OccMinSampleRatio),
 				 ValueProvider.Create (() => AocParameters.OccConstantArea),
-				 ValueProvider.Create (() => AocParameters.AocStrength)
+				 ValueProvider.Create (() => AocParameters.Strength)
 			);
 
 			var aocBlur = RenderPassFactory.CreateBilateralFilter

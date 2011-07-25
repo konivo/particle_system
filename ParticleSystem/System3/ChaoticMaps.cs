@@ -290,5 +290,74 @@ namespace opentk.System3
 		}
 	}
 
+	/// <summary>
+	/// dx/dt = y, dy/dt = -x + yz, dz/dt = 1 - y2
+	/// </summary>
+	public class TestMap : ChaoticMap
+	{
+		public TestMap () : base("TestMap")
+		{
+			Map = Implementation;
+		}
+
+		double sphere_sdb(Vector4d sphere, Vector3d pos)
+		{
+			return (pos - sphere.Xyz).Length - sphere.W;
+		}
+
+		//
+		Vector3d sphere_sdb_grad(Vector4d sphere, Vector3d pos)
+		{
+			pos = pos - sphere.Xyz;
+			pos.Normalize();
+			return pos;
+		}
+
+		//
+		double torus_sdb(double r1, double r2, Vector3d pos)
+		{
+			double d1 = (pos.Xy.Length - r1);
+			d1 = Math.Sqrt(d1*d1 + pos.Z*pos.Z) - r2;
+
+			return d1;
+		}
+
+		//
+		Vector3d DomainMorphFunction(Vector3d pos)
+		{
+			var v1 = new Vector3d(
+				torus_sdb(40,  30, pos),
+				torus_sdb(40, 30, new Vector3d(pos.Y, pos.X, pos.Z)),
+				torus_sdb(50, 20, new Vector3d(pos.Z, pos.Y, pos.X)));
+
+			var v2 = new Vector3d(
+				torus_sdb(60,  40, v1),
+				torus_sdb(60, 40, new Vector3d(v1.Z, v1.X, v1.Y)),
+				torus_sdb(70, 50, new Vector3d(v1.Z, v1.Y, v1.X)));
+
+			var v3 = new Vector3d(
+				torus_sdb(60,  60, v2 - new Vector3d(5, 10, 11)),
+				torus_sdb(60, 60, new Vector3d(v2.Z, v2.X, v2.Y)  - new Vector3d(-5, 10, 0)),
+				torus_sdb(60, 60, new Vector3d(v2.Z, v2.Y, v2.X) - new Vector3d(5, 0, -11)));
+
+			return v3;
+		}
+
+		//
+		double SDBValue(Vector3d pos)
+		{
+			Vector3d mpos = DomainMorphFunction(pos);
+			//return torus_sdb(50, 10, mpos) * 0.2;
+			return sphere_sdb(new Vector4d(0, 0, 0, 28), mpos) * 0.2;
+		}
+
+		//s
+		private Vector3d Implementation (Vector3d input)
+		{
+			return DomainMorphFunction(input);
+		}
+	}
+
+
 }
 

@@ -10,6 +10,8 @@ uniform sampler2D uv_colorindex_texture;
 
 uniform vec4[3] colors2;
 
+uniform vec3 ambient = vec3(.1, .1, .1);
+
 struct Light
 {
 	vec3 pos;
@@ -21,6 +23,11 @@ const Light light = Light( vec3(0, 0, 0), vec3(1, 0, 0));
 in VertexData
 {
 	vec2 param;
+};
+
+out Fragdata
+{
+	vec4 color_luma;
 };
 
 //
@@ -40,15 +47,17 @@ void main ()
 	float dist = length(cparam);
 
 	float aoc =  texture(aoc_texture, param).x;
-	aoc = pow(aoc, 2)* 0.7;
-	vec4 color = vec4(vec3(1, 1, 1) * pow(1.0f - dist, smooth_shape_sharpness), 1);
 
-	vec4 diffuse = color * dot(light.dir, nd.xyz) + vec4(0.2, 0.2, 0.2, 1);
+	vec3 material = vec3((nd.xyz + 1) * 0.5f);
+	material = min( material / material .x, material / material .y);
+	material = min( material, material / material .z);
 
-	//gl_FragColor = vec4(aoc, aoc, aoc, 1);
-	gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1) * (1 - vec4(aoc, aoc, aoc, aoc)) + aoc * vec4(-0.2, -0.2, -0.2, 1);
-	//gl_FragColor = vec4((nd.xyz + 1) * 0.5f, 1);
-	//gl_FragColor = vec4(aoc, aoc, aoc, 1);
-	//gl_FragColor = diffuse * (1 - vec4(aoc, aoc, aoc, aoc)) + aoc * vec4(-0.1, -0.1, -0.1, 1);
+	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
+	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
+
+	vec3 diffuse = material * max(dot(light.dir, nd.xyz), 0);
+	vec3 color = (diffuse  + ambient * vec3(ambientmat)) * (1 - aoc);
+
+	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

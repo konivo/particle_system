@@ -49,7 +49,7 @@ namespace opentk.System4
 				AOC_Texture =
 				new DataTexture<float> {
 					Name = "AOC_Texture",
-					InternalFormat = PixelInternalFormat.R16,
+					InternalFormat = PixelInternalFormat.R8,
 					Data2D = new float[m_AocTextureSize, m_AocTextureSize],
 					Params = new TextureBase.Parameters
 					{
@@ -118,6 +118,18 @@ namespace opentk.System4
 				 m_UniformState
 			);
 
+			var AocParameters = new AocParameters
+			{
+				TextureSize = 512,
+				OccConstantArea = false,
+				OccMaxDist = 40,
+				OccMinSampleRatio = 0.5f,
+				OccPixmax = 100,
+				OccPixmin = 2,
+				SamplesCount = 32,
+				Strength = 2.3f
+			};
+
 			var aocPassSolid = RenderPassFactory.CreateAoc
 			(
 				 NormalDepth_Texture,
@@ -126,7 +138,13 @@ namespace opentk.System4
 				 new MatrixInversion(m_TransformationStack),
 				 m_Projection,
 				 new MatrixInversion(m_Projection),
-				 ValueProvider.Create (() => m_AocSampleCount)
+				 ValueProvider.Create (() => AocParameters.SamplesCount),
+				 ValueProvider.Create (() => AocParameters.OccMaxDist),
+				 ValueProvider.Create (() => AocParameters.OccPixmax),
+				 ValueProvider.Create (() => AocParameters.OccPixmin),
+				 ValueProvider.Create (() => AocParameters.OccMinSampleRatio),
+				 ValueProvider.Create (() => AocParameters.OccConstantArea),
+				 ValueProvider.Create (() => AocParameters.Strength)
 			);
 
 			//

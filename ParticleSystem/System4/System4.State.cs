@@ -118,7 +118,7 @@ namespace opentk.System4
 				 m_UniformState
 			);
 
-			var AocParameters = new AocParameters
+			AocParameters = new AocParameters
 			{
 				TextureSize = 512,
 				OccConstantArea = false,
@@ -138,13 +138,7 @@ namespace opentk.System4
 				 new MatrixInversion(m_TransformationStack),
 				 m_Projection,
 				 new MatrixInversion(m_Projection),
-				 ValueProvider.Create (() => AocParameters.SamplesCount),
-				 ValueProvider.Create (() => AocParameters.OccMaxDist),
-				 ValueProvider.Create (() => AocParameters.OccPixmax),
-				 ValueProvider.Create (() => AocParameters.OccPixmin),
-				 ValueProvider.Create (() => AocParameters.OccMinSampleRatio),
-				 ValueProvider.Create (() => AocParameters.OccConstantArea),
-				 ValueProvider.Create (() => AocParameters.Strength)
+				 AocParameters
 			);
 
 			//

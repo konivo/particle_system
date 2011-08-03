@@ -3,6 +3,7 @@ uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform mat4 modelview_inv_transform;
+uniform vec2 viewport_size;
 
 const float epsilon = 0.001;
 const float nearPlaneZ = 1;
@@ -10,6 +11,11 @@ const float nearPlaneZ = 1;
 in VertexData
 {
 	vec2 param;
+};
+
+out Fragdata
+{
+	vec4 normal_depth;
 };
 
 //
@@ -23,15 +29,15 @@ struct
 	vec2 param;
 } Camera;
 
-out Fragdata
-{
-	vec4 normal_depth;
-};
-
 //
 vec4 get_clip_coordinates (vec2 param, float imagedepth)
 {
 	return vec4((param * 2) - 1, imagedepth, 1);
+}
+
+ivec2 get_pixel_pos(vec2 uv, vec2 viewport)
+{
+	return ivec2((uv * 2 - 1) * viewport);
 }
 
 //
@@ -69,6 +75,22 @@ bool SphereContains(in vec4 s, in vec3 point)
 	return length(s.xyz - point) < s.w;
 }
 
+const int[] PERMUTATION_TABLE = int[](151,160,137,91,90,15,131,13);
+
+#define PERM(i) PERMUTATION_TABLE[(i)&0x7]
+
+float random(ivec2 p, float amount)
+{
+	return amount * sin(float(p.x + p.y));
+}
+
+vec2 random(ivec2 p, vec2 amount)
+{
+	int A = PERM(p.x) + p.y,
+			B = PERM(p.x + 1) + p.y;
+	return amount * vec2(A, B)/255.0;
+}
+
 //====================================================================================
 
 
@@ -100,6 +122,23 @@ vec3 torus_sdb_grad(float r1, float r2, vec3 pos)
 }
 
 //====================================================================================
+
+
+vec3 morph_rotate(vec3 pos)
+{
+	float phi = pos.y / max(length(pos.xz), 1);
+
+//matrices are specified in column-major order
+
+	mat3 rotmatrix = mat3(
+		cos(phi), 0, sin(phi),
+		0,	1,	0,
+		-sin(phi), 0, cos(phi)
+	);
+
+	return rotmatrix * pos;
+}
+
 /*
 vec3 DomainMorphFunction(vec3 pos)
 {
@@ -162,9 +201,16 @@ vec3 DomainMorphFunction(vec3 pos)
 {
 	vec3 v1 = pos;
 
-	v1 = vec3(sin(pos.x / 30) * 30, pos.y, pos.z);
-	v1 = v1 + vec3(0, 0, cos(pos.x/ 30) * 30);
-	//v1 = vec3(sin(pos.x / 30) * 30, pos.y , pos.z);
+	//v1 = vec3(pos.x, sin(pos.y / 30) * 30, cos(pos.z/ 30) * 30);
+	//v1 = morph_rotate(v1);
+	//v1 = morph_rotate(v1.yzx);
+	//v1 = morph_rotate(v1);
+	//v1 = morph_rotate(v1.yzx);
+	//v1 = morph_rotate(v1.yzx);
+	//v1 = vec3(v1.x, sin(v1.y / 30) * 30, cos(v1.z/ 30) * 30);
+
+	v1 = vec3(pos.x + cos(pos.z ), pos.y + sin(pos.y), pos.z + cos(pos.x));
+	v1 = vec3(v1.x + cos(-v1.x * 2)/2, v1.y + sin(v1.z * 2)/2, v1.z - cos(v1.y * 2)/2);
 
 	return v1;
 }
@@ -184,64 +230,27 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 //====================================================================================
 
-/*
-mat3 DomainMorphFunction(vec3 pos)
-{
-	float phi = pos.y * 0.1;
-
-//matrices are specified in column-major order
-
-	mat3 rotmatrix = mat3(
-		cos(phi), 0, sin(phi),
-		0,	1,	0,
-		-sin(phi), 0, cos(phi)
-	);
-
-	return rotmatrix;
-}
-
-mat3 dDomainMorphFunction(vec3 pos)
-{
-	float phi = pos.y * 0.1;
-
-	mat3 rotmatrix = mat3(
-		cos(phi), 0, sin(phi),
-		- 0.1 * sin(phi) * pos.x - 0.1 * cos(phi) * pos.z ,	1,	0.1 * cos(phi) * pos.x - 0.1 * sin(phi) * pos.z,
-		- sin(phi), 0, cos(phi)
-	);
-
-	return rotmatrix;
-}
-*/
-
 
 float SDBValue(vec3 pos)
 {
 	vec3 mpos = DomainMorphFunction(pos);
-	//mpos = DomainMorphFunction(mpos.yzx);
-	//mpos = DomainMorphFunction(mpos.yzx);
-	/*mpos = DomainMorphFunction(mpos.yzx);
-	mpos = DomainMorphFunction(mpos.yzx);
-	mpos = DomainMorphFunction(mpos.yzx);
-	mpos = DomainMorphFunction(mpos.yzx);*/
-	return torus_sdb(50, 10, mpos) * 0.2;
-	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * 0.5;
+	return torus_sdb(50, 10, mpos) * 0.4;
+	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * 0.1;
 }
 
-vec3 Gradient(vec3 pos)
+vec3 EstimateGradient(vec3 pos, float d)
 {
-	mat3 dm = dDomainMorphFunction(pos);
-	vec3 ppos = DomainMorphFunction(pos) * pos;
-
-	vec3 rs = torus_sdb_grad(50, 10, ppos);
-	rs = rs * dm;
-
-	return normalize(rs);
+	return
+		vec3(
+			SDBValue(pos + vec3(d, 0, 0)) - SDBValue(pos - vec3(d, 0, 0)),
+			SDBValue(pos + vec3(0, d, 0)) - SDBValue(pos - vec3(0, d, 0)),
+			SDBValue(pos + vec3(0, 0, d)) - SDBValue(pos - vec3(0, 0, d))) / (2 * d);
 }
 
 //
 void main ()
 {
+	//camera initialization
 	Camera.pos = modelview_inv_transform * vec4(0, 0, 0, 1);
 	Camera.ray_dir = normalize( reproject(modelviewprojection_inv_transform, get_clip_coordinates(param, -1)) - Camera.pos );
 	Camera.look_dir = modelview_inv_transform * vec4(0, 0, -1, 0);
@@ -276,7 +285,7 @@ void main ()
 		}
 		//start from near camera plane
 		else {
-			tracePoint = Camera.pos.xyz + Camera.ray_dir.xyz * nearPlaneDist;
+			tracePoint = Camera.pos.xyz + Camera.ray_dir.xyz * (nearPlaneDist);
 		}
 
 		while (numberOfIterations < 300) {
@@ -292,13 +301,13 @@ void main ()
 			//morphFunction = DomainMorphFunction(tracePoint);
 			//float step = SDBValue(morphFunction * tracePoint);
 			//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
-			float step = SDBValue(tracePoint) ;
+			float intTimeOffset = random(get_pixel_pos(param, viewport_size), 0.4252352);
+			float step = SDBValue(tracePoint) - intTimeOffset;
 
 			//move forward
 			if (step < epsilon) {
 				intersect = true;
-				//gradient = Gradient(morphFunction * tracePoint) * morphFunction;
-				gradient = Gradient(tracePoint);
+				gradient = EstimateGradient(tracePoint, 0.01);
 				break;
 			} else {
 				tracePoint += Camera.ray_dir.xyz * step;

@@ -53,10 +53,10 @@ void main ()
 	material = min( material, material / material .z);
 
 	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
-	vec3 shadowedmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
+	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
 
 	vec3 diffuse = material * max(dot(light.dir, nd.xyz), 0);
-	vec3 color = diffuse * ( 1 - aoc) + ambient * vec3(shadowedmat);
+	vec3 color = (diffuse  + ambient * vec3(ambientmat)) * (1 - aoc);
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
 	gl_FragDepth = texture(normaldepth_texture, param).w;

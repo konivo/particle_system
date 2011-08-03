@@ -84,6 +84,15 @@ namespace opentk.System4
 			set;
 		}
 
+		[Category("Aoc properties")]
+		[TypeConverter(typeof(AocParametersConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the ssao.")]
+		public AocParameters AocParameters
+		{
+			get;
+			private set;
+		}
+
 		#region implemented abstract members of opentk._ParticleSystem
 		protected override void HandleFrame (GameWindow window)
 		{
@@ -105,7 +114,8 @@ namespace opentk.System4
 			var result = new System4 {
 				Projection = System4.ProjectionType.Frustum,
 				VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240,
-				Fov = 0.6};
+				Fov = 0.6,
+				AocParameters = new AocParameters()};
 			return result;
 		}
 		

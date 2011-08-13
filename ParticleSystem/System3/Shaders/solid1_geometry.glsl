@@ -53,41 +53,40 @@ void main ()
 	SpriteOUT.radius = particle_scale_factor * SpriteIN[0].radius;
 	SpriteOUT.color = SpriteIN[0].color;
 
-	vec4 p0 = modelview_transform * vec4(SpriteIN[0].pos, 1);
-	float p0_l = length(p0.xyz);
+	CameraOUT.pos =  modelview_inv_transform[3];
 
-	vec4 cam_plane_x_dir = normalize(vec4(-p0.z, 0, p0.x, 0));
-	vec4 cam_plane_y_dir = vec4(cross(p0.xyz, cam_plane_x_dir.xyz) / p0_l, 0);
-	vec4 cam_plane_point = vec4( p0.xyz * ((p0_l - SpriteOUT.radius)/p0_l), 1);
+	vec4 spritepos = vec4(SpriteIN[0].pos, 1);
+	vec4 p0 = spritepos - CameraOUT.pos;
+	float p0_l_i = 1 / length(p0);
 
-	vec4 world_plane_x_dir =  modelview_inv_transform * cam_plane_x_dir;
-	vec4 world_plane_y_dir =  modelview_inv_transform * cam_plane_y_dir;
-	vec4 world_plane_point =  modelview_inv_transform * cam_plane_point;
+	//
+	vec4 world_plane_x_dir = normalize(vec4(-p0.z, 0, p0.x, 0)) * SpriteOUT.radius; //? todo: how to robustly find orthogonal non-zero vector?
+	vec4 world_plane_y_dir = vec4(cross(p0.xyz, world_plane_x_dir.xyz) * p0_l_i, 0);
+	vec4 world_plane_z_dir = vec4( p0.xyz * (1 - SpriteOUT.radius * p0_l_i), 0);
 
-	CameraOUT.pos =  modelview_inv_transform * vec4(0, 0, 0, 1);
+	//
+	vec4 proj_plane_point =  modelviewprojection_transform * (world_plane_z_dir + CameraOUT.pos);
+	vec4 proj_plane_x_dir =  modelviewprojection_transform * world_plane_x_dir;
+	vec4 proj_plane_y_dir =  modelviewprojection_transform * world_plane_y_dir;
 
 	//
 	CameraOUT.param = vec2(0, 0);
-	CameraOUT.ray_dir = ((-world_plane_x_dir - world_plane_y_dir) * SpriteOUT.radius + world_plane_point);
-	gl_Position = modelviewprojection_transform * CameraOUT.ray_dir;
-	CameraOUT.ray_dir -= CameraOUT.pos;
+	CameraOUT.ray_dir = - world_plane_x_dir - world_plane_y_dir + world_plane_z_dir;
+	gl_Position = - proj_plane_x_dir - proj_plane_y_dir + proj_plane_point;
 	EmitVertex();
 
 	CameraOUT.param = vec2(0, 1);
-	CameraOUT.ray_dir = ((-world_plane_x_dir + world_plane_y_dir) * SpriteOUT.radius + world_plane_point);
-	gl_Position = modelviewprojection_transform * CameraOUT.ray_dir;
-	CameraOUT.ray_dir -= CameraOUT.pos;
+	CameraOUT.ray_dir = - world_plane_x_dir + world_plane_y_dir + world_plane_z_dir;
+	gl_Position = - proj_plane_x_dir + proj_plane_y_dir + proj_plane_point;
 	EmitVertex();
 
 	CameraOUT.param = vec2(1, 0);
-	CameraOUT.ray_dir = ((+world_plane_x_dir - world_plane_y_dir) * SpriteOUT.radius + world_plane_point);
-	gl_Position = modelviewprojection_transform * CameraOUT.ray_dir;
-	CameraOUT.ray_dir -= CameraOUT.pos;
+	CameraOUT.ray_dir = world_plane_x_dir - world_plane_y_dir + world_plane_z_dir;
+	gl_Position = proj_plane_x_dir - proj_plane_y_dir + proj_plane_point;
 	EmitVertex();
 
 	CameraOUT.param = vec2(1, 1);
-	CameraOUT.ray_dir = ((world_plane_x_dir + world_plane_y_dir) * SpriteOUT.radius + world_plane_point);
-	gl_Position = modelviewprojection_transform * CameraOUT.ray_dir;
-	CameraOUT.ray_dir -= CameraOUT.pos;
+	CameraOUT.ray_dir = world_plane_x_dir + world_plane_y_dir + world_plane_z_dir;
+	gl_Position = proj_plane_x_dir + proj_plane_y_dir + proj_plane_point;
 	EmitVertex();
 }

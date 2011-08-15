@@ -5,6 +5,7 @@ using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using opentk.GridRenderPass;
 using opentk.Manipulators;
+using opentk.Scene;
 
 namespace opentk.System21
 {
@@ -34,15 +35,12 @@ namespace opentk.System21
 		private TextureBase Depth_Texture;
 		private TextureBase BeforeAA_Texture;
 		private TextureBase AA_Texture;
+		private TextureBase Shadow_Texture;
 
 		//
 		private Grid m_Grid;
 
 		private OrbitManipulator m_Manip;
-
-		private int m_PublishCounter;
-
-		private int m_PublishSize;
 
 		private RenderPass[] m_SolidModePasses;
 
@@ -54,7 +52,11 @@ namespace opentk.System21
 
 		private int m_SolidModeTextureSize = 2048;
 
+		private int m_ShadowTextureSize = 1024;
+
 		private AocParameters m_AocParameters;
+		private Light m_SunLight;
+		private LightImplementationParameters m_SunLightImpl;
 
 		unsafe void PrepareState ()
 		{
@@ -65,6 +67,11 @@ namespace opentk.System21
 					((DataTexture<float>) AOC_Texture).Data2D = new float[ AocParameters.TextureSize, AocParameters.TextureSize];
 					((DataTexture<float>) AOC_Texture_Blurred_H).Data2D = new float[ AocParameters.TextureSize, AocParameters.TextureSize];
 					((DataTexture<float>) AOC_Texture_Blurred_HV).Data2D = new float[ AocParameters.TextureSize, AocParameters.TextureSize];
+				}
+
+				if(m_ShadowTextureSize != Shadow_Texture.Width)
+				{
+					((DataTexture<float>) Shadow_Texture).Data2D = new float[ m_ShadowTextureSize, m_ShadowTextureSize];
 				}
 
 				if (PARTICLES_COUNT != PositionBuffer.Data.Length)
@@ -97,8 +104,6 @@ namespace opentk.System21
 				return;
 			}
 
-			m_PublishSize = 100000;
-
 			AocParameters = new AocParameters
 			{
 				TextureSize = 512,
@@ -111,7 +116,16 @@ namespace opentk.System21
 				Strength = 2
 			};
 
+			//
+			m_SunLight = new Light
+			{
+				Direction = new Vector3(1, 1, 1),
+				Type = LightType.Directional
+			};
 
+			m_SunLightImpl = new LightImplementationParameters(m_SunLight);
+
+			//
 			unsafe
 			{
 				PositionBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
@@ -226,6 +240,19 @@ namespace opentk.System21
 						MinFilter = TextureMinFilter.Linear,
 						MagFilter = TextureMagFilter.Linear,
 				}};
+
+				Shadow_Texture =
+				new DataTexture<float> {
+					Name = "Shadow_Texture",
+					InternalFormat = PixelInternalFormat.DepthComponent32f,
+					Format = PixelFormat.DepthComponent,
+					Data2D = new float[m_ShadowTextureSize, m_ShadowTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
+				}};
 			}
 			
 			var ortho = Matrix4.CreateOrthographic (1, 1, (float)NEAR, (float)FAR);
@@ -237,6 +264,7 @@ namespace opentk.System21
 			m_UniformState.Set ("color", new Vector4 (0, 0, 1, 1));
 			m_UniformState.Set ("particle_scale_factor", ValueProvider.Create (() => this.ParticleScaleFactor));
 			m_UniformState.Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape));
+			m_UniformState.Set ("light_modelviewprojection_transform", m_SunLightImpl.LightSpaceModelviewProjectionProvider);
 			
 			m_ParticleRenderingState =
 				new ArrayObject (
@@ -275,6 +303,38 @@ namespace opentk.System21
 				 ),
 				 new TextureBindingSet(
 				   new TextureBinding { VariableName = "custom_texture", Texture = Texture }
+				 )
+			);
+
+			var lightPassUniforms = new UniformState();
+
+			//
+			var firstPassShadow = new SeparateProgramPass<System21>
+			(
+				 "solid1",
+
+				 //pass code
+				 (window) =>
+				 {
+					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+				  GL.Enable (EnableCap.DepthTest);
+					GL.DepthMask(true);
+					GL.DepthFunc (DepthFunction.Less);
+					GL.Disable (EnableCap.Blend);
+
+					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
+					//SetCamera (window);
+					SetViewport(0, 0, m_ShadowTextureSize, m_ShadowTextureSize);
+					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
+				 },
+
+				 //pass state
+				 m_ParticleRenderingState,
+				 //todo: m_uniform should be declared as a base for lightpass uniforms
+				 m_UniformState,
+				 lightPassUniforms,
+				 new FramebufferBindingSet(
+				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Shadow_Texture }
 				 )
 			);
 
@@ -318,6 +378,7 @@ namespace opentk.System21
 				   new TextureBinding { VariableName = "custom_texture", Texture = Texture },
 				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture },
 				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
+				   new TextureBinding { VariableName = "shadow_texture", Texture = Shadow_Texture },
 				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture_Blurred_HV }
 				 )
 			);
@@ -377,7 +438,7 @@ namespace opentk.System21
 				 )
 			);
 
-			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender };
+			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, firstPassShadow, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender };
 			m_EmitModePasses = new RenderPass[]{ firstPassEmit };
 
 			m_Manip = new OrbitManipulator (m_Projection);
@@ -390,6 +451,14 @@ namespace opentk.System21
 			m_UniformState.Set ("projection_inv_transform", new MatrixInversion(m_Projection));
 			m_UniformState.Set ("modelview_inv_transform", new MatrixInversion(m_Manip.RT));
 			m_UniformState.Set ("modelviewprojection_inv_transform", new MatrixInversion(m_TransformationStack));
+
+			//
+			lightPassUniforms.Set ("modelview_transform", m_SunLightImpl.LightSpaceModelviewProvider);
+			lightPassUniforms.Set ("modelviewprojection_transform", m_SunLightImpl.LightSpaceModelviewProjectionProvider);
+			lightPassUniforms.Set ("projection_transform", m_SunLightImpl.LightSpaceProjectionProvider);
+			lightPassUniforms.Set ("projection_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceProjectionProvider));
+			lightPassUniforms.Set ("modelview_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProvider));
+			lightPassUniforms.Set ("modelviewprojection_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProjectionProvider));
 
 			m_DebugView = new opentk.QnodeDebug.QuadTreeDebug(10000, m_TransformationStack);
 			PrepareState ();

@@ -197,6 +197,11 @@ mat3 dDomainMorphFunction(vec3 pos)
 }
 */
 
+vec3 SinTrans(float amp, float octave, vec3 v1)
+{
+	return vec3(v1.y + cos((v1.y - v1.z) * octave)/octave, v1.z + sin((v1.z - v1.y) * octave)/octave, v1.x - cos((v1.x - v1.z) * octave)/octave);
+}
+
 vec3 DomainMorphFunction(vec3 pos)
 {
 	vec3 v1 = pos;
@@ -209,9 +214,9 @@ vec3 DomainMorphFunction(vec3 pos)
 	//v1 = morph_rotate(v1.yzx);
 	//v1 = vec3(v1.x, sin(v1.y / 30) * 30, cos(v1.z/ 30) * 30);
 
-	v1 = vec3(pos.x + cos(pos.z ), pos.y + sin(pos.y), pos.z + cos(pos.x));
-	v1 = vec3(v1.x + cos(-v1.x * 2)/2, v1.y + sin(v1.z * 2)/2, v1.z - cos(v1.y * 2)/2);
-
+	v1 = SinTrans(0, 1, pos);
+	v1 = SinTrans(0, 1, v1);
+	v1 = SinTrans(0, 1, v1);
 	return v1;
 }
 

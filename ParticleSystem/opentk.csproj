@@ -95,6 +95,9 @@
     <Compile Include="RenderPassFactory\AocParameters.cs" />
     <Compile Include="RenderPassFactory\AocParametersConverter.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Ssao.cs" />
+    <Compile Include="Scene\Light.cs" />
+    <Compile Include="Scene\LightConverter.cs" />
+    <Compile Include="Scene\LightImplementationParameters.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -114,6 +117,7 @@
     <Folder Include="System21\Shaders\" />
     <Folder Include="System21\" />
     <Folder Include="System21\" />
+    <Folder Include="Scene\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />

@@ -113,7 +113,8 @@ namespace opentk.System21
 				OccPixmax = 100,
 				OccPixmin = 2,
 				SamplesCount = 32,
-				Strength = 2
+				Strength = 2,
+				Bias = 0.2f
 			};
 
 			//
@@ -265,6 +266,9 @@ namespace opentk.System21
 			m_UniformState.Set ("particle_scale_factor", ValueProvider.Create (() => this.ParticleScaleFactor));
 			m_UniformState.Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape));
 			m_UniformState.Set ("light_modelviewprojection_transform", m_SunLightImpl.LightSpaceModelviewProjectionProvider);
+			m_UniformState.Set ("light_modelview_transform", m_SunLightImpl.LightSpaceModelviewProvider);
+			m_UniformState.Set ("light_projection_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceProjectionProvider));
+			m_UniformState.Set ("light_projection_transform", m_SunLightImpl.LightSpaceProjectionProvider);
 			
 			m_ParticleRenderingState =
 				new ArrayObject (

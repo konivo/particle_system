@@ -1,0 +1,31 @@
+
+//
+vec4 get_clip_coordinates (vec2 param, float imagedepth)
+{
+	return vec4((param * 2) - 1, imagedepth, 1);
+}
+
+//
+vec4 reproject (mat4 transform, vec4 vector)
+{
+	vec4 result = transform * vector;
+	result /= result.w;
+	return result;
+}
+
+//
+float get_shadow(
+	sampler2D shadow_texture,	//
+	mat4 light_transform,			//model-view-projection transform
+	vec4 pos									//position in world space
+	)
+{
+	vec3 r_pos = (reproject(light_transform, pos).xyz + 1) * 0.5;
+	vec4 acc;
+
+	for(int i = -1; i < 2; i += 2)
+		for(int j = -1; j < 2; j += 2)
+			acc += vec4(lessThan(textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j)), vec4(r_pos.z)));
+
+	return dot(acc, vec4(1/16.0));
+}

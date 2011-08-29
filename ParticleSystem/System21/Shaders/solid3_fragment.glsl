@@ -1,4 +1,4 @@
-#version 330
+#version 400
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform float particle_brightness;
@@ -14,6 +14,9 @@ uniform vec4[3] colors2;
 
 uniform vec3 ambient = vec3(.1, .1, .1);
 uniform mat4 light_modelviewprojection_transform;
+uniform mat4 light_modelview_transform;
+uniform mat4 light_projection_transform;
+uniform mat4 light_projection_inv_transform;
 uniform mat4 light_relativeillumination_transform;
 
 struct Light
@@ -59,10 +62,38 @@ vec4 reproject (mat4 transform, vec4 vector)
 
 float get_shadow(vec4 pos)
 {
-	vec4 r_pos = reproject(light_modelviewprojection_transform, pos);
-	float depth = texture(shadow_texture, (r_pos.xy + 1) / 2).x;
+	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
+	vec3 l_pos = (light_modelview_transform * pos).xyz;
+	vec4 avg_depth;
 
-	return (r_pos.z + 0.999) / 2 > depth ? 0.999 : 0;
+	for(int i = -1; i < 2; i += 2)
+		for(int j = -1; j < 2; j += 2)
+		{
+			vec4 depths = textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j)) * 2 - 1;
+			avg_depth += depths;
+		}
+
+	float depth = dot(avg_depth, vec4(1/16.0));
+	float phi = 0.6;
+
+	depth = length(reproject(light_projection_inv_transform, get_clip_coordinates(vec2(0.5, 0.5), depth)).xyz - l_pos);
+
+	float c = tan(phi) * depth;
+	float c2 = reproject(light_projection_transform, vec4(0, c, l_pos.z, 1)).y * 256;
+	c2 = clamp(c2, 2, 2);
+
+	float count = 0;
+	vec4 acc;
+
+	for(int i = -int(c2); i < c2; i += 2)
+		for(int j = -int(c2); j < c2; j += 2)
+		{
+			vec4 depths = textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j));
+			count += 4;
+			acc += vec4(greaterThan(r_pos.zzzz, depths));
+		}
+
+	return dot(acc, vec4(1/count));
 }
 
 void main ()

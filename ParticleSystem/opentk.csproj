@@ -155,5 +155,6 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\fxaa3_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\Fxaa3_8.include" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\rendertexture_fragment.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\common.include" />
   </ItemGroup>
 </Project>

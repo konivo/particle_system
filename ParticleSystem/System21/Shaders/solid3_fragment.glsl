@@ -65,32 +65,36 @@ float get_shadow(vec4 pos)
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	vec3 l_pos = (light_modelview_transform * pos).xyz;
 	vec4 avg_depth;
+	float count = 36;
+	float phi = 0.1;
 
-	for(int i = -1; i < 2; i += 2)
-		for(int j = -1; j < 2; j += 2)
-		{
-			vec4 depths = textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j)) * 2 - 1;
-			avg_depth += depths;
-		}
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-16, 16));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, -12));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(8, -8));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-4, 4));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(0, 0));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(16, -16));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, 12));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-8, 8));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(4, -4));
 
-	float depth = dot(avg_depth, vec4(1/16.0));
-	float phi = 0.6;
+	float occ_depth = dot(avg_depth, vec4(1/count)) * 2 - 1;
+	float occ_surf_dist = length(reproject(light_projection_inv_transform, get_clip_coordinates(r_pos.xy, occ_depth)).xyz - l_pos);
 
-	depth = length(reproject(light_projection_inv_transform, get_clip_coordinates(vec2(0.5, 0.5), depth)).xyz - l_pos);
+	float c2 = tan(phi) * occ_surf_dist;
+	vec3 rr_pos = reproject(light_projection_transform, vec4(l_pos + vec3(0, c2, 0), 1)).xyz * 0.5 + 0.5;
+	c2 = length(rr_pos - r_pos) * 1024;
+	c2 = clamp(c2, 4, 16);
+	int b = int(c2 - 1)/2;
 
-	float c = tan(phi) * depth;
-	float c2 = reproject(light_projection_transform, vec4(0, c, l_pos.z, 1)).y * 256;
-	c2 = clamp(c2, 2, 2);
-
-	float count = 0;
+	count = 0;
 	vec4 acc;
-
-	for(int i = -int(c2); i < c2; i += 2)
-		for(int j = -int(c2); j < c2; j += 2)
+	for(int i = -b; i < b + 1; i += 2)
+		for(int j = -b; j < b + 1; j += 2)
 		{
 			vec4 depths = textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j));
 			count += 4;
-			acc += vec4(greaterThan(r_pos.zzzz, depths));
+			acc += vec4(greaterThan(r_pos.zzzz - 0.0001, depths));
 		}
 
 	return dot(acc, vec4(1/count));

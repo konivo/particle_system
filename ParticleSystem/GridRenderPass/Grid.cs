@@ -93,7 +93,7 @@ namespace opentk.GridRenderPass
 			m_UniformState = new UniformState ().Set ("modelview_transform", m_TransformationStack);
 			m_AttributeState = new ArrayObject (new VertexAttribute { AttributeName = "pos", Buffer = PositionBuffer, Size = 3, Type = VertexAttribPointerType.Float }, new VertexAttribute { AttributeName = "param", Buffer = ParameterBuffer, Size = 1, Type = VertexAttribPointerType.Float });
 
-			m_Program = new Program ("coordinate_grid_program", GetShaders ().ToArray ());
+			m_Program = new Program ("coordinate_grid_program", GetShaders ("GridRenderPass", "").ToArray ());
 			m_State = new State (null, m_AttributeState, m_Program, m_UniformState);
 			
 			PrepareState ();

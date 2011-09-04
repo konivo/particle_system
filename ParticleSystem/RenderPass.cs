@@ -44,18 +44,6 @@ namespace opentk
 		{		}
 
 		/// <summary>
-		///
-		/// </summary>
-		/// <returns>
-		/// A <see cref="IEnumerable<Shader>"/>
-		/// </returns>
-		public virtual IEnumerable<Shader> GetShaders ()
-		{
-			var parentNamespace = GetType ().Namespace.Split ('.').Last ();
-			return GetShaders(parentNamespace, "");
-		}
-
-		/// <summary>
 		/// returns set of shaders each of which contains in its resource identifier both name1 and name2
 		/// </summary>
 		/// <param name="name1">
@@ -163,7 +151,7 @@ namespace opentk
 		{
 		}
 
-		public override IEnumerable<Shader> GetShaders ()
+		public IEnumerable<Shader> GetShaders ()
 		{
 			return GetShaders(PassName, PassNamespace);
 		}

@@ -98,6 +98,7 @@
     <Compile Include="Scene\Light.cs" />
     <Compile Include="Scene\LightConverter.cs" />
     <Compile Include="Scene\LightImplementationParameters.cs" />
+    <Compile Include="RenderPassFactory\RenderPassFactory.SolidSphere.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -146,9 +147,6 @@
     <EmbeddedResource Include="System21\Shaders\main_fragment.glsl" />
     <EmbeddedResource Include="System21\Shaders\main_light_geometry.glsl" />
     <EmbeddedResource Include="System21\Shaders\main_light_vertex.glsl" />
-    <EmbeddedResource Include="System21\Shaders\solid1_fragment.glsl" />
-    <EmbeddedResource Include="System21\Shaders\solid1_geometry.glsl" />
-    <EmbeddedResource Include="System21\Shaders\solid1_vertex.glsl" />
     <EmbeddedResource Include="System21\Shaders\solid3_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\blur_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\bilateralfilter_fragment.glsl" />
@@ -156,5 +154,8 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\Fxaa3_8.include" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\rendertexture_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\common.include" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\solid_sphere_geometry.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\solid_sphere_fragment.glsl" />
+    <EmbeddedResource Include="RenderPassFactory\Shaders\solid_sphere_vertex.glsl" />
   </ItemGroup>
 </Project>

@@ -90,7 +90,7 @@ namespace opentk.QnodeDebug
 			new VertexAttribute { AttributeName = "cube_pos", Buffer = PositionBuffer, Size = 3, Type = VertexAttribPointerType.Float },
 			new VertexAttribute { AttributeName = "cube_dimensions", Buffer = DimensionBuffer, Size = 3, Type = VertexAttribPointerType.Float });
 
-			m_Program = new Program ("debug_qnode_program", GetShaders().ToArray ());
+			m_Program = new Program ("debug_qnode_program", GetShaders("QnodeDebug", "").ToArray ());
 			m_State = new State (null, m_AttributeState, m_Program, m_UniformState);
 			
 			var hnd = PositionBuffer.Handle;

@@ -260,15 +260,55 @@ namespace opentk.System21
 			
 			m_Projection = new MatrixStack ().Push (ortho);
 			m_TransformationStack = new MatrixStack ().Push (m_Projection);
-			
+
+			m_Manip = new OrbitManipulator (m_Projection);
+			m_Grid = new Grid (m_TransformationStack);
+
+			m_TransformationStack.Push (m_Manip.RT);
+
+			var particle_scale_factor = ValueProvider.Create (() => this.ParticleScaleFactor);
+			var particle_shape = ValueProvider.Create (() => (int)this.ParticleShape);
+			var particle_count = ValueProvider.Create (() => PARTICLES_COUNT);
+
+			var light_modelviewprojection_transform = m_SunLightImpl.LightSpaceModelviewProjectionProvider;
+			var light_modelviewprojection_inv_transform = new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProjectionProvider);
+			var light_modelview_transform = m_SunLightImpl.LightSpaceModelviewProvider;
+			var light_modelview_inv_transform = new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProvider);
+			var light_projection_transform = m_SunLightImpl.LightSpaceProjectionProvider;
+			var light_projection_inv_transform = new MatrixInversion(m_SunLightImpl.LightSpaceProjectionProvider);
+
+			var modelview_transform = m_Manip.RT;
+			var modelviewprojection_transform = m_TransformationStack;
+			var projection_transform = m_Projection;
+			var projection_inv_transform = new MatrixInversion(m_Projection);
+			var modelview_inv_transform = new MatrixInversion(m_Manip.RT);
+			var modelviewprojection_inv_transform = new MatrixInversion(m_TransformationStack);
+
 			m_UniformState = new UniformState ();
 			m_UniformState.Set ("color", new Vector4 (0, 0, 1, 1));
-			m_UniformState.Set ("particle_scale_factor", ValueProvider.Create (() => this.ParticleScaleFactor));
-			m_UniformState.Set ("particle_shape", ValueProvider.Create (() => (int)this.ParticleShape));
-			m_UniformState.Set ("light_modelviewprojection_transform", m_SunLightImpl.LightSpaceModelviewProjectionProvider);
-			m_UniformState.Set ("light_modelview_transform", m_SunLightImpl.LightSpaceModelviewProvider);
-			m_UniformState.Set ("light_projection_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceProjectionProvider));
-			m_UniformState.Set ("light_projection_transform", m_SunLightImpl.LightSpaceProjectionProvider);
+			m_UniformState.Set ("particle_scale_factor", particle_scale_factor);
+			m_UniformState.Set ("particle_shape", particle_shape);
+			m_UniformState.Set ("light_modelviewprojection_transform", light_modelviewprojection_transform);
+			m_UniformState.Set ("light_modelview_transform", light_modelview_transform);
+			m_UniformState.Set ("light_projection_inv_transform", light_projection_inv_transform);
+			m_UniformState.Set ("light_projection_transform", light_projection_transform);
+
+
+			m_UniformState.Set ("modelview_transform", modelview_transform);
+			m_UniformState.Set ("modelviewprojection_transform", modelviewprojection_transform);
+			m_UniformState.Set ("projection_transform", projection_transform);
+			m_UniformState.Set ("projection_inv_transform", projection_inv_transform);
+			m_UniformState.Set ("modelview_inv_transform", modelview_inv_transform);
+			m_UniformState.Set ("modelviewprojection_inv_transform", modelviewprojection_inv_transform);
+
+			//
+			var lightPassUniforms = new UniformState();
+			lightPassUniforms.Set ("modelview_transform", light_modelview_transform);
+			lightPassUniforms.Set ("modelviewprojection_transform", light_modelviewprojection_transform);
+			lightPassUniforms.Set ("projection_transform", light_projection_transform);
+			lightPassUniforms.Set ("projection_inv_transform", light_projection_inv_transform);
+			lightPassUniforms.Set ("modelview_inv_transform", light_modelview_inv_transform);
+			lightPassUniforms.Set ("modelviewprojection_inv_transform", light_modelviewprojection_inv_transform);
 			
 			m_ParticleRenderingState =
 				new ArrayObject (
@@ -277,69 +317,38 @@ namespace opentk.System21
 					new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = DimensionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float }
 				);
 
-			//
-			var firstPassSolid = new SeparateProgramPass<System21>
+			var firstPassSolid =  RenderPassFactory.CreateSolidSphere
 			(
-				 "solid1",
-
-				 //pass code
-				 (window) =>
-				 {
-					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-				  GL.Enable (EnableCap.DepthTest);
-					GL.DepthMask(true);
-					GL.DepthFunc (DepthFunction.Less);
-					GL.Disable (EnableCap.Blend);
-
-					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
-					SetCamera (window);
-					SetViewport(0, 0, m_SolidModeTextureSize, m_SolidModeTextureSize);
-					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
-				 },
-
-				 //pass state
-				 m_ParticleRenderingState,
-				 m_UniformState,
-				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture },
-				   new DrawFramebufferBinding { VariableName = "Fragdata.uv_colorindex_none", Texture = UV_ColorIndex_None_Texture },
-				   new DrawFramebufferBinding { VariableName = "Fragdata.normal_depth", Texture = NormalDepth_Texture }
-				 ),
-				 new TextureBindingSet(
-				   new TextureBinding { VariableName = "custom_texture", Texture = Texture }
-				 )
+				 NormalDepth_Texture,
+				 UV_ColorIndex_None_Texture,
+				 Depth_Texture,
+				 PositionBuffer,
+				 ColorBuffer,
+				 DimensionBuffer,
+				 particle_count,
+				 particle_scale_factor,
+				 modelview_transform,
+				 modelview_inv_transform,
+				 modelviewprojection_transform,
+				 modelviewprojection_inv_transform,
+				 projection_transform,
+				 projection_inv_transform
 			);
 
-			var lightPassUniforms = new UniformState();
-
-			//
-			var firstPassShadow = new SeparateProgramPass<System21>
+			var firstPassShadow =  RenderPassFactory.CreateSolidSphere
 			(
-				 "solid1",
-
-				 //pass code
-				 (window) =>
-				 {
-					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-				  GL.Enable (EnableCap.DepthTest);
-					GL.DepthMask(true);
-					GL.DepthFunc (DepthFunction.Less);
-					GL.Disable (EnableCap.Blend);
-
-					//TODO: viewport size actually doesn't propagate to shader, because uniform state has been already activated
-					//SetCamera (window);
-					SetViewport(0, 0, m_ShadowTextureSize, m_ShadowTextureSize);
-					GL.DrawArrays (BeginMode.Points, 0, PARTICLES_COUNT);
-				 },
-
-				 //pass state
-				 m_ParticleRenderingState,
-				 //todo: m_uniform should be declared as a base for lightpass uniforms
-				 m_UniformState,
-				 lightPassUniforms,
-				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Shadow_Texture }
-				 )
+				 Shadow_Texture,
+				 PositionBuffer,
+				 ColorBuffer,
+				 DimensionBuffer,
+				 particle_count,
+				 particle_scale_factor,
+				 light_modelview_transform,
+				 light_modelview_inv_transform,
+				 light_modelviewprojection_transform,
+				 light_modelviewprojection_inv_transform,
+				 light_projection_transform,
+				 light_projection_inv_transform
 			);
 
 			var aocPassSolid = RenderPassFactory.CreateAoc
@@ -444,25 +453,6 @@ namespace opentk.System21
 
 			m_Passes = m_SolidModePasses = new RenderPass[]{ firstPassSolid, firstPassShadow, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender };
 			m_EmitModePasses = new RenderPass[]{ firstPassEmit };
-
-			m_Manip = new OrbitManipulator (m_Projection);
-			m_Grid = new Grid (m_TransformationStack);
-
-			m_TransformationStack.Push (m_Manip.RT);
-			m_UniformState.Set ("modelview_transform", m_Manip.RT);
-			m_UniformState.Set ("modelviewprojection_transform", m_TransformationStack);
-			m_UniformState.Set ("projection_transform", m_Projection);
-			m_UniformState.Set ("projection_inv_transform", new MatrixInversion(m_Projection));
-			m_UniformState.Set ("modelview_inv_transform", new MatrixInversion(m_Manip.RT));
-			m_UniformState.Set ("modelviewprojection_inv_transform", new MatrixInversion(m_TransformationStack));
-
-			//
-			lightPassUniforms.Set ("modelview_transform", m_SunLightImpl.LightSpaceModelviewProvider);
-			lightPassUniforms.Set ("modelviewprojection_transform", m_SunLightImpl.LightSpaceModelviewProjectionProvider);
-			lightPassUniforms.Set ("projection_transform", m_SunLightImpl.LightSpaceProjectionProvider);
-			lightPassUniforms.Set ("projection_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceProjectionProvider));
-			lightPassUniforms.Set ("modelview_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProvider));
-			lightPassUniforms.Set ("modelviewprojection_inv_transform", new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProjectionProvider));
 
 			m_DebugView = new opentk.QnodeDebug.QuadTreeDebug(10000, m_TransformationStack);
 			PrepareState ();

@@ -119,7 +119,7 @@ void main ()
 	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
 	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
 
-	float shadow = 0;//get_shadow(p_pos);
+	float shadow = get_shadow(p_pos);
 
 	vec3 diffuse = material * max(dot(light.dir, p_nd.xyz) * (1 - shadow), 0);
 	vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);

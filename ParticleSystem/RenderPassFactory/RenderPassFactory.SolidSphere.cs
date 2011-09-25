@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using opentk.Scene;
+
 namespace opentk
 {
 	public static partial class RenderPassFactory
@@ -18,24 +20,13 @@ namespace opentk
 			 IValueProvider<Vector2> viewport,
 			 IValueProvider<int> particles_count,
 			 IValueProvider<float> particle_scale_factor,
-			 IValueProvider<Matrix4> modelview_transform,
-			 IValueProvider<Matrix4> modelview_inv_transform,
-			 IValueProvider<Matrix4> modelviewprojection_transform,
-			 IValueProvider<Matrix4> modelviewprojection_inv_transform,
-			 IValueProvider<Matrix4> projection_transform,
-			 IValueProvider<Matrix4> projection_inv_transform
+			 ModelViewProjectionParameters mvp
 		)
 		{
 			var uniform_state = new UniformState ();
 			uniform_state.Set ("viewport_size", viewport);
-
-			uniform_state.Set ("modelview_transform", modelview_transform);
-			uniform_state.Set ("modelviewprojection_transform", modelviewprojection_transform);
-			uniform_state.Set ("projection_transform", projection_transform);
-			uniform_state.Set ("projection_inv_transform", projection_inv_transform);
-			uniform_state.Set ("modelview_inv_transform", modelview_inv_transform);
-			uniform_state.Set ("modelviewprojection_inv_transform", modelviewprojection_inv_transform);
 			uniform_state.Set ("particle_scale_factor", particle_scale_factor);
+			mvp.SetUniforms("", uniform_state);
 
 			var array_state =
 				new ArrayObject (
@@ -45,7 +36,7 @@ namespace opentk
 				);
 
 			//
-			var resultPass = new SeparateProgramPass<object>
+			var resultPass = new SeparateProgramPass
 			(
 				 "solid_sphere", "RenderPassFactory",
 				 //before state
@@ -75,6 +66,7 @@ namespace opentk
 			return resultPass;
 		}
 
+
 		/// <summary>
 		/// given color and depth textures, render them.
 		/// </summary>
@@ -88,12 +80,7 @@ namespace opentk
 			 BufferObject<Vector4> sprite_dimensions_buffer,
 			 IValueProvider<int> particles_count,
 			 IValueProvider<float> particle_scale_factor,
-			 IValueProvider<Matrix4> modelview_transform,
-			 IValueProvider<Matrix4> modelview_inv_transform,
-			 IValueProvider<Matrix4> modelviewprojection_transform,
-			 IValueProvider<Matrix4> modelviewprojection_inv_transform,
-			 IValueProvider<Matrix4> projection_transform,
-			 IValueProvider<Matrix4> projection_inv_transform
+			 ModelViewProjectionParameters mvp
 		)
 		{
 			var viewport = ValueProvider.Create (() => new Vector2 (depth_texture.Width, depth_texture.Height));
@@ -108,9 +95,7 @@ namespace opentk
 				 sprite_pos_buffer, sprite_color_buffer, sprite_dimensions_buffer,
 				 viewport,
 				 particles_count, particle_scale_factor,
-				 modelview_transform, modelview_inv_transform,
-				 modelviewprojection_transform, modelviewprojection_inv_transform,
-				 projection_transform, projection_inv_transform
+				 mvp
 			);
 		}
 
@@ -125,12 +110,7 @@ namespace opentk
 			 BufferObject<Vector4> sprite_dimensions_buffer,
 			 IValueProvider<int> particles_count,
 			 IValueProvider<float> particle_scale_factor,
-			 IValueProvider<Matrix4> modelview_transform,
-			 IValueProvider<Matrix4> modelview_inv_transform,
-			 IValueProvider<Matrix4> modelviewprojection_transform,
-			 IValueProvider<Matrix4> modelviewprojection_inv_transform,
-			 IValueProvider<Matrix4> projection_transform,
-			 IValueProvider<Matrix4> projection_inv_transform
+			 ModelViewProjectionParameters mvp
 		)
 		{
 			var viewport = ValueProvider.Create (() => new Vector2 (depth_texture.Width, depth_texture.Height));
@@ -142,9 +122,7 @@ namespace opentk
 				 sprite_pos_buffer, sprite_color_buffer, sprite_dimensions_buffer,
 				 viewport,
 				 particles_count, particle_scale_factor,
-				 modelview_transform, modelview_inv_transform,
-				 modelviewprojection_transform, modelviewprojection_inv_transform,
-				 projection_transform, projection_inv_transform
+				 mvp
 			);
 		}
 	}

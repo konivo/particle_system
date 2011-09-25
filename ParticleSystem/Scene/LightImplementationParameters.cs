@@ -24,22 +24,12 @@ namespace opentk.Scene
 			get; set;
 		}
 
+		public ModelViewProjectionParameters LightMvp
+		{
+			get; private set;
+		}
+
 		public IValueProvider<Matrix4> LightIlluminationTransformProvider
-		{
-			get; private set;
-		}
-
-		public IValueProvider<Matrix4> LightSpaceModelviewProjectionProvider
-		{
-			get; private set;
-		}
-
-		public IValueProvider<Matrix4> LightSpaceModelviewProvider
-		{
-			get; private set;
-		}
-
-		public IValueProvider<Matrix4> LightSpaceProjectionProvider
 		{
 			get; private set;
 		}
@@ -48,10 +38,10 @@ namespace opentk.Scene
 		{
 			Light = light;
 
-			LightSpaceModelviewProvider =
+			var LightSpaceModelviewProvider =
 				ValueProvider.Create(() => Matrix4.LookAt(- Light.Direction * 300, Light.Direction * 300, Vector3.UnitZ));
 
-			LightSpaceProjectionProvider =
+			var LightSpaceProjectionProvider =
 				ValueProvider.Create(
 				() =>
 				{
@@ -65,11 +55,12 @@ namespace opentk.Scene
 					}
 				});
 
-			//
-			var mvp = new MatrixStack();
-			mvp.Push(LightSpaceProjectionProvider);
-			mvp.Push(LightSpaceModelviewProvider);
-			LightSpaceModelviewProjectionProvider = mvp;
+			LightMvp = new ModelViewProjectionParameters
+			(
+				 "",
+				 LightSpaceModelviewProvider,
+				 LightSpaceProjectionProvider
+			);
 
 			//
 			LightIlluminationTransformProvider = ValueProvider.Create(

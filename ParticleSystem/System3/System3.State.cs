@@ -259,7 +259,7 @@ namespace opentk.System3
 				);
 
 			//
-			var firstPassSolid = new SeparateProgramPass<System3>
+			var firstPassSolid = new SeparateProgramPass
 			(
 				 "solid1",
 
@@ -362,7 +362,7 @@ namespace opentk.System3
 			);
 
 			//
-			var firstPassEmit = new SeparateProgramPass<System3>
+			var firstPassEmit = new SeparateProgramPass
 			(
 				 "light",
 

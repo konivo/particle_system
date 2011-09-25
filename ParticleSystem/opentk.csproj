@@ -99,6 +99,11 @@
     <Compile Include="Scene\LightConverter.cs" />
     <Compile Include="Scene\LightImplementationParameters.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.SolidSphere.cs" />
+    <Compile Include="SystemBase\SystemBase.cs" />
+    <Compile Include="SystemBase\SystemBase.State.cs" />
+    <Compile Include="Scene\ProjectionType.cs" />
+    <Compile Include="Scene\ModelViewProjectionParameters.cs" />
+    <Compile Include="Scene\Extensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -119,6 +124,7 @@
     <Folder Include="System21\" />
     <Folder Include="System21\" />
     <Folder Include="Scene\" />
+    <Folder Include="SystemBase\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />

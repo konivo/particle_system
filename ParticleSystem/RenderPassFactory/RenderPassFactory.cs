@@ -17,7 +17,7 @@ namespace opentk
 				GL.DrawArrays (BeginMode.Points, 0, 1);
 			};
 			
-			return new SeparateProgramPass<object> (passName, beforeState, beforeRender, render, shaders, stateParts);
+			return new SeparateProgramPass (passName, beforeState, beforeRender, render, shaders, stateParts);
 		}
 
 		//

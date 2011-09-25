@@ -206,17 +206,17 @@ vec3 DomainMorphFunction(vec3 pos)
 {
 	vec3 v1 = pos;
 
-	//v1 = vec3(pos.x, sin(pos.y / 30) * 30, cos(pos.z/ 30) * 30);
+	v1 = vec3(pos.x, sin(pos.y / 30) * 30, cos(pos.z/ 30) * 30);
 	//v1 = morph_rotate(v1);
 	//v1 = morph_rotate(v1.yzx);
-	//v1 = morph_rotate(v1);
-	//v1 = morph_rotate(v1.yzx);
-	//v1 = morph_rotate(v1.yzx);
-	//v1 = vec3(v1.x, sin(v1.y / 30) * 30, cos(v1.z/ 30) * 30);
+	v1 = morph_rotate(v1);
+	v1 = morph_rotate(v1.yzx);
+	v1 = morph_rotate(v1.yzx);
+	v1 = vec3(v1.x, sin(v1.y / 30) * 30, cos(v1.z/ 30) * 30);
 
-	v1 = SinTrans(0, 1, pos);
-	v1 = SinTrans(0, 1, v1);
-	v1 = SinTrans(0, 1, v1);
+	//v1 = SinTrans(0, 1, pos);
+	//v1 = SinTrans(0, 1, v1);
+	//v1 = SinTrans(0, 1, v1);
 	return v1;
 }
 

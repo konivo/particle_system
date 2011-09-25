@@ -68,7 +68,7 @@ namespace opentk
 	/// <summary>
 	///
 	/// </summary>
-	public class SeparateProgramPass<TOwner> : RenderPass
+	public class SeparateProgramPass : RenderPass
 	{
 		private State m_State;
 
@@ -131,7 +131,7 @@ namespace opentk
 		}
 
 		public SeparateProgramPass (string passName, string passNamespace, Action<GameWindow> beforeStateAction, Action<GameWindow> beforeRender, Action<GameWindow> render, params StatePart[] stateParts)
-		:this(passName, passNamespace ?? typeof(TOwner).Namespace.Split ('.').Last (), beforeStateAction, beforeRender, render)
+		:this(passName, passNamespace, beforeStateAction, beforeRender, render)
 		{
 			//create program from resources filtered by namespace and name
 			var program = new Program (PassName, GetShaders ().ToArray ());
@@ -139,7 +139,7 @@ namespace opentk
 		}
 
 		public SeparateProgramPass (string passName, Action<GameWindow> beforeStateAction, Action<GameWindow> beforeRender, Action<GameWindow> render, IEnumerable<Shader> shaders, params StatePart[] stateParts)
-		:this(passName, null, beforeStateAction, beforeRender, render)
+		:this(passName, string.Empty, beforeStateAction, beforeRender, render)
 		{
 			//create program from resources filtered by namespace and name
 			var program = new Program (PassName, shaders.ToArray ());
@@ -147,9 +147,8 @@ namespace opentk
 		}
 
 		public SeparateProgramPass (string passName, Action<GameWindow> render, params StatePart[] stateParts)
-		: this(passName, null, null, null, render, stateParts)
-		{
-		}
+		: this(passName, new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().DeclaringType.Namespace.Split('.').Last(), null, null, render, stateParts)
+		{	}
 
 		public IEnumerable<Shader> GetShaders ()
 		{

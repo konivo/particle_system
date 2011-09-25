@@ -270,46 +270,26 @@ namespace opentk.System21
 			var particle_shape = ValueProvider.Create (() => (int)this.ParticleShape);
 			var particle_count = ValueProvider.Create (() => PARTICLES_COUNT);
 
-			var light_modelviewprojection_transform = m_SunLightImpl.LightSpaceModelviewProjectionProvider;
-			var light_modelviewprojection_inv_transform = new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProjectionProvider);
-			var light_modelview_transform = m_SunLightImpl.LightSpaceModelviewProvider;
-			var light_modelview_inv_transform = new MatrixInversion(m_SunLightImpl.LightSpaceModelviewProvider);
-			var light_projection_transform = m_SunLightImpl.LightSpaceProjectionProvider;
-			var light_projection_inv_transform = new MatrixInversion(m_SunLightImpl.LightSpaceProjectionProvider);
+			var camera_mvp = new ModelViewProjectionParameters
+			(
+				 string.Empty,
+				 m_Manip.RT,
+				 m_Projection
+			);
 
-			var modelview_transform = m_Manip.RT;
-			var modelviewprojection_transform = m_TransformationStack;
-			var projection_transform = m_Projection;
-			var projection_inv_transform = new MatrixInversion(m_Projection);
-			var modelview_inv_transform = new MatrixInversion(m_Manip.RT);
-			var modelviewprojection_inv_transform = new MatrixInversion(m_TransformationStack);
-
+			//
 			m_UniformState = new UniformState ();
 			m_UniformState.Set ("color", new Vector4 (0, 0, 1, 1));
 			m_UniformState.Set ("particle_scale_factor", particle_scale_factor);
 			m_UniformState.Set ("particle_shape", particle_shape);
-			m_UniformState.Set ("light_modelviewprojection_transform", light_modelviewprojection_transform);
-			m_UniformState.Set ("light_modelview_transform", light_modelview_transform);
-			m_UniformState.Set ("light_projection_inv_transform", light_projection_inv_transform);
-			m_UniformState.Set ("light_projection_transform", light_projection_transform);
-
-
-			m_UniformState.Set ("modelview_transform", modelview_transform);
-			m_UniformState.Set ("modelviewprojection_transform", modelviewprojection_transform);
-			m_UniformState.Set ("projection_transform", projection_transform);
-			m_UniformState.Set ("projection_inv_transform", projection_inv_transform);
-			m_UniformState.Set ("modelview_inv_transform", modelview_inv_transform);
-			m_UniformState.Set ("modelviewprojection_inv_transform", modelviewprojection_inv_transform);
+			m_UniformState.SetMvp ("", camera_mvp);
+			m_UniformState.SetMvp ("light", m_SunLightImpl.LightMvp);
 
 			//
 			var lightPassUniforms = new UniformState();
-			lightPassUniforms.Set ("modelview_transform", light_modelview_transform);
-			lightPassUniforms.Set ("modelviewprojection_transform", light_modelviewprojection_transform);
-			lightPassUniforms.Set ("projection_transform", light_projection_transform);
-			lightPassUniforms.Set ("projection_inv_transform", light_projection_inv_transform);
-			lightPassUniforms.Set ("modelview_inv_transform", light_modelview_inv_transform);
-			lightPassUniforms.Set ("modelviewprojection_inv_transform", light_modelviewprojection_inv_transform);
-			
+			lightPassUniforms.SetMvp("", m_SunLightImpl.LightMvp);
+
+			//
 			m_ParticleRenderingState =
 				new ArrayObject (
 					new VertexAttribute { AttributeName = "sprite_pos", Buffer = PositionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
@@ -327,12 +307,7 @@ namespace opentk.System21
 				 DimensionBuffer,
 				 particle_count,
 				 particle_scale_factor,
-				 modelview_transform,
-				 modelview_inv_transform,
-				 modelviewprojection_transform,
-				 modelviewprojection_inv_transform,
-				 projection_transform,
-				 projection_inv_transform
+				 camera_mvp
 			);
 
 			var firstPassShadow =  RenderPassFactory.CreateSolidSphere
@@ -343,12 +318,7 @@ namespace opentk.System21
 				 DimensionBuffer,
 				 particle_count,
 				 particle_scale_factor,
-				 light_modelview_transform,
-				 light_modelview_inv_transform,
-				 light_modelviewprojection_transform,
-				 light_modelviewprojection_inv_transform,
-				 light_projection_transform,
-				 light_projection_inv_transform
+				 m_SunLightImpl.LightMvp
 			);
 
 			var aocPassSolid = RenderPassFactory.CreateAoc
@@ -424,7 +394,7 @@ namespace opentk.System21
 			);
 
 			//
-			var firstPassEmit = new SeparateProgramPass<System21>
+			var firstPassEmit = new SeparateProgramPass
 			(
 				 "light",
 

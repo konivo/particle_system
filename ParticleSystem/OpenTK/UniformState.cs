@@ -13,20 +13,25 @@ namespace OpenTK
 	public class UniformState : StatePart
 	{
 		private readonly Dictionary<string, object> m_Values = new Dictionary<string, object> ();
+		private readonly UniformState[] m_BaseUniforms;
 
 		public readonly bool Default;
 		public readonly string Name;
 
-		public UniformState ()
+		public UniformState (params UniformState[] baseUniforms)
 		{
 			Default = true;
 			Name = string.Empty;
+
+			m_BaseUniforms = baseUniforms.ToArray();
 		}
 
-		public UniformState (string name)
+		public UniformState (string name, params UniformState[] baseUniforms)
 		{
 			Default = false;
 			Name = name;
+
+			m_BaseUniforms = baseUniforms.ToArray();
 		}
 
 		public UniformState Set<T> (string name, T val)
@@ -53,14 +58,17 @@ namespace OpenTK
 					//or use ProgramUniform
 					GL.UseProgram(program.Handle);
 
-					foreach (var item in m_Values)
+					foreach(var dict in m_BaseUniforms.Concat(new [] {this}))
 					{
-						string name = GetValueName (item.Key, item.Value);
-						
-						int uloc = GL.GetUniformLocation (program.Handle, name);
-						if (uloc >= 0)
+						foreach (var item in dict.m_Values)
 						{
-							SetValue (program.Handle, uloc, name, item.Value);
+							string name = GetValueName (item.Key, item.Value);
+
+							int uloc = GL.GetUniformLocation (program.Handle, name);
+							if (uloc >= 0)
+							{
+								SetValue (program.Handle, uloc, name, item.Value);
+							}
 						}
 					}
 				}

@@ -5,6 +5,7 @@ using System.ComponentModel.Composition;
 using OpenTK;
 using OpenTK.Structure;
 using OpenTK.Graphics.OpenGL;
+using opentk.ShadingSetup;
 
 namespace opentk.QnodeDebug
 {

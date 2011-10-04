@@ -3,6 +3,7 @@ using OpenTK;
 using OpenTK.Graphics;
 using System.ComponentModel.Composition;
 using OpenTK.Graphics.OpenGL;
+using opentk.Scene.ParticleSystem;
 
 namespace opentk.System2
 {

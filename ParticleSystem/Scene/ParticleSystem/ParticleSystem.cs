@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using OpenTK;
 using System.ComponentModel;
-namespace opentk
+
+namespace opentk.Scene.ParticleSystem
 {
 	[InheritedExport]
 	public abstract class ParticleSystem : INotifyPropertyChanged, IDisposable

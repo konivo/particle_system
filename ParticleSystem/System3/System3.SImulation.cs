@@ -63,7 +63,7 @@ namespace opentk.System3
 			Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = 0 };
 		}
 
-		private void InitializeSystem ()
+		protected override void InitializeSystem ()
 		{
 			ChaoticMap = new LorenzMap ();
 			TrailSize = 1;
@@ -79,7 +79,7 @@ namespace opentk.System3
 			}
 		}
 
-		public void Simulate (DateTime simulationTime)
+		protected override void Simulate (DateTime simulationTime)
 		{
 			var fun = m_ChaoticMap.Map;
 			TrailSize = TrailSize > 0 ? TrailSize : 1;

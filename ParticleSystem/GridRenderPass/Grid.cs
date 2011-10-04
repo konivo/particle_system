@@ -5,6 +5,8 @@ using System.ComponentModel.Composition;
 using OpenTK;
 using OpenTK.Structure;
 using OpenTK.Graphics.OpenGL;
+using opentk.Scene;
+using opentk.ShadingSetup;
 
 namespace opentk.GridRenderPass
 {
@@ -24,16 +26,16 @@ namespace opentk.GridRenderPass
 		//
 		private UniformState m_UniformState;
 		//
-		private MatrixStack m_TransformationStack;
+		private ModelViewProjectionParameters m_CameraMvp;
 		//
 		private BufferObject<Vector3> PositionBuffer;
 		private BufferObject<float> ParameterBuffer;
 		//
 		private State m_State;
 
-		public Grid (MatrixStack trans)
+		public Grid (ModelViewProjectionParameters mvp)
 		{
-			m_TransformationStack = trans;
+			m_CameraMvp = mvp;
 		}
 
 		private void UpdateGrid ()
@@ -90,7 +92,7 @@ namespace opentk.GridRenderPass
 				ParameterBuffer = new BufferObject<float> (sizeof(float), 4 * m_Count + 2) { Name = "parameter_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
-			m_UniformState = new UniformState ().Set ("modelview_transform", m_TransformationStack);
+			m_UniformState = new UniformState ().Set ("modelview_transform", m_CameraMvp.ModelViewProjection);
 			m_AttributeState = new ArrayObject (new VertexAttribute { AttributeName = "pos", Buffer = PositionBuffer, Size = 3, Type = VertexAttribPointerType.Float }, new VertexAttribute { AttributeName = "param", Buffer = ParameterBuffer, Size = 1, Type = VertexAttribPointerType.Float });
 
 			m_Program = new Program ("coordinate_grid_program", GetShaders ("GridRenderPass", "").ToArray ());

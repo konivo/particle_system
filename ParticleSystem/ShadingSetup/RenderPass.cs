@@ -3,7 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using OpenTK;
-namespace opentk
+namespace opentk.ShadingSetup
 {
 	/// <summary>
 	///

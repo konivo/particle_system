@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.ComponentModel.Composition;
 using OpenTK.Graphics.OpenGL;
 using opentk.PropertyGridCustom;
+using opentk.Scene.ParticleSystem;
 
 namespace opentk.System4
 {

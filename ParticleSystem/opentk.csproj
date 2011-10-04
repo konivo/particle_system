@@ -58,14 +58,11 @@
     <Compile Include="System1\System1.cs" />
     <Compile Include="System1\System1.State.cs" />
     <Compile Include="System1\System1.SImulation.cs" />
-    <Compile Include="ParticleSystem.cs" />
     <Compile Include="System2\System2.cs" />
     <Compile Include="System2\System2.SImulation.cs" />
     <Compile Include="System2\System2.State.cs" />
-    <Compile Include="RenderPass.cs" />
     <Compile Include="OpenTK\GLHelper.cs" />
     <Compile Include="System3\System3.cs" />
-    <Compile Include="System3\System3.State.cs" />
     <Compile Include="System3\System3.SImulation.cs" />
     <Compile Include="OpenTK\Structure\QuadTree.cs" />
     <Compile Include="QnodeDebug\QuadTreeDebug.cs" />
@@ -91,7 +88,6 @@
     <Compile Include="System4\System4.State.cs" />
     <Compile Include="System21\System21.cs" />
     <Compile Include="System21\System21.SImulation.cs" />
-    <Compile Include="System21\System21.State.cs" />
     <Compile Include="RenderPassFactory\AocParameters.cs" />
     <Compile Include="RenderPassFactory\AocParametersConverter.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Ssao.cs" />
@@ -99,11 +95,18 @@
     <Compile Include="Scene\LightConverter.cs" />
     <Compile Include="Scene\LightImplementationParameters.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.SolidSphere.cs" />
-    <Compile Include="SystemBase\SystemBase.cs" />
-    <Compile Include="SystemBase\SystemBase.State.cs" />
     <Compile Include="Scene\ProjectionType.cs" />
     <Compile Include="Scene\ModelViewProjectionParameters.cs" />
     <Compile Include="Scene\Extensions.cs" />
+    <Compile Include="Scene\LightType.cs" />
+    <Compile Include="ShadingSetup\SmoothShading\SmoothSetup.cs" />
+    <Compile Include="ShadingSetup\SolidModel\SolidSphereSetup.cs" />
+    <Compile Include="ShadingSetup\IShadingSetup.cs" />
+    <Compile Include="ShadingSetup\RenderSetupConverter.cs" />
+    <Compile Include="Scene\ParticleSystem\ParticleSystemBase.cs" />
+    <Compile Include="Scene\ParticleSystem\ParticleSystemBase.State.cs" />
+    <Compile Include="Scene\ParticleSystem\ParticleSystem.cs" />
+    <Compile Include="ShadingSetup\RenderPass.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -120,11 +123,16 @@
     <Folder Include="RenderPassFactory\Shaders\" />
     <Folder Include="System4\" />
     <Folder Include="System4\Shaders\" />
-    <Folder Include="System21\Shaders\" />
     <Folder Include="System21\" />
     <Folder Include="System21\" />
     <Folder Include="Scene\" />
     <Folder Include="SystemBase\" />
+    <Folder Include="ShadingSetup\" />
+    <Folder Include="ShadingSetup\SolidModel\" />
+    <Folder Include="ShadingSetup\SmoothShading\" />
+    <Folder Include="ShadingSetup\SolidModel\Shaders\" />
+    <Folder Include="ShadingSetup\SmoothShading\Shaders\" />
+    <Folder Include="Scene\ParticleSystem\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -136,24 +144,11 @@
     <EmbeddedResource Include="QnodeDebug\Shaders\geometry.glsl" />
     <EmbeddedResource Include="GridRenderPass\Shaders\fragment.glsl" />
     <EmbeddedResource Include="GridRenderPass\Shaders\vertex.glsl" />
-    <EmbeddedResource Include="System3\Shaders\main_fragment.glsl" />
-    <EmbeddedResource Include="System3\Shaders\light_fragment.glsl" />
-    <EmbeddedResource Include="System3\Shaders\main_light_vertex.glsl" />
-    <EmbeddedResource Include="System3\Shaders\main_light_geometry.glsl" />
-    <EmbeddedResource Include="System3\Shaders\solid3_fragment.glsl" />
-    <EmbeddedResource Include="System3\Shaders\solid1_fragment.glsl" />
-    <EmbeddedResource Include="System3\Shaders\solid1_geometry.glsl" />
-    <EmbeddedResource Include="System3\Shaders\solid1_vertex.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\aoc_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\fullquad_geometry.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\fullquad_vertex.glsl" />
     <EmbeddedResource Include="System4\Shaders\raymarch_fragment.glsl" />
     <EmbeddedResource Include="System4\Shaders\lighting_fragment.glsl" />
-    <EmbeddedResource Include="System21\Shaders\light_fragment.glsl" />
-    <EmbeddedResource Include="System21\Shaders\main_fragment.glsl" />
-    <EmbeddedResource Include="System21\Shaders\main_light_geometry.glsl" />
-    <EmbeddedResource Include="System21\Shaders\main_light_vertex.glsl" />
-    <EmbeddedResource Include="System21\Shaders\solid3_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\blur_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\bilateralfilter_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\fxaa3_fragment.glsl" />
@@ -163,5 +158,10 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_sphere_geometry.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_sphere_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_sphere_vertex.glsl" />
+    <EmbeddedResource Include="ShadingSetup\SmoothShading\Shaders\light_fragment.glsl" />
+    <EmbeddedResource Include="ShadingSetup\SmoothShading\Shaders\main_fragment.glsl" />
+    <EmbeddedResource Include="ShadingSetup\SmoothShading\Shaders\main_light_geometry.glsl" />
+    <EmbeddedResource Include="ShadingSetup\SmoothShading\Shaders\main_light_vertex.glsl" />
+    <EmbeddedResource Include="ShadingSetup\SolidModel\Shaders\solid3_fragment.glsl" />
   </ItemGroup>
 </Project>

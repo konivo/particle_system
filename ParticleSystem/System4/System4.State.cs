@@ -5,6 +5,7 @@ using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using opentk.GridRenderPass;
 using opentk.Manipulators;
+using opentk.ShadingSetup;
 
 namespace opentk.System4
 {
@@ -34,8 +35,6 @@ namespace opentk.System4
 		private int m_SolidModeTextureSize = 1024;
 		//
 		private int m_AocTextureSize = 512;
-		//
-		private int m_AocSampleCount = 64;
 
 		private void PrepareState ()
 		{
@@ -170,7 +169,7 @@ namespace opentk.System4
 			m_Passes = new RenderPass[]{ firstPassSolid, aocPassSolid, thirdPassSolid };
 
 			m_Manip = new OrbitManipulator (m_Projection);
-			m_Grid = new Grid (m_TransformationStack);
+			//m_Grid = new Grid (m_TransformationStack);
 			
 			m_TransformationStack.Push (m_Manip.RT);
 			m_UniformState.Set ("modelview_transform", m_Manip.RT);

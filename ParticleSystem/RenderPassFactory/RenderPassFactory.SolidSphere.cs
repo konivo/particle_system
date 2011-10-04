@@ -3,6 +3,7 @@ using System.Linq;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using opentk.Scene;
+using opentk.ShadingSetup;
 
 namespace opentk
 {

@@ -395,7 +395,7 @@ namespace opentk.System3
 			m_EmitModePasses = new RenderPass[]{ firstPassEmit };
 
 			m_Manip = new OrbitManipulator (m_Projection);
-			m_Grid = new Grid (m_TransformationStack);
+			//m_Grid = new Grid (mvp);
 			
 			m_TransformationStack.Push (m_Manip.RT);
 			m_UniformState.Set ("modelview_transform", m_Manip.RT);

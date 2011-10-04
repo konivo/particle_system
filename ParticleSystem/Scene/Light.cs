@@ -7,14 +7,6 @@ namespace opentk.Scene
 	/// <summary>
 	///
 	/// </summary>
-	public enum LightType
-	{
-		Spot, Directional
-	}
-
-	/// <summary>
-	///
-	/// </summary>
 	public class Light
 	{
 		public Vector3 Position

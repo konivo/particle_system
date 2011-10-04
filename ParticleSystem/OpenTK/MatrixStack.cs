@@ -121,10 +121,21 @@ namespace OpenTK
 
 			protected override void SetItem (int index, IValueProvider<Matrix4> item)
 			{
-				this[index].PropertyChanged -= m_Parent.ChildValueChangedHandler;
-				base.SetItem (index, item);
-				item.PropertyChanged += m_Parent.ChildValueChangedHandler;
-				m_Parent.RaiseChanged ();
+				if(item == null || index < 0 || index > this.Count)
+					throw new ArgumentException();
+
+				if(index < Count)
+				{
+					this[index].PropertyChanged -= m_Parent.ChildValueChangedHandler;
+					base.SetItem (index, item);
+
+					item.PropertyChanged += m_Parent.ChildValueChangedHandler;
+					m_Parent.RaiseChanged ();
+				}
+				else
+				{
+					InsertItem(index, item);
+				}
 			}
 
 			protected override void ClearItems ()

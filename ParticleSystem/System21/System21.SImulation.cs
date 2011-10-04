@@ -10,12 +10,10 @@ namespace opentk.System21
 {
 	public partial class System21
 	{
-		protected Vector4[] Position;
 		protected Vector2[] Oscilation;
 		protected Vector4[] Velocity;
 		protected Vector4[] VelocityUpdate;
 		protected float[] Phase;
-		protected Vector4[] Size;
 		protected Vector4[] Bmin;
 		protected Vector4[] Bmax;
 
@@ -85,9 +83,10 @@ namespace opentk.System21
 			var newpos = LeaderPath.Value.CalculatePoint (LeaderPathPosition);
 			var newposyz = LeaderPathYZ.Value.CalculatePoint (LeaderPathPosition);
 
-			Size[i] = new Vector4 (size, size, size, size);
+			Dimension[i] = new Vector4 (size, size, size, size);
 			Position[i] = new Vector4 (newpos.X, newpos.Y, newposyz.Y, 1);
 			Velocity[i] = new Vector4 (0, (float)Math.Min(1.0 / size, 100), 0, 0);
+			Color[i] = new Vector4(1, 1, 0, 1);
 			//Velocity[i] = new Vector4 (0, 1/1000.0f, 0, 0);
 
 			Bmin[i] = Position[i] - new Vector4(size, size, 0, 0);
@@ -96,7 +95,7 @@ namespace opentk.System21
 
 		private void UpdateBubble(int i)
 		{
-			var size = Size[i].W;
+			var size = Dimension[i].W;
 
 			Velocity[i] = (Vector4)((Vector4d)Velocity[i]  + (Vector4d)VelocityUpdate[i]);
 			Position[i] = (Vector4)((Vector4d)Position[i]  + (Vector4d)Velocity[i] * 0.0001);
@@ -107,10 +106,8 @@ namespace opentk.System21
 			Bmax[i] = Position[i] + new Vector4(size, size, 0, 0);
 		}
 
-		private void InitializeSystem ()
+		protected override void InitializeSystem ()
 		{
-			Size = DimensionBuffer.Data;
-			Position = PositionBuffer.Data;
 			Oscilation = new Vector2[Position.Length];
 			Phase = new float[Position.Length];
 			Velocity = new Vector4[Position.Length];
@@ -119,7 +116,7 @@ namespace opentk.System21
 			Bmax = new Vector4[Position.Length];
 		}
 
-		public void Simulate (DateTime simulationTime)
+		protected override void Simulate (DateTime simulationTime)
 		{
 			PreparePath ();
 
@@ -186,8 +183,8 @@ namespace opentk.System21
 				return;
 			
 			var dir = (Vector4d) Position[i] - (Vector4d)Position[j];
-			var mi = (double)Size[i].W;
-			var mj = (double)Size[j].W;
+			var mi = (double)Dimension[i].W;
+			var mj = (double)Dimension[j].W;
 
 			var len = dir.Length;
 			if (len > (mj + mi))

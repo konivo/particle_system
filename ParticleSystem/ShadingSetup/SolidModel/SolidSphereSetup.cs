@@ -28,9 +28,6 @@ namespace opentk.ShadingSetup
 		private TextureBase AA_Texture;
 		private TextureBase Shadow_Texture;
 
-		private int m_SolidModeTextureSize = 2048;
-		private int m_ShadowTextureSize = 1024;
-
 		private AocParameters m_AocParameters;
 		private Light m_SunLight;
 		private LightImplementationParameters m_SunLightImpl;
@@ -44,6 +41,21 @@ namespace opentk.ShadingSetup
 			set { m_AocParameters = value; }
 		}
 
+		public bool EnableSoftShadow
+		{
+			get; set;
+		}
+
+		public int ShadowTextureSize
+		{
+			get; set;
+		}
+
+		public int SolidModeTextureSize
+		{
+			get; set;
+		}
+
 		private void TextureSetup()
 		{
 			//TEextures setup
@@ -51,7 +63,7 @@ namespace opentk.ShadingSetup
 				new DataTexture<Vector3> {
 					Name = "UV_ColorIndex_None_Texture",
 					InternalFormat = PixelInternalFormat.Rgba8,
-					Data2D = new Vector3[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Data2D = new Vector3[SolidModeTextureSize, SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -100,7 +112,7 @@ namespace opentk.ShadingSetup
 					Name = "NormalDepth_Texture",
 					InternalFormat = PixelInternalFormat.Rgba32f,
 					//Format = PixelFormat.DepthComponent,
-					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -113,7 +125,7 @@ namespace opentk.ShadingSetup
 					Name = "Depth_Texture",
 					InternalFormat = PixelInternalFormat.DepthComponent32f,
 					Format = PixelFormat.DepthComponent,
-					Data2D = new float[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Data2D = new float[SolidModeTextureSize, SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -125,7 +137,7 @@ namespace opentk.ShadingSetup
 				new DataTexture<Vector4> {
 					Name = "BeforeAA_Texture",
 					InternalFormat = PixelInternalFormat.Rgba8,
-					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -137,7 +149,7 @@ namespace opentk.ShadingSetup
 				new DataTexture<Vector4> {
 					Name = "AA_Texture",
 					InternalFormat = PixelInternalFormat.Rgba8,
-					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -150,7 +162,7 @@ namespace opentk.ShadingSetup
 					Name = "Shadow_Texture",
 					InternalFormat = PixelInternalFormat.DepthComponent32f,
 					Format = PixelFormat.DepthComponent,
-					Data2D = new float[m_ShadowTextureSize, m_ShadowTextureSize],
+					Data2D = new float[ShadowTextureSize, ShadowTextureSize],
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = false,
@@ -183,20 +195,50 @@ namespace opentk.ShadingSetup
 			};
 
 			m_SunLightImpl = new LightImplementationParameters(m_SunLight);
+
+			//
+			ShadowTextureSize = 1024;
+			SolidModeTextureSize = 2048;
+		}
+
+		private void UpdateTextureResolutions()
+		{
+			if(Shadow_Texture != null &&
+			   Shadow_Texture.Width != ShadowTextureSize)
+			{
+				((DataTexture<float>)Shadow_Texture).Data2D = new float[ShadowTextureSize, ShadowTextureSize];
+			}
+
+			if(AA_Texture != null &&
+			   AA_Texture.Width != SolidModeTextureSize)
+			{
+				((DataTexture<Vector3>)UV_ColorIndex_None_Texture).Data2D = new Vector3[SolidModeTextureSize, SolidModeTextureSize];
+				((DataTexture<Vector4>)NormalDepth_Texture).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
+				((DataTexture<float>)Depth_Texture).Data2D = new float[SolidModeTextureSize, SolidModeTextureSize];
+				((DataTexture<Vector4>)AA_Texture).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
+				((DataTexture<Vector4>)BeforeAA_Texture).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
+			}
 		}
 
 		#region IRenderSetup implementation
 		RenderPass IShadingSetup.GetPass (ParticleSystemBase p)
 		{
+			UpdateTextureResolutions();
+
 			if(m_Pass != null)
 				return m_Pass;
 
 			ParameterSetup();
 			TextureSetup();
 
+			//
 			m_Uniforms = new UniformState(p.Uniforms);
 			m_Uniforms.SetMvp ("light", m_SunLightImpl.LightMvp);
+			m_Uniforms.Set("enable_soft_shadow", ValueProvider.Create (() => EnableSoftShadow));
 
+			var mode = ValueProvider.Create (() => EnableSoftShadow ? 2: 1);
+
+			//
 			var particle_scale_factor = ValueProvider.Create (() => p.ParticleScaleFactor);
 			var particle_count = ValueProvider.Create (() => p.PARTICLES_COUNT);
 
@@ -221,6 +263,7 @@ namespace opentk.ShadingSetup
 				 p.DimensionBuffer,
 				 particle_count,
 				 particle_scale_factor,
+				 mode,
 				 m_SunLightImpl.LightMvp
 			);
 
@@ -244,7 +287,7 @@ namespace opentk.ShadingSetup
 			var thirdPassSolid = RenderPassFactory.CreateFullscreenQuad
 			(
 				 "solid3", "SolidModel",
-				 ValueProvider.Create(() => new Vector2(m_SolidModeTextureSize, m_SolidModeTextureSize)),
+				 ValueProvider.Create(() => new Vector2(SolidModeTextureSize, SolidModeTextureSize)),
 				 (window) => { },
 				 (window) =>
 				 {

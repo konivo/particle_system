@@ -159,6 +159,12 @@ namespace opentk.Scene.ParticleSystem
 			set;
 		}
 
+		public bool ShowGrid
+		{
+			get;
+			set;
+		}
+
 		[Category("Map properties")]
 		[TypeConverter(typeof(RenderSetupConverter))]
 		[DescriptionAttribute("Expand to see the parameters of the shading.")]

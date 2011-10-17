@@ -19,6 +19,8 @@ uniform mat4 light_projection_transform;
 uniform mat4 light_projection_inv_transform;
 uniform mat4 light_relativeillumination_transform;
 
+uniform bool enable_soft_shadow = true;
+
 struct Light
 {
 	vec3 pos;

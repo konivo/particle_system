@@ -177,7 +177,9 @@ namespace opentk.Scene.ParticleSystem
 			Shading.GetPass(this).Render(window);
 
 			SetCamera(window);
-			m_Grid.Render(window);
+
+			if(ShowGrid)
+				m_Grid.Render(window);
 
 			window.SwapBuffers ();
 		}

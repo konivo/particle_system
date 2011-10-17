@@ -1,6 +1,15 @@
-#version 330
+#version 410
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_transform;
+/*
+0 - normal
+1 - shadow
+2 - shadow, exponential map
+*/
+uniform int mode;
+
+//subroutine void SetOutputFragmentDataRoutine(vec3 ray_sphere_intersection);
+//subroutine uniform SetOutputFragmentDataRoutine SetOutputFragmentData;
 
 in SpriteData
 {
@@ -51,6 +60,35 @@ float SphereRayIntersection(vec4 sphere, vec3 raycenter, vec3 rayDirection)
 		return (-ky - sqrt(discr))/(2.0*kx);
 }
 
+
+//subroutine(SetOutputFragmentDataRoutine)
+void SetDefaultFragmentData(vec3 intersection)
+{
+	vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
+	projected_i /= projected_i.w;
+
+	gl_FragDepth = normal_depth.w = (projected_i.z + 1) * 0.5;
+	normal_depth.xyz = normalize(intersection - Sprite.pos.xyz) * 0.5f + 0.5f;
+
+	uv_colorindex_none = vec4(Camera.param, 0.5f, 0);
+}
+
+//subroutine(SetOutputFragmentDataRoutine)
+void SetShadowFragmentData(vec3 intersection)
+{
+	vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
+	projected_i /= projected_i.w;
+	gl_FragDepth = (projected_i.z + 1) * 0.5;
+}
+
+//
+void SetExpShadowFragmentData(vec3 intersection)
+{
+	vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
+	projected_i /= projected_i.w;
+	gl_FragDepth = (projected_i.z + 1) * 0.5;
+}
+
 //
 void main ()
 {
@@ -62,11 +100,20 @@ void main ()
 
 	//from ray origin, direction and sphere center and radius compute intersection
 	vec3 intersection = t * Camera.ray_dir.xyz + Camera.pos.xyz;
-	vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
-	projected_i /= projected_i.w;
 
-	gl_FragDepth = normal_depth.w = (projected_i.z + 1) * 0.5;
-	normal_depth.xyz = normalize(intersection - Sprite.pos.xyz) * 0.5f + 0.5f;
-
-	uv_colorindex_none = vec4(Camera.param, 0.5f, 0);
+	//
+	switch(mode)
+	{
+		case 0:
+			SetDefaultFragmentData(intersection);
+			break;
+		case 1:
+			SetShadowFragmentData(intersection);
+			break;
+		case 2:
+			SetExpShadowFragmentData(intersection);
+			break;
+		default:
+			break;
+	}
 }

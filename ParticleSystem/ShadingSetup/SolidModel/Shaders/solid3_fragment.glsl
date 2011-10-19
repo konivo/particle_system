@@ -20,6 +20,14 @@ uniform mat4 light_projection_inv_transform;
 uniform mat4 light_relativeillumination_transform;
 
 uniform bool enable_soft_shadow = true;
+/*
+0 - no filtering
+1 - pcf 4x4
+2 - exp shadow map
+3 - soft shadow with pcf
+4 - soft shadow with exp
+*/
+uniform int shadow_implementation;
 
 struct Light
 {
@@ -62,7 +70,37 @@ vec4 reproject (mat4 transform, vec4 vector)
 	return result;
 }
 
-float get_shadow(vec4 pos)
+float get_shadow_no_filter(vec4 pos)
+{
+	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
+	return r_pos.z > texture(shadow_texture, r_pos.xy).x ? 1: 0;
+}
+
+float get_shadow_pcf4x4(vec4 pos)
+{
+	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
+
+	vec4 acc;
+	for(int i = -1; i <= 1; i += 2)
+		for(int j = -1; j <= 1; j += 2)
+		{
+			vec4 depths = textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j));
+			acc += vec4(greaterThan(r_pos.zzzz - 0.0001, depths));
+		}
+
+	return dot(acc, vec4(1/16.0));
+}
+
+float get_shadow_exp(vec4 pos)
+{
+	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
+	return
+		clamp(
+			1 - texture(shadow_texture, r_pos.xy).x * exp(200 * (1 - r_pos.z)),
+			0, 1);
+}
+
+float get_shadow_soft_pcf4x4(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	vec3 l_pos = (light_modelview_transform * pos).xyz;
@@ -100,6 +138,21 @@ float get_shadow(vec4 pos)
 		}
 
 	return dot(acc, vec4(1/count));
+}
+
+float get_shadow(vec4 pos)
+{
+	switch(shadow_implementation)
+	{
+		case 0:
+			return get_shadow_no_filter(pos);
+		case 1:
+			return get_shadow_pcf4x4(pos);
+		case 2:
+			return get_shadow_exp(pos);
+		default:
+			return 0;
+	}
 }
 
 void main ()

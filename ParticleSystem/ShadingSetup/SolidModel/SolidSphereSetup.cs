@@ -165,9 +165,9 @@ namespace opentk.ShadingSetup
 					Data2D = new float[ShadowTextureSize, ShadowTextureSize],
 					Params = new TextureBase.Parameters
 					{
-						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Nearest,
-						MagFilter = TextureMagFilter.Nearest,
+						GenerateMipmap = true,
+						MinFilter = TextureMinFilter.Linear,
+						MagFilter = TextureMagFilter.Linear,
 				}};
 		}
 
@@ -195,6 +195,7 @@ namespace opentk.ShadingSetup
 			};
 
 			m_SunLightImpl = new LightImplementationParameters(m_SunLight);
+			m_SunLightImpl.ImplementationType = LightImplementationType.ExponentialShadowMap;
 
 			//
 			ShadowTextureSize = 1024;
@@ -234,9 +235,33 @@ namespace opentk.ShadingSetup
 			//
 			m_Uniforms = new UniformState(p.Uniforms);
 			m_Uniforms.SetMvp ("light", m_SunLightImpl.LightMvp);
-			m_Uniforms.Set("enable_soft_shadow", ValueProvider.Create (() => EnableSoftShadow));
+			m_Uniforms.Set("shadow_implementation", ValueProvider.Create
+			(() =>
+			{
+				switch (m_SunLightImpl.ImplementationType) {
+				case LightImplementationType.ExponentialShadowMap:
+					return 2;
+				case LightImplementationType.ShadowMap:
+					return 1;
+				default:
+				break;
+				}
+				return 0;
+			}));
 
-			var mode = ValueProvider.Create (() => EnableSoftShadow ? 2: 1);
+			var mode = ValueProvider.Create
+			(() =>
+			{
+				switch (m_SunLightImpl.ImplementationType) {
+				case LightImplementationType.ExponentialShadowMap:
+					return 2;
+				case LightImplementationType.ShadowMap:
+					return 1;
+				default:
+				break;
+				}
+				return 0;
+			});
 
 			//
 			var particle_scale_factor = ValueProvider.Create (() => p.ParticleScaleFactor);

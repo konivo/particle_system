@@ -4,6 +4,11 @@ using OpenTK;
 
 namespace opentk.Scene
 {
+	public enum LightImplementationType
+	{
+		ExponentialShadowMap, ShadowMap
+	}
+
 	/// <summary>
 	///
 	/// </summary>
@@ -32,6 +37,11 @@ namespace opentk.Scene
 		public IValueProvider<Matrix4> LightIlluminationTransformProvider
 		{
 			get; private set;
+		}
+
+		public LightImplementationType ImplementationType
+		{
+			get; set;
 		}
 
 		public LightImplementationParameters (Light light)

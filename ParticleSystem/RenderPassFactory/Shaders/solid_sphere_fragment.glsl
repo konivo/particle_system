@@ -1,4 +1,5 @@
 #version 410
+uniform mat4 modelview_transform;
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_transform;
 /*
@@ -85,8 +86,7 @@ void SetShadowFragmentData(vec3 intersection)
 void SetExpShadowFragmentData(vec3 intersection)
 {
 	vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
-	projected_i /= projected_i.w;
-	gl_FragDepth = (projected_i.z + 1) * 0.5;
+	gl_FragDepth = exp(((projected_i.z/projected_i.w + 1) * 0.5) * 200 - 200);
 }
 
 //

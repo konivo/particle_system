@@ -29,6 +29,8 @@ uniform bool enable_soft_shadow = true;
 */
 uniform int shadow_implementation;
 
+const float EXP_SCALE_FACTOR = 90;
+
 struct Light
 {
 	vec3 pos;
@@ -140,6 +142,42 @@ float get_shadow_soft_pcf4x4(vec4 pos)
 	return dot(acc, vec4(1/count));
 }
 
+float get_shadow_soft_exp(vec4 pos)
+{
+	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
+	vec3 l_pos = (light_modelview_transform * pos).xyz;
+	vec4 avg_depth;
+	float count = 36;
+	float phi = 0.1;
+
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-16, 16));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, -12));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(8, -8));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-4, 4));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(0, 0));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(16, -16));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, 12));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-8, 8));
+	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(4, -4));
+	avg_depth = log(avg_depth) + EXP_SCALE_FACTOR;
+
+	float occ_depth = dot(avg_depth, vec4(1/count)) * 2 - 1;
+	float occ_surf_dist = length(reproject(light_projection_inv_transform, get_clip_coordinates(r_pos.xy, occ_depth)).xyz - l_pos);
+
+	float c2 = tan(phi) * occ_surf_dist;
+	vec3 rr_pos = reproject(light_projection_transform, vec4(l_pos + vec3(0, c2, 0), 1)).xyz * 0.5 + 0.5;
+	c2 = length(rr_pos - r_pos) * 2048;
+	float level = log2(c2);
+
+	float v1 = textureLod(shadow_texture, r_pos.xy, floor(level)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
+	float v2 = textureLod(shadow_texture, r_pos.xy, ceil(level)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
+
+	return
+		clamp(
+			1 - mix(v1, v2, fract(level)),
+			0, 1);
+}
+
 float get_shadow(vec4 pos)
 {
 	switch(shadow_implementation)
@@ -149,7 +187,7 @@ float get_shadow(vec4 pos)
 		case 1:
 			return get_shadow_pcf4x4(pos);
 		case 2:
-			return get_shadow_exp(pos);
+			return get_shadow_soft_exp(pos);
 		default:
 			return 0;
 	}

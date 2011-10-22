@@ -9,6 +9,8 @@ uniform mat4 modelviewprojection_transform;
 */
 uniform int mode;
 
+const float EXP_SCALE_FACTOR = 90;
+
 //subroutine void SetOutputFragmentDataRoutine(vec3 ray_sphere_intersection);
 //subroutine uniform SetOutputFragmentDataRoutine SetOutputFragmentData;
 
@@ -86,7 +88,7 @@ void SetShadowFragmentData(vec3 intersection)
 void SetExpShadowFragmentData(vec3 intersection)
 {
 	vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
-	gl_FragDepth = exp(((projected_i.z/projected_i.w + 1) * 0.5) * 200 - 200);
+	gl_FragDepth = exp(((projected_i.z/projected_i.w + 1) * 0.5) * EXP_SCALE_FACTOR - EXP_SCALE_FACTOR);
 }
 
 //

@@ -67,11 +67,17 @@ namespace OpenTK
 					GL.BindTexture (bgroup.texture.Target, bgroup.texture.Handle);
 					GLHelper.PrintError ();
 
+					//if mipmaps are declared to be generated, ensure they are
+					var gmipmap = bgroup.texture.Params.GenerateMipmap;
+					if(gmipmap ?? false)
+					{
+						GL.GenerateMipmap((GenerateMipmapTarget)bgroup.texture.Target);
+						GLHelper.PrintError ();
+					}
+
 					foreach (var _binding in bgroup.bindings)
 					{
 						m_TextureUniformState.Set (_binding.VariableName, samplerValue);
-
-						//Console.WriteLine ("binding {0} to target {1}: {2}: {3}", bgroup.texture.Name, _binding.Texture.Target, _binding.VariableName, samplerValue);
 						PrintError (_binding.Texture.Target);
 					}
 				}

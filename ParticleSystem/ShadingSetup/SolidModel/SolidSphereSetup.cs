@@ -166,7 +166,7 @@ namespace opentk.ShadingSetup
 					Params = new TextureBase.Parameters
 					{
 						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.Linear,
+						MinFilter = TextureMinFilter.LinearMipmapLinear,
 						MagFilter = TextureMagFilter.Linear,
 				}};
 		}
@@ -198,7 +198,7 @@ namespace opentk.ShadingSetup
 			m_SunLightImpl.ImplementationType = LightImplementationType.ExponentialShadowMap;
 
 			//
-			ShadowTextureSize = 1024;
+			ShadowTextureSize = 2048;
 			SolidModeTextureSize = 2048;
 		}
 

@@ -81,7 +81,7 @@ namespace opentk.System3
 				PARTICLES_COUNT = 6000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0001,
 				Fov = 0.9,
 				SeedDistribution = System3.SeedDistributionType.RegularGrid,
-				ParticleScaleFactor = 600, MapMode = System3.MapModeType.Timedomain};
+				ParticleScaleFactor = 6600, MapMode = System3.MapModeType.Timedomain,};
 			return result;
 		}
 		

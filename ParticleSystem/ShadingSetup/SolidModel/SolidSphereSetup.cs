@@ -56,6 +56,11 @@ namespace opentk.ShadingSetup
 			get; set;
 		}
 
+		public float LightSize
+		{
+			get; set;
+		}
+
 		private void TextureSetup()
 		{
 			//TEextures setup
@@ -200,6 +205,8 @@ namespace opentk.ShadingSetup
 			//
 			ShadowTextureSize = 2048;
 			SolidModeTextureSize = 2048;
+
+			LightSize = 0.1f;
 		}
 
 		private void UpdateTextureResolutions()
@@ -262,6 +269,12 @@ namespace opentk.ShadingSetup
 				}
 				return 0;
 			});
+
+			m_Uniforms.Set("light_size", ValueProvider.Create(() => LightSize ));
+
+			//
+			m_Uniforms.Set ("sampling_pattern", MathHelper2.RandomVectorSet (256, new Vector2 (1, 1)));
+			m_Uniforms.Set ("sampling_pattern_len", 256);
 
 			//
 			var particle_scale_factor = ValueProvider.Create (() => p.ParticleScaleFactor);

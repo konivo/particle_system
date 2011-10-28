@@ -61,6 +61,26 @@ namespace opentk.ShadingSetup
 			get; set;
 		}
 
+		public float ExpMapLevel
+		{
+			get; set;
+		}
+
+		public float ExpMapRange
+		{
+			get; set;
+		}
+
+		public float ExpMapRangeK
+		{
+			get; set;
+		}
+
+		public int ExpMapNsamples
+		{
+			get; set;
+		}
+
 		private void TextureSetup()
 		{
 			//TEextures setup
@@ -207,6 +227,10 @@ namespace opentk.ShadingSetup
 			SolidModeTextureSize = 2048;
 
 			LightSize = 0.1f;
+			ExpMapLevel = 1;
+			ExpMapNsamples = 15;
+			ExpMapRange = 0.055f;
+			ExpMapRangeK = 0.85f;
 		}
 
 		private void UpdateTextureResolutions()
@@ -271,6 +295,10 @@ namespace opentk.ShadingSetup
 			});
 
 			m_Uniforms.Set("light_size", ValueProvider.Create(() => LightSize ));
+			m_Uniforms.Set("light_expmap_level", ValueProvider.Create(() => ExpMapLevel ));
+			m_Uniforms.Set("light_expmap_range", ValueProvider.Create(() => ExpMapRange ));
+			m_Uniforms.Set("light_expmap_range_k", ValueProvider.Create(() => ExpMapRangeK ));
+			m_Uniforms.Set("light_expmap_nsamples", ValueProvider.Create(() => ExpMapNsamples ));
 
 			//
 			m_Uniforms.Set ("sampling_pattern", MathHelper2.RandomVectorSet (256, new Vector2 (1, 1)));

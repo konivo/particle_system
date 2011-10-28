@@ -22,6 +22,11 @@ uniform mat4 light_relativeillumination_transform;
 //for spotlight real dimension
 //for directional light an spherical angles
 uniform float light_size;
+uniform float light_expmap_level;
+uniform float light_expmap_range;
+uniform float light_expmap_range_k;
+uniform int light_expmap_nsamples;
+
 
 //
 uniform vec2[256] sampling_pattern;
@@ -44,7 +49,7 @@ uniform int shadow_implementation;
 //
 const float PI = 3.141592654f;
 const float TWO_PI = 2 * 3.141592654f;
-const float EXP_SCALE_FACTOR = 90;
+const float EXP_SCALE_FACTOR = 50;
 
 //
 struct Light
@@ -183,7 +188,7 @@ float get_shadow_soft_exp(vec4 pos)
 
 	for(int i = 0; i < 20; i ++)
 	{
-		avg_depth += log(textureGather(shadow_texture, r_pos.xy + get_sampling_point(i) * 0.05));
+		avg_depth += log(textureGather(shadow_texture, r_pos.xy + get_sampling_point(i) * 0.01));
 	}
 
 	avg_depth = (avg_depth + 20 * EXP_SCALE_FACTOR) / EXP_SCALE_FACTOR;
@@ -197,19 +202,53 @@ float get_shadow_soft_exp(vec4 pos)
 	c2 = clamp(c2, 1, 1000);
 	float level = log2(c2);
 
-	level = 5;
+	level = light_expmap_level;
 
-	float v1 = textureLod(shadow_texture, r_pos.xy, floor(level)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
-	float v2 = textureLod(shadow_texture, r_pos.xy, ceil(level)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
+	//float v2 = textureLod(shadow_texture, r_pos.xy, ceil(level)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
 
-	//return clamp((r_pos.z * 2 - 1 - occ_depth)/0.5, 0, 1);
-	//return clamp(level/12, 0, 1.0f);
-	return clamp(v1, 0, 1.0f);
+	float v1;
+	int nsamples = light_expmap_nsamples;
+	int n = 0;
 
+	for(int i = 0; i < nsamples; i++)
+	{
+		float samplev1 = 1.01;
+		float sampleLevel = level;
+		float samplingRange = light_expmap_range;
+		float scale = 1;
+
+		samplev1 = textureLod(shadow_texture, r_pos.xy + get_sampling_point(i) * samplingRange, floor(sampleLevel--)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
+		samplingRange *= 0.85;
+
+		while(samplev1 > 1 && sampleLevel >= 0)
+		{
+			float newsamplev1 = textureLod(shadow_texture, r_pos.xy + get_sampling_point(i) * samplingRange, floor(sampleLevel--)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
+			scale = 1/newsamplev1;
+
+			samplev1 *= scale;
+
+			if(samplev1 > 1)
+				samplev1 = newsamplev1;
+
+
+			//v1 += clamp(samplev1, 0, 1.0f);
+			samplingRange *= light_expmap_range_k;
+
+			//n++;
+		}
+
+		v1 += clamp(samplev1, 0, 1.0f);
+		n++;
+	}
+
+	return pow(v1/n + 0.0051f, 4);
+
+/*
 	return
 		clamp(
 			1 - mix(v1, v2, fract(level)),
 			0, 1);
+			*/
 }
 
 float get_shadow(vec4 pos)

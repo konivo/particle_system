@@ -9,7 +9,7 @@ uniform mat4 modelviewprojection_transform;
 */
 uniform int mode;
 
-const float EXP_SCALE_FACTOR = 90;
+const float EXP_SCALE_FACTOR = 50;
 
 //subroutine void SetOutputFragmentDataRoutine(vec3 ray_sphere_intersection);
 //subroutine uniform SetOutputFragmentDataRoutine SetOutputFragmentData;

@@ -27,6 +27,10 @@ namespace opentk.Scene.ParticleSystem
 		//
 		private BufferObject<Vector4> m_DimensionBuffer;
 		//
+		private BufferObject<Matrix4> m_RotationLocalBuffer;
+		//
+		private BufferObject<Matrix4> m_RotationBuffer;
+		//
 		private BufferObject<Vector4> m_ColorBuffer;
 		//
 		private int m_PublishCounter;
@@ -50,6 +54,16 @@ namespace opentk.Scene.ParticleSystem
 		public BufferObject<Vector4> ColorBuffer
 		{
 			get{ return m_ColorBuffer;}
+		}
+		//
+		public BufferObject<Matrix4> RotationBuffer
+		{
+			get{ return m_RotationBuffer;}
+		}
+		//
+		public BufferObject<Matrix4> RotationLocalBuffer
+		{
+			get{ return m_RotationLocalBuffer;}
 		}
 		//
 		public ArrayObject ParticleStateArrayObject
@@ -86,6 +100,18 @@ namespace opentk.Scene.ParticleSystem
 
 		[Browsable(false)]
 		public Vector4[] Color
+		{
+			get; private set;
+		}
+
+		[Browsable(false)]
+		public Matrix4[] Rotation
+		{
+			get; private set;
+		}
+
+		[Browsable(false)]
+		public Matrix4[] RotationLocal
 		{
 			get; private set;
 		}

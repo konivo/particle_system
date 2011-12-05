@@ -49,6 +49,8 @@ namespace opentk.Scene.ParticleSystem
 					Position = m_PositionBuffer.Data = new Vector4[PARTICLES_COUNT];
 					Dimension = m_DimensionBuffer.Data = new Vector4[PARTICLES_COUNT];
 					Color = m_ColorBuffer.Data = new Vector4[PARTICLES_COUNT];
+					Rotation = m_RotationBuffer.Data = new Matrix4[PARTICLES_COUNT];
+					RotationLocal = m_RotationLocalBuffer.Data = new Matrix4[PARTICLES_COUNT];
 
 					InitializeSystem ();
 				}
@@ -61,6 +63,8 @@ namespace opentk.Scene.ParticleSystem
 					m_PositionBuffer.Publish ();
 					m_DimensionBuffer.Publish ();
 					m_ColorBuffer.Publish ();
+					m_RotationBuffer.Publish();
+					m_RotationLocalBuffer.Publish();
 
 					break;
 				case PublishMethod.Incremental:
@@ -75,6 +79,8 @@ namespace opentk.Scene.ParticleSystem
 						m_PositionBuffer.PublishPart (start, end - start);
 						m_DimensionBuffer.PublishPart (start, end - start);
 						m_ColorBuffer.PublishPart (start, end - start);
+						m_RotationBuffer.PublishPart (start, end - start);
+						m_RotationLocalBuffer.PublishPart (start, end - start);
 					}
 					break;
 				default:
@@ -89,13 +95,17 @@ namespace opentk.Scene.ParticleSystem
 				m_PositionBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
 				m_DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
 				m_ColorBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "color_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_RotationBuffer = new BufferObject<Matrix4> (sizeof(Matrix4), 0) { Name = "rotation_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_RotationLocalBuffer = new BufferObject<Matrix4> (sizeof(Matrix4), 0) { Name = "rotation_local_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
 			ParticleStateArrayObject =
 				new ArrayObject (
 					new VertexAttribute { AttributeName = "sprite_pos", Buffer = m_PositionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
 					new VertexAttribute { AttributeName = "sprite_color", Buffer = m_ColorBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
-					new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = m_DimensionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float }
+					new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = m_DimensionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
+					new VertexAttribute { AttributeName = "sprite_rot_local", Buffer = m_ColorBuffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float },
+					new VertexAttribute { AttributeName = "sprite_rot", Buffer = m_ColorBuffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float }
 				);
 
 			//

@@ -204,11 +204,8 @@ float get_shadow_soft_exp(vec4 pos)
 
 	level = light_expmap_level;
 
-	//float v2 = textureLod(shadow_texture, r_pos.xy, ceil(level)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
-
 	float v1;
 	int nsamples = light_expmap_nsamples;
-	int n = 0;
 
 	for(int i = 0; i < nsamples; i++)
 	{
@@ -218,7 +215,7 @@ float get_shadow_soft_exp(vec4 pos)
 		float scale = 1;
 
 		samplev1 = textureLod(shadow_texture, r_pos.xy + get_sampling_point(i) * samplingRange, floor(sampleLevel--)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
-		samplingRange *= 0.85;
+		samplingRange *= light_expmap_range_k;
 
 		while(samplev1 > 1 && sampleLevel >= 0)
 		{
@@ -226,29 +223,16 @@ float get_shadow_soft_exp(vec4 pos)
 			scale = 1/newsamplev1;
 
 			samplev1 *= scale;
+			samplingRange *= light_expmap_range_k;
 
 			if(samplev1 > 1)
 				samplev1 = newsamplev1;
-
-
-			//v1 += clamp(samplev1, 0, 1.0f);
-			samplingRange *= light_expmap_range_k;
-
-			//n++;
 		}
 
 		v1 += clamp(samplev1, 0, 1.0f);
-		n++;
 	}
 
-	return pow(v1/n + 0.0051f, 4);
-
-/*
-	return
-		clamp(
-			1 - mix(v1, v2, fract(level)),
-			0, 1);
-			*/
+	return 1 - pow(v1/nsamples + 0.0051f, 4);
 }
 
 float get_shadow(vec4 pos)
@@ -290,8 +274,9 @@ void main ()
 	float shadow = get_shadow(p_pos);
 
 	vec3 diffuse = material * max(dot(light.dir, p_nd.xyz) * (1 - shadow), 0);
-	//vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);
-	vec3 color = vec3(shadow);
+	vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);
+	//vec3 color = vec3(shadow);
+	//vec3 color = p_nd.xyz;
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
 	gl_FragDepth = texture(normaldepth_texture, param).w;

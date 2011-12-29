@@ -22,7 +22,7 @@ in SpriteData
 //input particle color
 	vec3 color;
 
-	vec3 normal;
+	flat vec3 normal;
 } Sprite;
 
 out Fragdata

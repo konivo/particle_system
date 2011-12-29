@@ -41,8 +41,8 @@ namespace opentk
 					new VertexAttribute { AttributeName = "sprite_pos", Buffer = sprite_pos_buffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
 					new VertexAttribute { AttributeName = "sprite_color", Buffer = sprite_color_buffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
 					new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = sprite_dimensions_buffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
-					new VertexAttribute { AttributeName = "sprite_rot_local", Buffer = sprite_rotation_local_buffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float },
-					new VertexAttribute { AttributeName = "sprite_rot", Buffer = sprite_rotation_buffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float }
+					new VertexAttribute { AttributeName = "sprite_rotation_local", Buffer = sprite_rotation_local_buffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float },
+					new VertexAttribute { AttributeName = "sprite_rotation", Buffer = sprite_rotation_buffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float }
 				);
 
 			var shaders = SeparateProgramPass.GetShaders("solid_box", "RenderPassFactory");

@@ -32,16 +32,20 @@ out SpriteData
 	vec3 color;
 
 	//
-	out mat4 rotation;
+	out mat4 mvp;
 
-	out mat4 rotation_local;
+	//
+	out mat4 model_transform;
 
 } OUT;
 
 void main ()
 {
+	OUT.model_transform = sprite_rotation;
+	OUT.model_transform[3] = vec4(sprite_pos, 1);
+
 	OUT.pos = sprite_pos;
 	OUT.radius = sprite_dimensions.x;
 	OUT.color = sprite_color;
-	OUT.rotation = sprite_rotation;
+	OUT.mvp = modelviewprojection_transform * OUT.model_transform;
 }

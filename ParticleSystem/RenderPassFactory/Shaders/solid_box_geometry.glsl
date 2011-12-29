@@ -19,11 +19,10 @@ in SpriteData
 	//input particle color
 	vec3 color;
 
-	//
-	mat4 rotation;
+	mat4 model_transform;
 
 	//
-	mat4 rotation_local;
+	mat4 mvp;
 
 } SpriteIN[];
 
@@ -40,7 +39,7 @@ out SpriteData
 	vec3 color;
 
 	//
-	vec3 normal;
+	flat vec3 normal;
 
 } SpriteOUT;
 
@@ -50,11 +49,16 @@ void main ()
 	SpriteOUT.pos = SpriteIN[0].pos;
 	SpriteOUT.radius = particle_scale_factor * SpriteIN[0].radius;
 	SpriteOUT.color = SpriteIN[0].color;
+	mat4 mvp = SpriteIN[0].mvp;
 
-	vec4 p = modelviewprojection_transform * vec4(SpriteOUT.pos, 1);
-	vec4 x = modelviewprojection_transform * vec4(SpriteOUT.radius, 0, 0, 0);
-	vec4 y = modelviewprojection_transform * vec4(0, SpriteOUT.radius, 0, 0);
-	vec4 z = modelviewprojection_transform * vec4(0, 0, SpriteOUT.radius, 0);
+	vec4 p = mvp * vec4(0, 0, 0, 1);
+	vec4 x = mvp * vec4(SpriteOUT.radius, 0, 0, 0);
+	vec4 y = mvp * vec4(0, SpriteOUT.radius, 0, 0);
+	vec4 z = mvp * vec4(0, 0, SpriteOUT.radius, 0);
+
+	vec3 zN = SpriteIN[0].model_transform[2].xyz;		//local space's z-dir expressed in world space coordinates
+	vec3 yN = SpriteIN[0].model_transform[1].xyz;		//y-dir
+	vec3 xN = SpriteIN[0].model_transform[0].xyz;		//x-dir
 
 	//---------------
 	gl_Position = p - x - y - z;
@@ -66,7 +70,7 @@ void main ()
 
 		//
 	gl_Position = p + x - y - z;
-	SpriteOUT.normal = vec3(0, -1, 0);
+	SpriteOUT.normal = -yN; //OUT.model vec3(0, -1, 0);
 	EmitVertex();
 
 		//
@@ -76,7 +80,7 @@ void main ()
 	////
 	//
 	gl_Position = p + x + y - z;
-	SpriteOUT.normal = vec3(1, 0, 0);
+	SpriteOUT.normal = xN; //vec3(1, 0, 0);
 	EmitVertex();
 
 	//
@@ -86,7 +90,7 @@ void main ()
 	////
 	//
 	gl_Position = p - x + y - z;
-	SpriteOUT.normal = vec3(0, 1, 0);
+	SpriteOUT.normal = yN; //vec3(0, 1, 0);
 	EmitVertex();
 
 	//
@@ -96,7 +100,7 @@ void main ()
 	////
 	//
 	gl_Position = p - x - y - z;
-	SpriteOUT.normal = vec3(-1, 0, 0);
+	SpriteOUT.normal = -xN; //vec3(-1, 0, 0);
 	EmitVertex();
 
 	//
@@ -106,7 +110,7 @@ void main ()
 
 	//---------------
 	gl_Position = p - x - y + z;
-	SpriteOUT.normal = vec3(0, 0, 1);
+	SpriteOUT.normal = zN; //vec3(0, 0, 1);
 	EmitVertex();
 
 	//
@@ -124,7 +128,7 @@ void main ()
 
 	//---------------
 	gl_Position = p - x - y - z;
-	SpriteOUT.normal = vec3(0, 0, -1);
+	SpriteOUT.normal = -zN; //vec3(0, 0, -1);
 	EmitVertex();
 
 	//

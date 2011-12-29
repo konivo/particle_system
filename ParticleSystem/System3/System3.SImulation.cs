@@ -61,6 +61,7 @@ namespace opentk.System3
 			Position[i] = new Vector4 (newpos.X, newpos.Y, newpos.Z, 1);
 			Color[i] = new Vector4 (0, 1, 0, 1);
 			Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = 0 };
+			Rotation[i] = Matrix4.Identity;
 		}
 
 		protected override void InitializeSystem ()
@@ -173,6 +174,17 @@ namespace opentk.System3
 
 							var delta = new Vector4 ((Vector3)fun ((Vector3d)Position[pi].Xyz) * (float)DT, 0);
 							Position[ii] = Position[pi] + delta;
+
+							//
+							var b0 = delta;
+							var b2 = new Vector4( Vector3.Cross( b0.Xyz, Rotation[pi].Row1.Xyz), 0);
+							var b1 = new Vector4( Vector3.Cross( b2.Xyz, b0.Xyz), 0);
+
+							b0.Normalize();
+							b1.Normalize();
+							b2.Normalize();
+
+							Rotation[ii] = new Matrix4(b0, b1, b2, new Vector4(0,0,0,1));
 
 							//
 							switch (ColorScheme)

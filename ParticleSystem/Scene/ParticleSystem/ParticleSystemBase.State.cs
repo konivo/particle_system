@@ -104,8 +104,8 @@ namespace opentk.Scene.ParticleSystem
 					new VertexAttribute { AttributeName = "sprite_pos", Buffer = m_PositionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
 					new VertexAttribute { AttributeName = "sprite_color", Buffer = m_ColorBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
 					new VertexAttribute { AttributeName = "sprite_dimensions", Buffer = m_DimensionBuffer, Size = 3, Stride = 16, Type = VertexAttribPointerType.Float },
-					new VertexAttribute { AttributeName = "sprite_rot_local", Buffer = m_ColorBuffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float },
-					new VertexAttribute { AttributeName = "sprite_rot", Buffer = m_ColorBuffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float }
+					new VertexAttribute { AttributeName = "sprite_rotation_local", Buffer = m_RotationLocalBuffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float },
+					new VertexAttribute { AttributeName = "sprite_rotation", Buffer = m_RotationBuffer, Size = 16, Stride = 64, Type = VertexAttribPointerType.Float }
 				);
 
 			//

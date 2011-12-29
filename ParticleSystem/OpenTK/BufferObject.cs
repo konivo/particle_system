@@ -244,11 +244,22 @@ namespace OpenTK
 						
 						if (location == -1)
 							continue;
-						
+
+						var declCount = item.Size;
+						var offset = 0;
+						var slot = 0;
 						GL.BindBuffer (item.Target, item.Buffer.Handle);
-						GL.VertexAttribPointer (location, item.Size, item.Type, item.Normalize, item.Stride, item.Pointer);
-						GLExtensions.VertexAttribDivisor (location, item.Divisor);
-						GL.EnableVertexAttribArray (location);
+
+						while(declCount > 0)
+						{
+							GL.VertexAttribPointer (location + slot, Math.Min(declCount, 4), item.Type, item.Normalize, item.Stride, item.Pointer + offset);
+							GLExtensions.VertexAttribDivisor (location + slot, item.Divisor);
+							GL.EnableVertexAttribArray (location + slot);
+							
+							declCount -= 4;
+							offset += 16;
+							slot += 1;
+						}
 						
 						Console.WriteLine ("binding {0} to target {1}: {2}: {3}", item.Buffer.Name, item.Target, item.AttributeName, location);
 						PrintError (item.Target);

@@ -250,6 +250,14 @@ namespace opentk.ShadingSetup
 				((DataTexture<Vector4>)AA_Texture).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
 				((DataTexture<Vector4>)BeforeAA_Texture).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
 			}
+
+			if(AOC_Texture != null &&
+			   AOC_Texture.Width != AocParameters.TextureSize)
+			{
+				((DataTexture<float>)AOC_Texture).Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize];
+				((DataTexture<float>)AOC_Texture_Blurred_H).Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize];
+				((DataTexture<float>)AOC_Texture_Blurred_HV).Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize];
+			}
 		}
 
 		#region IRenderSetup implementation

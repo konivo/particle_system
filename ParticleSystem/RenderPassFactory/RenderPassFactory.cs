@@ -28,7 +28,7 @@ namespace opentk
 			 TextureBase interm,
 			 TextureBase result)
 		{
-			return CreateSeparableFilter("blur", "RenderPassFactory", source, interm, result);
+			return CreateSeparableFilter("blur", "RenderPassFactory", source, interm, result, null);
 		}
 
 		//
@@ -36,9 +36,13 @@ namespace opentk
 		(
 			 TextureBase source,
 			 TextureBase interm,
-			 TextureBase result)
+			 TextureBase result,
+			 IValueProvider<Vector4> k)
 		{
-			return CreateSeparableFilter("bilateralfilter", "RenderPassFactory", source, interm, result);
+			UniformState parameters = new UniformState();
+			parameters.Set ("K", k);
+
+			return CreateSeparableFilter("bilateralfilter", "RenderPassFactory", source, interm, result, parameters);
 		}
 
 		//
@@ -91,13 +95,16 @@ namespace opentk
 			 string filterNamespace,
 			 TextureBase source,
 			 TextureBase interm,
-			 TextureBase result)
+			 TextureBase result,
+			 UniformState parameters)
 		{
 			var viewport = ValueProvider.Create (() => new Vector2 (result.Width, result.Height));
 			var horizontal = false;
 			var uniformState = new UniformState ();
 			uniformState.Set ("viewport_size", viewport);
 			uniformState.Set ("horizontal", ValueProvider.Create (() => horizontal));
+
+			parameters = parameters?? new UniformState();
 
 			var _1stPass = CreateFullscreenQuad (filterName, filterNamespace, viewport,
 			window =>
@@ -115,6 +122,7 @@ namespace opentk
 			new FramebufferBindingSet (
 			new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = interm }),
 			uniformState,
+			parameters,
 			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = source }));
 
 			var _2ndPass = CreateFullscreenQuad (filterName, filterNamespace, viewport,
@@ -133,6 +141,7 @@ namespace opentk
 			new FramebufferBindingSet (
 			new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = result }),
 			uniformState,
+			parameters,
 			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = interm }));
 
 			return new CompoundRenderPass(_1stPass, _2ndPass);

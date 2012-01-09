@@ -15,14 +15,11 @@ namespace opentk.System3
 		{
 			public int LifeLen;
 			public int Leader;
+			public Vector3 Velocity;
 		}
 
-		protected Vector4[] Dimension;
-		protected Vector4[] Position;
-		protected Vector4[] Color;
 		protected MetaInformation[] Meta;
 		protected int Processed;
-		private System.Random m_Rnd = new Random ();
 		private ChaoticMap m_ChaoticMap;
 		private bool m_MapModeComputed;
 		private float m_SpeedUpperBound;
@@ -32,11 +29,11 @@ namespace opentk.System3
 			if (Meta[i].Leader != 0)
 			{
 				MakeBubble (Meta[i].Leader + i);
-				Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = Meta[i].Leader };
+				Meta[i] = new MetaInformation { LifeLen = MathHelper2.GetThreadLocalRandom().Next (20, 1000), Leader = Meta[i].Leader };
 				return;
 			}
 
-			var size = (float)(Math.Pow (m_Rnd.NextDouble (), 2) * 0.001);
+			var size = (float)(Math.Pow (MathHelper2.GetThreadLocalRandom().NextDouble (), 2) * 0.001);
 			var newpos = (Vector3)MathHelper2.RandomVector3 (12);
 
 			if(SeedDistribution == System3.SeedDistributionType.RegularGrid)
@@ -60,20 +57,16 @@ namespace opentk.System3
 			Dimension[i] = new Vector4 (size, size, size, size);
 			Position[i] = new Vector4 (newpos.X, newpos.Y, newpos.Z, 1);
 			Color[i] = new Vector4 (0, 1, 0, 1);
-			Meta[i] = new MetaInformation { LifeLen = m_Rnd.Next (20, 1000), Leader = 0 };
+			Meta[i] = new MetaInformation { LifeLen = MathHelper2.GetThreadLocalRandom().Next (20, 1000), Leader = 0 };
 			Rotation[i] = Matrix4.Identity;
 		}
 
 		protected override void InitializeSystem ()
 		{
-			ChaoticMap = new LorenzMap ();
-			TrailSize = 1;
-			
-			Dimension = DimensionBuffer.Data;
-			Position = PositionBuffer.Data;
-			Color = ColorBuffer.Data;
+			ChaoticMap = ChaoticMap ?? new LorenzMap ();
+			TrailSize = Math.Max(TrailSize, 1);
+
 			Meta = new MetaInformation[Position.Length];
-			
 			for (int i = 0; i < Position.Length; i++)
 			{
 				MakeBubble (i);
@@ -83,9 +76,9 @@ namespace opentk.System3
 		protected override void Simulate (DateTime simulationTime)
 		{
 			var fun = m_ChaoticMap.Map;
-			TrailSize = TrailSize > 0 ? TrailSize : 1;
-			StepsPerFrame = StepsPerFrame > 0 ? StepsPerFrame : 1;
-			m_SpeedUpperBound = m_SpeedUpperBound > 0? m_SpeedUpperBound * 0.75f: 1;
+			TrailSize = Math.Max(TrailSize, 1);
+			StepsPerFrame = Math.Max(StepsPerFrame, 1);
+			m_SpeedUpperBound = Math.Max(m_SpeedUpperBound * 0.75f, 1);
 			
 			if (MapMode == System3.MapModeType.Iterated)
 			{
@@ -98,7 +91,7 @@ namespace opentk.System3
 				{
 					for (int i = 0; i < step; i++)
 					{
-						Position[i] = new Vector4 ((float)(m_Rnd.NextDouble () * 0.01), 0, 0, 1);
+						Position[i] = new Vector4 ((float)(MathHelper2.GetThreadLocalRandom().NextDouble () * 0.01), 0, 0, 1);
 					}
 					m_MapModeComputed = true;
 				}
@@ -142,37 +135,47 @@ namespace opentk.System3
 			else
 			{
 				m_MapModeComputed = false;
-				
+
 				var trailCount = (Position.Length + TrailSize - 1) / TrailSize;
-				var trailPacketSize = 10;
-				var trailPacketCount = (trailCount + 10 - 1) / 10;
+				var trailBundleSize = 100;
+				var trailBundleCount = (trailCount + trailBundleSize - 1) / trailBundleSize;
 				
-				Parallel.For (0, trailPacketCount, packetIndex =>
+				Parallel.For (0, trailBundleCount, bundleIndex =>
 				{
-					var packetoffset = packetIndex * trailPacketSize;
-					var packetupper = packetoffset + trailPacketSize;
-					packetupper = packetupper <= trailCount ? packetupper : trailCount;
+					var particleCount = Position.Length;
+					var trailSize = TrailSize;
+					var firsttrail = bundleIndex * trailBundleSize * trailSize;
+					var lasttrail = Math.Min(firsttrail + trailBundleSize, trailCount) * trailSize;
+					var dt = (float)DT;
 					
 					for (int j = 0; j < StepsPerFrame; j++)
 					{
-						for (int ti = packetoffset; ti < packetupper; ti++)
+						for (int i = firsttrail ; i < lasttrail ; i += trailSize)
 						{
-							//ti is trail index
 							//i is the trail's first element
-							var i = ti * TrailSize;
 							var pi = i + Meta[i].Leader;
 
-							Meta[i].Leader += 1;
-							Meta[i].Leader %= TrailSize;
+							Meta[i].Leader = ++Meta[i].Leader % trailSize;
 							
 							var ii = i + Meta[i].Leader;
-							if (ii >= Position.Length)
+							if (ii >= particleCount)
 							{
-								ii = 0;
+								ii = i;
 								Meta[i].Leader = 0;
 							}
 
-							var delta = new Vector4 ((Vector3)fun ((Vector3d)Position[pi].Xyz) * (float)DT, 0);
+							Vector4 delta;
+							if(MapMode == MapModeType.ForceField)
+							{
+								delta = new Vector4 (Meta[i].Velocity * dt, 0);
+								var dv = (Vector3)fun ((Vector3d)Position[pi].Xyz) * dt;
+								Meta[i].Velocity += dv;
+							}
+							else
+							{
+								delta = new Vector4 ((Vector3)fun ((Vector3d)Position[pi].Xyz) * dt, 0);
+							}
+
 							Position[ii] = Position[pi] + delta;
 
 							//

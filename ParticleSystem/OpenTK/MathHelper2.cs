@@ -17,6 +17,11 @@ namespace OpenTK
 //		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new Random(342));
 //		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new Random(464353546));
 
+		public static Random GetThreadLocalRandom ()
+		{
+			return m_Rnd.Value;
+		}
+
 		public static Vector4d RandomVector4 (double magnitude)
 		{
 			double dmag = 2 * magnitude;

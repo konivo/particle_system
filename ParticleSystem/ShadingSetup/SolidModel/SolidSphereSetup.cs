@@ -23,6 +23,7 @@ namespace opentk.ShadingSetup
 		private TextureBase AOC_Texture_Blurred_H;
 		private TextureBase AOC_Texture_Blurred_HV;
 		private TextureBase NormalDepth_Texture;
+		private TextureBase NormalDepth_Texture_H;
 		private TextureBase Depth_Texture;
 		private TextureBase BeforeAA_Texture;
 		private TextureBase AA_Texture;
@@ -77,6 +78,11 @@ namespace opentk.ShadingSetup
 		}
 
 		public int ExpMapNsamples
+		{
+			get; set;
+		}
+
+		public float NormalBlurAvoidance
 		{
 			get; set;
 		}
@@ -145,6 +151,20 @@ namespace opentk.ShadingSetup
 						MagFilter = TextureMagFilter.Nearest,
 				}};
 
+			NormalDepth_Texture_H =
+				new DataTexture<Vector4> {
+					Name = "NormalDepth_Texture_H",
+					InternalFormat = PixelInternalFormat.Rgba32f,
+					//Format = PixelFormat.DepthComponent,
+					Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
+				}};
+
+
 			Depth_Texture =
 				new DataTexture<float> {
 					Name = "Depth_Texture",
@@ -209,7 +229,8 @@ namespace opentk.ShadingSetup
 				OccPixmin = 2,
 				SamplesCount = 32,
 				Strength = 2,
-				Bias = 0.2f
+				Bias = 0.2f,
+				BlurEdgeAvoidance = 0.2f
 			};
 
 			//
@@ -231,6 +252,8 @@ namespace opentk.ShadingSetup
 			ExpMapNsamples = 15;
 			ExpMapRange = 0.055f;
 			ExpMapRangeK = 0.85f;
+
+			NormalBlurAvoidance = 0.2f;
 		}
 
 		private void UpdateTextureResolutions()
@@ -333,6 +356,12 @@ namespace opentk.ShadingSetup
 				 m_SunLightImpl.LightMvp
 			);
 
+			var normalDepthBlur =  RenderPassFactory.CreateBilateralFilter
+			(
+				 NormalDepth_Texture, NormalDepth_Texture_H, NormalDepth_Texture,
+				 ValueProvider.Create(() => 20 * new Vector4(0, 0, 0, NormalBlurAvoidance))
+			);
+
 			var aocPassSolid = RenderPassFactory.CreateAoc
 			(
 				 NormalDepth_Texture,
@@ -346,7 +375,8 @@ namespace opentk.ShadingSetup
 
 			var aocBlur = RenderPassFactory.CreateBilateralFilter
 			(
-				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV
+				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV,
+				 ValueProvider.Create(() => 20 * new Vector4(AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, 0))
 			);
 
 			//
@@ -403,7 +433,7 @@ namespace opentk.ShadingSetup
 
 			m_Pass = new CompoundRenderPass
 			(
-			 firstPassSolid, firstPassShadow, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
+			 firstPassSolid, firstPassShadow, /*normalDepthBlur,*/ aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
 			);
 
 			return m_Pass;

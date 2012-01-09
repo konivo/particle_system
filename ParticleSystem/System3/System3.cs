@@ -27,7 +27,8 @@ namespace opentk.System3
 		{
 			SingleStep = 0x1,
 			Iterated = 0x2,
-			Timedomain = 0x3
+			Timedomain = 0x3,
+			ForceField = 0x4
 		}
 
 		public int TrailSize

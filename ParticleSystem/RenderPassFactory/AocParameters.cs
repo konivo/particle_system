@@ -66,6 +66,12 @@ namespace opentk
 			get;
 			set;
 		}
+
+		public float BlurEdgeAvoidance
+		{
+			get;
+			set;
+		}
 	}
 }
 

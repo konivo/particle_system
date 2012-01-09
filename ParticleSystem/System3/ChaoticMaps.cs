@@ -358,6 +358,35 @@ namespace opentk.System3
 		}
 	}
 
+	/// <summary>
+	/// dx/dt = y + x*(R - v_l)/v_l, dy/dt = -x + y*(R - v_l)/v_l, dz/dt = 1
+	/// </summary>
+	public class TubularMap : ChaoticMap
+	{
+		public double R
+		{
+			get;
+			set;
+		}
+
+		public TubularMap () : base("TubularMap")
+		{
+			Map = Implementation;
+		}
+
+		private Vector3d Implementation (Vector3d input)
+		{
+			var v_l = input.Length;
+			var k = (R - v_l);
+
+			var x_n = input.Y + k * input.X;
+			var y_n = -input.X + k * input.Y;
+			var z_n = 0.3;
+
+			return new Vector3d (x_n, y_n, z_n);
+		}
+	}
+
 
 }
 

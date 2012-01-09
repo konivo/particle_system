@@ -209,7 +209,8 @@ namespace opentk.ShadingSetup
 				OccPixmin = 2,
 				SamplesCount = 32,
 				Strength = 2,
-				Bias = 0.2f
+				Bias = 0.2f,
+				BlurEdgeAvoidance = 0.2f
 			};
 
 			//
@@ -358,7 +359,8 @@ namespace opentk.ShadingSetup
 
 			var aocBlur = RenderPassFactory.CreateBilateralFilter
 			(
-				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV
+				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV,
+				 ValueProvider.Create(() => 20 * new Vector4(AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, 0))
 			);
 
 			//

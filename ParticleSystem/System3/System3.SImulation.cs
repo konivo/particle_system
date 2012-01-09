@@ -145,17 +145,17 @@ namespace opentk.System3
 					var particleCount = Position.Length;
 					var trailSize = TrailSize;
 					var firsttrail = bundleIndex * trailBundleSize * trailSize;
-					var lasttrail = Math.Min(firsttrail + trailBundleSize, trailCount) * trailSize;
+					var lasttrail = Math.Min(firsttrail + trailBundleSize , particleCount);
 					var dt = (float)DT;
 					
 					for (int j = 0; j < StepsPerFrame; j++)
 					{
-						for (int i = firsttrail ; i < lasttrail ; i += trailSize)
+						for (int i = firsttrail ; i < lasttrail ; i += 1)
 						{
 							//i is the trail's first element
 							var pi = i + Meta[i].Leader;
 
-							Meta[i].Leader = ++Meta[i].Leader % trailSize;
+							Meta[i].Leader = (Meta[i].Leader + trailBundleSize) % (trailSize * trailBundleSize);
 							
 							var ii = i + Meta[i].Leader;
 							if (ii >= particleCount)

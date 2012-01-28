@@ -9,26 +9,30 @@ using opentk.Scene.ParticleSystem;
 
 namespace opentk.System3
 {
+	public enum ColorSchemeType
+	{
+		Distance,
+		Color
+	}
+
+	public enum SeedDistributionType
+	{
+		RegularGrid = 0x1,
+		Random = 0x2
+	}
+
 	public partial class System3 : ParticleSystemBase
 	{
-		public enum ColorSchemeType
-		{
-			Distance,
-			Color
-		}
+		private ChaoticMap m_ChaoticMap;
 
-		public enum SeedDistributionType
-		{
-			RegularGrid = 0x1,
-			Random = 0x2
-		}
+		private ISimulationScheme m_SimulationScheme;
 
-		public enum MapModeType
+		private IParticleGenerator m_ParticleGenerator;
+
+		public MetaInformation[] Meta
 		{
-			SingleStep = 0x1,
-			Iterated = 0x2,
-			Timedomain = 0x3,
-			ForceField = 0x4
+			get;
+			private set;
 		}
 
 		public int TrailSize
@@ -43,19 +47,7 @@ namespace opentk.System3
 			set;
 		}
 
-		public MapModeType MapMode
-		{
-			get;
-			set;
-		}
-
 		public bool SingleStepSimulation
-		{
-			get;
-			set;
-		}
-
-		public SeedDistributionType SeedDistribution 
 		{
 			get;
 			set;
@@ -76,13 +68,30 @@ namespace opentk.System3
 			set { DoPropertyChange (ref m_ChaoticMap, value, "ChaoticMap"); }
 		}
 
+		[Category("Map properties")]
+		[TypeConverter(typeof(ISimulationSchemeConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the simulation scheme.")]
+		public ISimulationScheme SimulationScheme
+		{
+			get { return m_SimulationScheme; }
+			set { DoPropertyChange (ref m_SimulationScheme, value, "SimulationScheme"); }
+		}
+
+		[Category("Map properties")]
+		[TypeConverter(typeof(IParticleGeneratorConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the ParticleGenerator.")]
+		public IParticleGenerator ParticleGenerator
+		{
+			get { return m_ParticleGenerator; }
+			set { DoPropertyChange (ref m_ParticleGenerator, value, "ParticleGenerator"); }
+		}
+
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
 			var result = new System3 {
 				PARTICLES_COUNT = 6000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0001,
 				Fov = 0.9,
-				SeedDistribution = System3.SeedDistributionType.RegularGrid,
-				ParticleScaleFactor = 6600, MapMode = System3.MapModeType.Timedomain,};
+				ParticleScaleFactor = 6600};
 			return result;
 		}
 		

@@ -141,6 +141,16 @@ namespace OpenTK
 			return new Vector4(c, -prod - planeoffset);
 		}
 
+		public static float Clamp (float val, float min, float max)
+		{
+			return val < min? min : val > max? max : val;
+		}
+
+		public static double Clamp (double val, double min, double max)
+		{
+			return val < min? min : val > max? max : val;
+		}
+
 		public static T Clamp<T> (T val, T min, T max) where T: IComparable<T>
 		{
 			return val.CompareTo(min) < 0? min : val.CompareTo(max) > 0? max : val;

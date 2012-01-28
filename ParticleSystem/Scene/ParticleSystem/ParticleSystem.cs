@@ -88,6 +88,7 @@ namespace opentk.Scene.ParticleSystem
 			return GetShaders(string.Empty);
 		}
 
+		private volatile bool m_SupressChangeNotification;
 
 		/// <summary>
 		///
@@ -104,7 +105,13 @@ namespace opentk.Scene.ParticleSystem
 		protected void DoPropertyChange<T> (ref T placeholder, T value, string name)
 		{
 			placeholder = value;
-			RaisePropertyChanged (name);
+
+			if(!m_SupressChangeNotification)
+			{
+				m_SupressChangeNotification = true;
+				RaisePropertyChanged (name);
+				m_SupressChangeNotification = false;
+			}
 		}
 
 		/// <summary>

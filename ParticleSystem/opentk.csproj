@@ -22,6 +22,7 @@
     <Externalconsole>true</Externalconsole>
     <additionalargs>/unsafe</additionalargs>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Commandlineparameters>--llvm</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>
@@ -31,6 +32,7 @@
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Commandlineparameters>--llvm</Commandlineparameters>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -47,6 +49,7 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Mono.Simd" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -111,6 +114,10 @@
     <Compile Include="ShadingSetup\RenderPass.cs" />
     <Compile Include="ShadingSetup\SolidModel\SolidBoxSetup.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.SolidBox.cs" />
+    <Compile Include="System3\ISimulationScheme.cs" />
+    <Compile Include="System3\ISimulationSchemeConverter.cs" />
+    <Compile Include="System3\IParticleGeneratorConverter.cs" />
+    <Compile Include="System3\IParticleGenerator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

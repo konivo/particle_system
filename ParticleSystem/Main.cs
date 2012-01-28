@@ -35,8 +35,7 @@ namespace opentk
 
 			using(var system = (new System3.System3 ()).GetInstance (win))
 			{
-				system.PropertyChanged += (sender, e) => propertyGrid1.Refresh();
-
+				//system.PropertyChanged += (sender, e) => propertyGrid1.Refresh();
 				propertyGrid1.SelectedObject = system;
 				win.Run ();
 			}

@@ -29,6 +29,13 @@ namespace opentk.System3
 	/// <summary>
 	/// Particles with trails.
 	/// </summary>
+	public class SimpleGenerator2: SimpleGenerator
+	{
+	}
+
+	/// <summary>
+	/// Particles with trails.
+	/// </summary>
 	public class SimpleGenerator: IParticleGenerator
 	{
 		string IParticleGenerator.Name
@@ -63,6 +70,12 @@ namespace opentk.System3
 			set;
 		}
 
+		public float ScaleRatioMaxDifference
+		{
+			get;
+			set;
+		}
+
 		public float SizeScalePower
 		{
 			get;
@@ -77,10 +90,11 @@ namespace opentk.System3
 
 		public SimpleGenerator ()
 		{
-			SizeRandomness = 5;
+			SizeRandomness = 0;
 			SizeScalePower = 1;
 			SizeScaleRatio = 0.001f;
 			LifeLengthMin = LifeLengthMax = 1000;
+			ScaleRatioMaxDifference = 0.01f;
 		}
 
 		public void NewBundle(System3 system, int bundleFirstItem)
@@ -134,7 +148,7 @@ namespace opentk.System3
 		{
 			var Meta = system.Meta;
 			var r = (float)MathHelper2.GetThreadLocalRandom().NextDouble ();
-			return Math.Max((1 - SizeRandomness * r)  * Meta[bundleFirstItem].Size, 0);
+			return Math.Max((1 - SizeRandomness * r)  * Meta[bundleFirstItem].Size, ScaleRatioMaxDifference * SizeScaleRatio);
 		}
 	}
 }

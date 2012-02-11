@@ -45,7 +45,9 @@ namespace opentk.System3
 
 		protected override void Simulate (DateTime simulationTime)
 		{
-			SimulationScheme.Simulate(this, simulationTime, m_Step++);
+			ChaoticMap.UpdateMap(simulationTime, m_Step);
+			SimulationScheme.Simulate(this, simulationTime, m_Step);
+			m_Step++;
 		}
 	}
 }

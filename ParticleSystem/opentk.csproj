@@ -118,6 +118,8 @@
     <Compile Include="System3\ISimulationSchemeConverter.cs" />
     <Compile Include="System3\IParticleGeneratorConverter.cs" />
     <Compile Include="System3\IParticleGenerator.cs" />
+    <Compile Include="Resources\ColorRamp.cs" />
+    <Compile Include="Resources\ColorRampConverter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -144,6 +146,7 @@
     <Folder Include="ShadingSetup\SolidModel\Shaders\" />
     <Folder Include="ShadingSetup\SmoothShading\Shaders\" />
     <Folder Include="Scene\ParticleSystem\" />
+    <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />

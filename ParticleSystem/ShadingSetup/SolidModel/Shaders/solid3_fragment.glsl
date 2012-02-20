@@ -9,6 +9,7 @@ uniform sampler2D normaldepth_texture;
 uniform sampler2D aoc_texture;
 uniform sampler2D uv_colorindex_texture;
 uniform sampler2D shadow_texture;
+uniform sampler2D colorramp_texture;
 
 uniform vec4[3] colors2;
 
@@ -264,9 +265,11 @@ void main ()
 
 	float aoc = texture(aoc_texture, param).x;
 
-	vec3 material = vec3((p_nd.xyz + 1) * 0.5f);
-	material = min( material / material .x, material / material .y);
-	material = min( material, material / material .z);
+	//vec3 material = vec3((p_nd.xyz + 1) * 0.5f);
+	//material = min( material / material .x, material / material .y);
+	//material = min( material, material / material .z);
+
+	vec3 material = texture(colorramp_texture, cparam).xyz;
 
 	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
 	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));

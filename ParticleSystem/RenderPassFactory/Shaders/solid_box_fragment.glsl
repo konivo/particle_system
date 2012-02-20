@@ -41,6 +41,7 @@ void main ()
 		case 1:
 			gl_FragDepth = normal_depth.w = gl_FragCoord.z;
 			normal_depth.xyz = normalize(Sprite.normal) * 0.5f + 0.5f;
+			uv_colorindex_none = vec4(Sprite.color, 0);
 			break;
 		case 2:
 			gl_FragDepth = exp(gl_FragCoord.z * EXP_SCALE_FACTOR - EXP_SCALE_FACTOR);

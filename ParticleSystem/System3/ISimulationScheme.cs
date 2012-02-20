@@ -30,10 +30,21 @@ namespace opentk.System3
 	/// </summary>
 	public class ParticlesWithTrails: ISimulationScheme
 	{
+		/// <summary>
+		/// Map mode type.
+		/// </summary>
 		public enum MapModeType
 		{
 			D = 0x3,
 			ForceField = 0x4
+		}
+
+		/// <summary>
+		/// Compute metadata.
+		/// </summary>
+		public enum ComputeMetadata
+		{
+			Tangent, Speed,
 		}
 
 		private float m_SpeedUpperBound;
@@ -45,6 +56,10 @@ namespace opentk.System3
 
 		public int TrailBundleSize
 		{
+			get; set;
+		}
+
+		public ComputeMetadata ComputeMetadataMode{
 			get; set;
 		}
 
@@ -62,13 +77,12 @@ namespace opentk.System3
 			var Dimension = system.Dimension;
 			var Meta = system.Meta;
 			var Rotation = system.Rotation;
-			var ColorScheme = system.ColorScheme;
 			var Color = system.Color;
 
 			var fun = system.ChaoticMap.Map;
 			var TrailSize = Math.Max(system.TrailSize, 1);
 			var StepsPerFrame = Math.Max(system.StepsPerFrame, 1);
-			m_SpeedUpperBound = Math.Max(m_SpeedUpperBound * 0.75f, 1);
+			m_SpeedUpperBound = Math.Max(m_SpeedUpperBound * 0.75f, 0.01f);
 
 			var trailCount = (Position.Length + TrailSize - 1) / TrailSize;
 			var trailBundleSize = Math.Max(TrailBundleSize, 1);
@@ -84,6 +98,7 @@ namespace opentk.System3
 				var dt = (float)system.DT;
 				var speedBound = m_SpeedUpperBound;
 				var delta = Vector4.Zero;
+				var delta2 = Vector4.Zero;
 				var size = 0f;
 
 				for (int j = 0; j < StepsPerFrame; j++)
@@ -105,12 +120,13 @@ namespace opentk.System3
 						if(MapMode == MapModeType.ForceField)
 						{
 							delta = new Vector4 (Meta[i].Velocity * dt, 0);
-							var dv = (Vector4)fun ((Vector4d) Position[pi]) * dt;
-							Meta[i].Velocity += dv.Xyz;
+							fun (ref Position[pi], ref delta2);
+							Meta[i].Velocity += delta2.Xyz * dt;
 						}
 						else
 						{
-							delta = (Vector4)fun ((Vector4d)Position[pi]) * dt;
+							fun (ref Position[pi], ref delta);
+							delta *= dt;
 							//delta.W = 0;
 						}
 
@@ -121,7 +137,7 @@ namespace opentk.System3
 						Dimension[ii] = new Vector4 (size, size, size, size);
 
 						//
-						var b0 = delta;
+						var b0 = new Vector4( delta.Xyz, 0);
 						var b2 = new Vector4( Vector3.Cross( b0.Xyz, Rotation[pi].Row1.Xyz), 0);
 						var b1 = new Vector4( Vector3.Cross( b2.Xyz, b0.Xyz), 0);
 
@@ -131,20 +147,36 @@ namespace opentk.System3
 
 						Rotation[ii] = new Matrix4(b0, b1, b2, new Vector4(0,0,0,1));
 
-						//
-						switch (ColorScheme)
-						{
-						case ColorSchemeType.Distance:
-							var speed = delta.LengthFast/ dt;
-							var A = MathHelper2.Clamp (2 * speed / speedBound, 0, 1);
-							speedBound = speedBound < speed? speed: speedBound;
-							Color[ii] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
-							break;
-						case ColorSchemeType.Color:
-							Color[ii] = new Vector4 (0.2f, 1, 0.2f, 1);
-							break;
+//						//
+//						switch (ComputeMetadataMode)
+//						{
+//						case ColorSchemeType.Distance:
+////							var speed = delta.LengthFast/ dt;
+////							var A = MathHelper2.Clamp (speed / speedBound, 0, 1);
+////							speedBound = Math.Max(speedBound, speed);
+////							Color[ii] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
+//							var speed = delta.LengthFast/ dt;
+//							var A = speed / 100.1f;
+//							A = A - (float)Math.Floor(A);
+//							speedBound = Math.Max(speedBound, speed);
+//							Color[ii] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
+//							break;
+//						case ColorSchemeType.Color:
+//							Color[ii] = new Vector4 (0.2f, 1, 0.2f, 1);
+//							break;
+//						default:
+//							break;
+//						}
+
+						switch (ComputeMetadataMode) {
+						case ComputeMetadata.Speed:
+							Color[ii] = delta;
+						break;
+						case ComputeMetadata.Tangent:
+							Color[ii] = b0;
+						break;
 						default:
-							break;
+						break;
 						}
 						
 						//
@@ -210,7 +242,7 @@ namespace opentk.System3
 			ld += step;
 			for (int i = ld; i < Position.Length; i += step)
 			{
-				Position[i] = (Vector4)fun ((Vector4d)Position[i - step]);
+				fun (ref Position[i - step], ref Position[i] );
 				Position[i].W = 1;
 
 				switch (ColorScheme)
@@ -266,7 +298,7 @@ namespace opentk.System3
 				for (int i = 0; i < Position.Length; i++)
 				{
 					system.ParticleGenerator.MakeBubble(system, i, i);
-					Position[i] = (Vector4)fun ((Vector4d)Position[i]);
+					fun (ref Position[i], ref Position[i]);
 					Position[i].W = 1;
 				}
 				m_MapModeComputed = true;

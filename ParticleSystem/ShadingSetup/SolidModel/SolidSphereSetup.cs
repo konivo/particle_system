@@ -7,6 +7,7 @@ using OpenTK.Graphics.OpenGL;
 using opentk.PropertyGridCustom;
 using opentk.Scene;
 using opentk.Scene.ParticleSystem;
+using opentk.System3;
 
 namespace opentk.ShadingSetup
 {
@@ -85,6 +86,15 @@ namespace opentk.ShadingSetup
 		public float NormalBlurAvoidance
 		{
 			get; set;
+		}
+
+		[Category("ColorRamp")]
+		[TypeConverter(typeof(ColorRampConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the map.")]
+		public ColorRamp ColorRamp
+		{
+			get;
+			set;
 		}
 
 		private void TextureSetup()
@@ -398,12 +408,13 @@ namespace opentk.ShadingSetup
 				 ),
 				 p.ParticleStateArrayObject,
 				 m_Uniforms,
-				 new TextureBindingSet(
+				 new TextureBindingSet{
+					 { "colorramp_texture", ValueProvider.Create(() => (ColorRamp ?? ColorRamps.RedBlue).Texture)},
 				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture },
 				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
 				   new TextureBinding { VariableName = "shadow_texture", Texture = Shadow_Texture },
 				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture_Blurred_HV }
-				 )
+				 }
 			);
 
 			var antialiasPass = RenderPassFactory.CreateFxaa3Filter

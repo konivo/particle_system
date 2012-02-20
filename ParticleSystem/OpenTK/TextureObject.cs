@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Collections;
 
 namespace OpenTK
 {
@@ -17,14 +18,15 @@ namespace OpenTK
 	{
 		public string VariableName;
 		public TextureBase Texture;
+		public IValueProvider<TextureBase> DynamicTexture;
 	}
 
 	/// <summary>
 	///
 	/// </summary>
-	public class TextureBindingSet : StatePart
+	public class TextureBindingSet : StatePart, IEnumerable<TextureBinding>
 	{
-		public readonly List<TextureBinding> Bindings = new List<TextureBinding> ();
+		private readonly List<TextureBinding> Bindings = new List<TextureBinding> ();
 
 		public TextureBindingSet (params TextureBinding[] states)
 		{
@@ -47,22 +49,37 @@ namespace OpenTK
 			//for texture bindings
 			UniformState m_TextureUniformState = new UniformState ();
 
+			var textureUnits = Enum.GetValues (typeof(TextureUnit)).Cast<TextureUnit> ().ToArray();
+
+			//statically assigned textures go first
 			var textureBindings = Bindings
-				.GroupBy (x => x.Texture)
-				.Zip (Enum.GetValues (typeof(TextureUnit)).Cast<TextureUnit> (), (a, b) => new { texture = a.Key, bindings = a.AsEnumerable (), unit = b })
-				.ToArray();
+				.Where(x => x.Texture != null)
+				.GroupBy (x => x.Texture, (texture, b) => new { texture, bindings = b.AsEnumerable ()})
+				.ToArray()
+				.AsEnumerable();
+
+			//dynamically assigned are taken separately, cause they can change over time
+			var dynamicTextureBindings =
+				Bindings
+				.Where(x => x.DynamicTexture != null)
+				.GroupBy (x => x.DynamicTexture.Value, (texture, b) => new { texture, bindings = b.AsEnumerable ()});
+
+			//
+			textureBindings = textureBindings.Concat(dynamicTextureBindings);
 
 			return new Tuple<Action, Action> (() =>
 			{
 				//print unobserved errors so far
 				GLHelper.PrintError ();
+				int unitCounter = 0;
 
 				//texture array binding
 				foreach (var bgroup in textureBindings)
 				{
-					int samplerValue = bgroup.unit - TextureUnit.Texture0;
+					var unit = textureUnits[unitCounter++];
+					var samplerValue = unit - TextureUnit.Texture0;
 
-					GL.ActiveTexture (bgroup.unit);
+					GL.ActiveTexture (unit);
 					GLHelper.PrintError ();
 					GL.BindTexture (bgroup.texture.Target, bgroup.texture.Handle);
 					GLHelper.PrintError ();
@@ -87,6 +104,35 @@ namespace OpenTK
 
 			}, null);
 		}
+
+		public void Add (string variablename, IValueProvider<TextureBase> texture)
+		{
+			Bindings.Add(new TextureBinding{ VariableName = variablename, DynamicTexture = texture });
+		}
+
+		public void Add (string variablename, TextureBase texture)
+		{
+			Bindings.Add(new TextureBinding{ VariableName = variablename, Texture = texture});
+		}
+
+		public void Add (TextureBinding binding)
+		{
+			Bindings.Add(binding);
+		}
+
+		#region IEnumerable[TextureBinding] implementation
+		public IEnumerator<TextureBinding> GetEnumerator ()
+		{
+			return Bindings.GetEnumerator();
+		}
+		#endregion
+
+		#region IEnumerable implementation
+		IEnumerator IEnumerable.GetEnumerator ()
+		{
+			return Bindings.GetEnumerator();
+		}
+		#endregion
 
 		#region IDisposable implementation
 		protected override void DisposeCore ()
@@ -330,7 +376,9 @@ namespace OpenTK
 				Type = PixelType.Float;
 				Format = Format ?? PixelFormat.Rg;
 			}
-			else if (typeof(T).IsAssignableFrom (typeof(Vector4)))
+			else if (
+				typeof(T).IsAssignableFrom (typeof(Vector4)) ||
+				typeof(T).IsAssignableFrom( typeof(Color4)))
 			{
 				Type = PixelType.Float;
 				Format = Format ?? PixelFormat.Rgba;

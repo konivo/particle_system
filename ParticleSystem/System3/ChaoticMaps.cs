@@ -10,6 +10,8 @@ using System.Linq.Expressions;
 
 namespace opentk.System3
 {
+	public delegate void MapFunc(ref Vector4 input, ref Vector4 output);
+
 	/// <summary>
 	///
 	/// </summary>
@@ -24,7 +26,7 @@ namespace opentk.System3
 		}
 
 		[Browsable(false)]
-		public Func<Vector4d, Vector4d> Map
+		public MapFunc Map
 		{
 			get;
 			protected set;
@@ -45,19 +47,19 @@ namespace opentk.System3
 	public class LorenzMap : ChaoticMap
 	{
 		[DefaultValue(10.0)]
-		public double Sigma
+		public float Sigma
 		{
 			get;
 			set;
 		}
 		[DefaultValue(28.0)]
-		public double Rho
+		public float Rho
 		{
 			get;
 			set;
 		}
 		[DefaultValue(2.6)]
-		public double Beta
+		public float Beta
 		{
 			get;
 			set;
@@ -67,11 +69,11 @@ namespace opentk.System3
 		{
 			Sigma = 10;
 			Rho = 28;
-			Beta = 2.5;
+			Beta = 2.5f;
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var x_p = input.X;
 			var y_p = input.Y;
@@ -80,8 +82,12 @@ namespace opentk.System3
 			var x_n = Sigma * (y_p - x_p);
 			var y_n = x_p * (Rho - z_p) - y_p;
 			var z_n = x_p * y_p - z_p * Beta;
+
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
 			
-			return new Vector4d (x_n, y_n, z_n, 0);
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 
@@ -90,22 +96,22 @@ namespace opentk.System3
 	/// </summary>
 	public class PickoverMap : ChaoticMap
 	{
-		public double A
+		public float A
 		{
 			get;
 			set;
 		}
-		public double B
+		public float B
 		{
 			get;
 			set;
 		}
-		public double C
+		public float C
 		{
 			get;
 			set;
 		}
-		public double D
+		public float D
 		{
 			get;
 			set;
@@ -113,24 +119,28 @@ namespace opentk.System3
 
 		public PickoverMap () : base("Pickover")
 		{
-			A = 1.425;
-			B = 1.24354;
-			C = 1.02435342;
-			D = 1.473503;
+			A = 1.425f;
+			B = 1.24354f;
+			C = 1.02435342f;
+			D = 1.473503f;
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var x_p = input.X;
 			var y_p = input.Y;
 			var z_p = input.Z;
 
-			var z_n = Math.Sin (x_p);
-			var x_n = Math.Sin (A * y_p) - z_p * Math.Cos (B * x_p);
-			var y_n = z_p * Math.Sin (C * x_p) - Math.Cos (D * y_p);
+			var z_n = (float)Math.Sin (x_p);
+			var x_n = (float)Math.Sin (A * y_p) - z_p * (float)Math.Cos (B * x_p);
+			var y_n = z_p * (float)Math.Sin (C * x_p) - (float)Math.Cos (D * y_p);
 
-			return new Vector4d (x_n, y_n, z_n, 0);
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+			
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 
@@ -139,17 +149,17 @@ namespace opentk.System3
 	/// </summary>
 	public class PolynomialMap : ChaoticMap
 	{
-		public double A
+		public float A
 		{
 			get;
 			set;
 		}
-		public double B
+		public float B
 		{
 			get;
 			set;
 		}
-		public double C
+		public float C
 		{
 			get;
 			set;
@@ -157,13 +167,13 @@ namespace opentk.System3
 
 		public PolynomialMap () : base("Polynomial")
 		{
-			A = 1.425;
-			B = 1.24354;
-			C = 1.02435342;
+			A = 1.425f;
+			B = 1.24354f;
+			C = 1.02435342f;
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var x_p = input.X;
 			var y_p = input.Y;
@@ -173,7 +183,11 @@ namespace opentk.System3
 			var y_n = B + z_p - z_p * x_p;
 			var z_n = C + x_p - y_p * x_p;
 
-			return new Vector4d (x_n, y_n, z_n, 0);
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+			
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 
@@ -182,17 +196,17 @@ namespace opentk.System3
 	/// </summary>
 	public class ChuaMap : ChaoticMap
 	{
-		public double A
+		public float A
 		{
 			get;
 			set;
 		}
-		public double B
+		public float B
 		{
 			get;
 			set;
 		}
-		public double C
+		public float C
 		{
 			get;
 			set;
@@ -200,13 +214,13 @@ namespace opentk.System3
 
 		public ChuaMap () : base("Chua")
 		{
-			A = 1.425;
-			B = 1.24354;
-			C = 1.02435342;
+			A = 1.425f;
+			B = 1.24354f;
+			C = 1.02435342f;
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var x_p = input.X;
 			var y_p = input.Y;
@@ -216,12 +230,16 @@ namespace opentk.System3
 			var y_n = x_p - y_p + z_p;
 			var z_n = -B * y_p - C * z_p;
 
-			return new Vector4d (x_n, y_n, z_n, 0);
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 
-		private double PhiFunction (double x)
+		private float PhiFunction (float x)
 		{
-			return 1 / 16.0 * Math.Pow (x, 3) - 1 / 6.0 * x;
+			return 1 / 16.0f * (float)Math.Pow (x, 3) - 1 / 6.0f * x;
 		}
 	}
 
@@ -230,17 +248,17 @@ namespace opentk.System3
 	/// </summary>
 	public class OwenMareshMap : ChaoticMap
 	{
-		public double A
+		public float A
 		{
 			get;
 			set;
 		}
-		public double B
+		public float B
 		{
 			get;
 			set;
 		}
-		public double C
+		public float C
 		{
 			get;
 			set;
@@ -254,22 +272,21 @@ namespace opentk.System3
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var x_p = input.X;
 			var y_p = input.Y;
 			var z_p = input.Z;
 
-			var x_n = A * Math.Cos(z_p - y_p);
-			var y_n = B * Math.Sin(x_p - z_p);
-			var z_n = C * Math.Cos(y_p - x_p);
+			var x_n = A * (float)Math.Cos(z_p - y_p);
+			var y_n = B * (float)Math.Sin(x_p - z_p);
+			var z_n = C * (float)Math.Cos(y_p - x_p);
 
-			return new Vector4d (x_n, y_n, z_n, 0);
-		}
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
 
-		private double PhiFunction (double x)
-		{
-			return 1 / 16.0 * Math.Pow (x, 3) - 1 / 6.0 * x;
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 
@@ -278,17 +295,17 @@ namespace opentk.System3
 	/// </summary>
 	public class CustomOwenMareshMap : ChaoticMap
 	{
-		public double A
+		public float A
 		{
 			get;
 			set;
 		}
-		public double B
+		public float B
 		{
 			get;
 			set;
 		}
-		public double C
+		public float C
 		{
 			get;
 			set;
@@ -302,199 +319,212 @@ namespace opentk.System3
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var x_p = input.X;
 			var y_p = input.Y;
 			var z_p = input.Z;
 
-			var x_n = A * Math.Cos(y_p + z_p);
-			var y_n = B * Math.Sin(x_p + z_p);
-			var z_n = C * Math.Cos(x_p + y_p);
+			var x_n = A * (float)Math.Cos(y_p + z_p);
+			var y_n = B * (float)Math.Sin(x_p + z_p);
+			var z_n = C * (float)Math.Cos(x_p + y_p);
 
-			return new Vector4d (x_n, y_n, z_n, 0);
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+
+			//return new Vector4d (x_n, y_n, z_n, 0);
+		}
+	}
+
+	/// <summary>
+//	///
+//	/// </summary>
+	public class C4D336MMap : ChaoticMap
+	{
+		private int ParamCount = 336;
+		private int Order = 3;
+		private long m_lastrun;
+		private long m_lastrunmask;
+
+		public float[] a {get; set;}
+		public float[] target_state {get; set;}
+		public float[] mask_state {get; set;}
+		public float[] prev_state {get; set;}
+
+		public C4D336MMap  () : base("C4D336MMap")
+		{
+			a = new float[ParamCount ];
+			target_state = MathHelper2.RandomVectorSet(ParamCount , 0.3 * Vector2d.One).Select(x => (float)x.X).ToArray();
+
+			InitializeParams();
+			InitializeMask();
+			Map = Implementation;
 		}
 
-		private double PhiFunction (double x)
+		private void InitializeParams()
 		{
-			return 1 / 16.0 * Math.Pow (x, 3) - 1 / 6.0 * x;
+			prev_state = target_state;
+			target_state = MathHelper2.RandomVectorSet(ParamCount , 0.1 * Vector2d.One).Select(x => (float)x.X).ToArray();
+		}
+
+		private void InitializeMask()
+		{
+			mask_state = Enumerable.Range(0, ParamCount).Select(x => MathHelper2.GetThreadLocalRandom().NextDouble() > 0.5? 1f: 0f).ToArray();
+			for (int i = 0; i < a.Length; i++) {
+				target_state[i] *= mask_state[i];
+			}
+		}
+
+		public override void UpdateMap (DateTime simtime, long step)
+		{
+			if(m_lastrun + 100 < step )
+			{
+				InitializeParams();
+				m_lastrun = step;
+			}
+			else if(m_lastrunmask + 400 < step )
+			{
+				InitializeMask();
+				m_lastrunmask = step;
+			}
+			else
+			{
+				var t = (step - m_lastrun) / 100.0f ;
+				for (int i = 0; i < a.Length; i++) {
+					a[i] = prev_state[i] * (1 - t) + target_state[i] * t;
+				}
+			}
+		}
+
+		[ThreadStatic]
+		private static float[] m_Koefs;
+
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			if(m_Koefs == null)
+				m_Koefs = new float[84];
+
+			m_Koefs[0] = input.X;
+			m_Koefs[1] = input.Y;
+			m_Koefs[2] = input.Z;
+			m_Koefs[3] = input.W;
+
+			for (int i = 0; i < 4; i++)
+			  for (int j = 0; j < 4; j++)
+					m_Koefs[i * 4 + j + 4] = m_Koefs[i] * m_Koefs[j];
+
+			for (int i = 0; i < 4; i++)
+			  for (int j = 0; j < 4; j++)
+			    for (int k = 0; k < 4; k++)
+						m_Koefs[i * 16 + j * 4 + k + 20] = m_Koefs[i] * m_Koefs[j] * m_Koefs[k];
+
+			float x_n = 0;
+			for (int i = 0; i < 84; i++)
+				x_n += m_Koefs[i] * a[i + 0];
+
+			float y_n = 0;
+			for (int i = 0; i < 84; i++)
+				y_n += m_Koefs[i] * a[i + 84];
+
+			float z_n = 0;
+			for (int i = 0; i < 84; i++)
+				z_n += m_Koefs[i] * a[i + 168];
+
+			float w_n = 0;
+			for (int i = 0; i < 84; i++)
+				w_n += m_Koefs[i] * a[i + 252];
+
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+			output.W = w_n;
+
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 
 	/// <summary>
 	///
 	/// </summary>
-	public class _4DSpringMap : ChaoticMap
+	public class Q4D60MMap : ChaoticMap
 	{
-		public double a1 { get; set;}
-		public double a2{ get; set;}
-		public double a3{ get; set;}
-		public double a4{ get; set;}
-		public double a5{ get; set;}
-		public double a6{ get; set;}
-		public double a7{ get; set;}
-		public double a8{ get; set;}
-		public double a9{ get; set;}
-		public double a10 { get; set;}
-		public double a11 { get; set;}
-		public double a12{ get; set;}
-		public double a13{ get; set;}
-		public double a14{ get; set;}
-		public double a15{ get; set;}
-		public double a16{ get; set;}
-		public double a17{ get; set;}
-		public double a18{ get; set;}
-		public double a19{ get; set;}
-		public double a20 { get; set;}
-		public double a21 { get; set;}
-		public double a22{ get; set;}
-		public double a23{ get; set;}
-		public double a24{ get; set;}
-		public double a25{ get; set;}
-		public double a26{ get; set;}
-		public double a27{ get; set;}
-		public double a28{ get; set;}
-		public double a29{ get; set;}
-		public double a30 { get; set;}
-		public double a31 { get; set;}
-		public double a32{ get; set;}
-		public double a33{ get; set;}
-		public double a34{ get; set;}
-		public double a35{ get; set;}
-		public double a36{ get; set;}
-		public double a37{ get; set;}
-		public double a38{ get; set;}
-		public double a39{ get; set;}
-		public double a40 { get; set;}
-		public double a41 { get; set;}
-		public double a42{ get; set;}
-		public double a43{ get; set;}
-		public double a44{ get; set;}
-		public double a45{ get; set;}
-		public double a46{ get; set;}
-		public double a47{ get; set;}
-		public double a48{ get; set;}
-		public double a49{ get; set;}
-		public double a50 { get; set;}
-		public double a51 { get; set;}
-		public double a52{ get; set;}
-		public double a53{ get; set;}
-		public double a54{ get; set;}
-		public double a55{ get; set;}
-		public double a56{ get; set;}
-		public double a57{ get; set;}
-		public double a58{ get; set;}
-		public double a59{ get; set;}
-		public double a60{ get; set;}
-		public double K1 {get; set;}
-		public double K2 {get; set;}
-		public double K0 {get; set;}
-
-		private long m_test;
+		private int ParamCount = 61;
 		private long m_lastrun;
 
+		public float[] a {get; set;}
+		public float[] target_state {get; set;}
+		public float[] prev_state {get; set;}
 
-		public _4DSpringMap () : base("_4DSpringMap")
+		public float K1 {get; set;}
+		public float K2 {get; set;}
+		public float K0 {get; set;}
+
+
+		public Q4D60MMap  () : base("Q4D60MMap ")
 		{
+			a = new float[ParamCount ];
+			target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
+
 			InitializeParams();
-			K1 = 0.1;
-			K2 = 0.01;
-			K0 = 0.01;
+			K1 = 0.1f;
+			K2 = 0.01f;
+			K0 = 0.01f;
 			Map = Implementation;
 		}
 
 		private void InitializeParams()
 		{
-			a1 += K0 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a2 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a3 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a4 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a5 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a6 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a7 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a8 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a9 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a10 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a11 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a12 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a13 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a14 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a15 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a16 += K0 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a17 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a18 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a19 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a20 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a21 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a22 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a23 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a24 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a25 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a26 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a27 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a28 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a29 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a30 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a31 += K0 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a32 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a33 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a34 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a35 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a36 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a37 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a38 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a39 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a40 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a41 += K1 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a42 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a43 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a44 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a45 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a46 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a47 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a48 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
-			a49 += K2 * (MathHelper2.GetThreadLocalRandom().NextDouble() - 0.5);
+			prev_state = target_state;
+			target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
 		}
 
 		public override void UpdateMap (DateTime simtime, long step)
 		{
-			if(m_lastrun + 1 << 10 < step )
+			if(m_lastrun + 100 < step )
 			{
 				InitializeParams();
 				m_lastrun = step;
 			}
+			else
+			{
+				var t = (step - m_lastrun) / 100.0f ;
+				for (int i = 0; i < a.Length; i++) {
+					a[i] = prev_state[i] * (1 - t) + target_state[i] * t;
+				}
+			}
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var X = input.X;
 			var Y = input.Y;
 			var Z = input.Z;
 			var W = input.W;
 
-			var X2 = Math.Pow(X, 2);
-			var Y2 = Math.Pow(Y, 2);
-			var Z2 = Math.Pow(Z, 2);
-			var W2 = Math.Pow(W, 2);
+			var X2 = (float)Math.Pow(X, 2);
+			var Y2 = (float)Math.Pow(Y, 2);
+			var Z2 = (float)Math.Pow(Z, 2);
+			var W2 = (float)Math.Pow(W, 2);
 			/*
 			X = X + 0.1a1Y
 	    Y = Y + 0.1(a2X + a3X3 + a4X2Y + a5XY2 + a6Y + a7Y3 + a8sin Z
 		  Z = [Z + 0.1(a9 + 1.3)] mod 2π
 		  W = (N - 1000) / (NMAX - 1000)
 		  */
+			var x_n = a[1] + a[2] * X + a[3] * X2 + a[4] * X * Y + a[5] * X* Z + a[6] * X* W + a[7]* Y + a[8]* Y2 + a[9]* Y* Z + a[10] * Y* W + a[11]* Z + a[12]* Z2 +	a[13]* Z* W + a[14]* W + a[15]* W2;
+			var y_n = a[16] + a[17]* X + a[18]* X2 + a[19]* X* Y + a[20]* X* Z + a[21]* X* W + a[22]* Y + a[23]* Y2 + a[24]* Y* Z + a[25]* Y* W + a[26]* Z + a[27]* Z2 + a[28]* Z* W + a[29]* W + a[30]* W2;
 
-		  var x_n = a1 + a2 * X + a3 * X2 + a4 * X * Y + a5 * X* Z + a6 * X* W + a7* Y + a8* Y2 + a9* Y* Z + a10 * Y* W + a11* Z + a12* Z2 +	a13* Z* W + a14* W + a15* W2;
-			var y_n = a16 + a17* X + a18* X2 + a19* X* Y + a20* X* Z + a21* X* W + a22* Y + a23* Y2 + a24* Y* Z + a25* Y* W + a26* Z + a27* Z2 + a28* Z* W + a29* W + a30* W2;
+			var z_n = a[31] + a[32]* X + a[33]* X2 + a[34]* X* Y + a[35]* X* Z + a[36]* X* W + a[37]* Y + a[38]* Y2 + a[39]* Y* Z + a[40]* Y* W + a[41]* Z + a[42]* Z2 + a[43]* Z* W + a[44]* W + a[45]* W2;
+			var w_n = a[46] + a[47]* X + a[48]* X2 + a[49]* X* Y + a[50]* X* Z + a[51]* X* W + a[52]* Y + a[53]* Y2 + a[54]* Y* Z + a[55]* Y* W + a[56]* Z + a[57]* Z2 + a[58]* Z* W + a[59]* W + a[60]* W2;
 
-			var z_n = a31 + a32* X + a33* X2 + a34* X* Y + a35* X* Z + a36* X* W + a37* Y + a38* Y2 + a39* Y* Z + a40* Y* W + a41* Z + a42* Z2 + a43* Z* W + a44* W + a45* W2;
-			var w_n = a46 + a47* X + a48* X2 + a49* X* Y + a50* X* Z + a51* X* W + a52* Y + a53* Y2 + a54* Y* Z + a55* Y* W + a56* Z + a57* Z2 + a58* Z* W + a59* W + a60* W2;
 
-			return new Vector4d (x_n, y_n, z_n, w_n);
-		}
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+			output.W = w_n;
 
-		private double PhiFunction (double x)
-		{
-			return 1 / 16.0 * Math.Pow (x, 3) - 1 / 6.0 * x;
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 
@@ -509,90 +539,94 @@ namespace opentk.System3
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var x_n = input.Y;
 			var y_n = -input.X + input.Y* input.Z;
-			var z_n = 1 - Math.Pow(input.Y, 2.0);
+			var z_n = 1 - (float)Math.Pow(input.Y, 2.0);
 
-			return new Vector4d (x_n, y_n, z_n, 0);
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 
-	/// <summary>
-	/// dx/dt = y, dy/dt = -x + yz, dz/dt = 1 - y2
-	/// </summary>
-	public class TestMap : ChaoticMap
-	{
-		public TestMap () : base("TestMap")
-		{
-			Map = Implementation;
-		}
-
-		double sphere_sdb(Vector4d sphere, Vector4d pos)
-		{
-			return (pos.Xyz - sphere.Xyz).Length - sphere.W;
-		}
-
-		//
-		Vector3d sphere_sdb_grad(Vector4d sphere, Vector3d pos)
-		{
-			pos = pos - sphere.Xyz;
-			pos.Normalize();
-			return pos;
-		}
-
-		//
-		double torus_sdb(double r1, double r2, Vector4d pos)
-		{
-			double d1 = (pos.Xy.Length - r1);
-			d1 = Math.Sqrt(d1*d1 + pos.Z*pos.Z) - r2;
-
-			return d1;
-		}
-
-		//
-		Vector4d DomainMorphFunction(Vector4d pos)
-		{
-			var v1 = new Vector4d(
-				torus_sdb(40,  30, pos),
-				torus_sdb(40, 30, new Vector4d(pos.Y, pos.X, pos.Z, 0)),
-				torus_sdb(50, 20, new Vector4d(pos.Z, pos.Y, pos.X, 0)), 0);
-
-			var v2 = new Vector4d(
-				torus_sdb(60,  40, v1),
-				torus_sdb(60, 40, new Vector4d(v1.Z, v1.X, v1.Y, 0)),
-				torus_sdb(70, 50, new Vector4d(v1.Z, v1.Y, v1.X, 0)), 0);
-
-			var v3 = new Vector4d(
-				torus_sdb(60,  60, v2 - new Vector4d(5, 10, 11, 0)),
-				torus_sdb(60, 60, new Vector4d(v2.Z, v2.X, v2.Y, 0)  - new Vector4d(-5, 10, 0, 0)),
-				torus_sdb(60, 60, new Vector4d(v2.Z, v2.Y, v2.X, 0) - new Vector4d(5, 0, -11, 0)), 0);
-
-			return v3;
-		}
-
-		//
-		double SDBValue(Vector4d pos)
-		{
-			var mpos = DomainMorphFunction(pos);
-			//return torus_sdb(50, 10, mpos) * 0.2;
-			return sphere_sdb(new Vector4d(0, 0, 0, 28), mpos) * 0.2;
-		}
-
-		//s
-		private Vector4d Implementation (Vector4d input)
-		{
-			return DomainMorphFunction(input);
-		}
-	}
+//	/// <summary>
+//	/// dx/dt = y, dy/dt = -x + yz, dz/dt = 1 - y2
+//	/// </summary>
+//	public class TestMap : ChaoticMap
+//	{
+//		public TestMap () : base("TestMap")
+//		{
+//			Map = Implementation;
+//		}
+//
+//		float sphere_sdb(Vector4d sphere, Vector4d pos)
+//		{
+//			return (pos.Xyz - sphere.Xyz).Length - sphere.W;
+//		}
+//
+//		//
+//		Vector3d sphere_sdb_grad(Vector4d sphere, Vector3d pos)
+//		{
+//			pos = pos - sphere.Xyz;
+//			pos.Normalize();
+//			return pos;
+//		}
+//
+//		//
+//		float torus_sdb(float r1, float r2, Vector4d pos)
+//		{
+//			float d1 = (pos.Xy.Length - r1);
+//			d1 = Math.Sqrt(d1*d1 + pos.Z*pos.Z) - r2;
+//
+//			return d1;
+//		}
+//
+//		//
+//		Vector4d DomainMorphFunction(Vector4d pos)
+//		{
+//			var v1 = new Vector4d(
+//				torus_sdb(40,  30, pos),
+//				torus_sdb(40, 30, new Vector4d(pos.Y, pos.X, pos.Z, 0)),
+//				torus_sdb(50, 20, new Vector4d(pos.Z, pos.Y, pos.X, 0)), 0);
+//
+//			var v2 = new Vector4d(
+//				torus_sdb(60,  40, v1),
+//				torus_sdb(60, 40, new Vector4d(v1.Z, v1.X, v1.Y, 0)),
+//				torus_sdb(70, 50, new Vector4d(v1.Z, v1.Y, v1.X, 0)), 0);
+//
+//			var v3 = new Vector4d(
+//				torus_sdb(60,  60, v2 - new Vector4d(5, 10, 11, 0)),
+//				torus_sdb(60, 60, new Vector4d(v2.Z, v2.X, v2.Y, 0)  - new Vector4d(-5, 10, 0, 0)),
+//				torus_sdb(60, 60, new Vector4d(v2.Z, v2.Y, v2.X, 0) - new Vector4d(5, 0, -11, 0)), 0);
+//
+//			return v3;
+//		}
+//
+//		//
+//		float SDBValue(Vector4d pos)
+//		{
+//			var mpos = DomainMorphFunction(pos);
+//			//return torus_sdb(50, 10, mpos) * 0.2;
+//			return sphere_sdb(new Vector4d(0, 0, 0, 28), mpos) * 0.2;
+//		}
+//
+//		//s
+//		private void Implementation (ref Vector4 input, ref Vector4 output)
+//		{
+//			return DomainMorphFunction(input);
+//		}
+//	}
 
 	/// <summary>
 	/// dx/dt = y + x*(R - v_l)/v_l, dy/dt = -x + y*(R - v_l)/v_l, dz/dt = 1
 	/// </summary>
 	public class TubularMap : ChaoticMap
 	{
-		public double R
+		public float R
 		{
 			get;
 			set;
@@ -603,16 +637,20 @@ namespace opentk.System3
 			Map = Implementation;
 		}
 
-		private Vector4d Implementation (Vector4d input)
+		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
 			var v_l = input.Length;
 			var K2 = (R - v_l);
 
 			var x_n = input.Y + K2 * input.X;
 			var y_n = -input.X + K2 * input.Y;
-			var z_n = 0.3;
+			var z_n = 0.3f;
 
-			return new Vector4d (x_n, y_n, z_n, 0);
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+
+			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 

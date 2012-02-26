@@ -88,6 +88,12 @@ namespace opentk.ShadingSetup
 			get; set;
 		}
 
+		public MaterialType MaterialType
+		{
+			get;
+			set;
+		}
+
 		[Category("ColorRamp")]
 		[TypeConverter(typeof(ColorRampConverter))]
 		[DescriptionAttribute("Expand to see the parameters of the map.")]
@@ -338,6 +344,9 @@ namespace opentk.ShadingSetup
 			m_Uniforms.Set ("sampling_pattern_len", 256);
 
 			//
+			m_Uniforms.Set("material_color_source", ValueProvider.Create(() => MaterialType));
+
+			//
 			var particle_scale_factor = ValueProvider.Create (() => p.ParticleScaleFactor);
 			var particle_count = ValueProvider.Create (() => p.PARTICLES_COUNT);
 
@@ -411,7 +420,7 @@ namespace opentk.ShadingSetup
 				 new TextureBindingSet{
 					 { "colorramp_texture", ValueProvider.Create(() => (ColorRamp ?? ColorRamps.RedBlue).Texture)},
 				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture },
-				   new TextureBinding { VariableName = "uv_colorindex_texture", Texture = UV_ColorIndex_None_Texture },
+				   new TextureBinding { VariableName = "particle_attribute1_texture", Texture = UV_ColorIndex_None_Texture },
 				   new TextureBinding { VariableName = "shadow_texture", Texture = Shadow_Texture },
 				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture_Blurred_HV }
 				 }

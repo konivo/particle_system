@@ -1,17 +1,38 @@
 #version 400
+///////////////////////
+//model-view matrices//
+
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform float particle_brightness;
 uniform float smooth_shape_sharpness;
 
+////////////
+//textures//
+
 uniform sampler2D custom_texture;
 uniform sampler2D normaldepth_texture;
 uniform sampler2D aoc_texture;
-uniform sampler2D uv_colorindex_texture;
 uniform sampler2D shadow_texture;
 uniform sampler2D colorramp_texture;
 
-uniform vec4[3] colors2;
+///////////////////////////////
+//particle attribute textures//
+
+uniform sampler2D particle_attribute1_texture;
+
+/////////////////////
+//material settings//
+
+/*
+0 - normal
+1 - color-ramp
+2 - attribute1
+*/
+uniform int material_color_source;
+
+////////////////////////////////
+//light settings and mattrices//
 
 uniform vec3 ambient = vec3(.1, .1, .1);
 uniform mat4 light_modelviewprojection_transform;
@@ -28,15 +49,16 @@ uniform float light_expmap_range;
 uniform float light_expmap_range_k;
 uniform int light_expmap_nsamples;
 
+///////////////////
+//randomized vec2//
 
-//
 uniform vec2[256] sampling_pattern;
 uniform int sampling_pattern_len;
-
-//
 vec2 SAMPLING_RANDOMIZATION_VECTOR;
 
-//
+////////////////////////
+//soft shadow settings//
+
 uniform bool enable_soft_shadow = true;
 /*
 0 - no filtering
@@ -47,7 +69,9 @@ uniform bool enable_soft_shadow = true;
 */
 uniform int shadow_implementation;
 
-//
+////////////////////
+//common constants//
+
 const float PI = 3.141592654f;
 const float TWO_PI = 2 * 3.141592654f;
 const float EXP_SCALE_FACTOR = 50;
@@ -251,6 +275,25 @@ float get_shadow(vec4 pos)
 	}
 }
 
+vec4 get_material(vec4 pos, vec4 normaldepth)
+{
+	switch(material_color_source)
+	{
+		case 0:
+			vec4 material = (normaldepth + 1) * 0.5f;
+			material = min( material / material .x, material / material .y);
+			material = min( material, material / material .z);
+			return material;
+		case 1:
+			vec2 cparam = 2 * (texture(particle_attribute1_texture, param).xy - 0.5f);
+			return 0.5f * texture(colorramp_texture, cparam) + 0.5f;
+		case 2:
+			return texture(particle_attribute1_texture, param) * 0.5f + 0.5f;
+		default:
+			return vec4(1, 1, 1, 1);
+	}
+}
+
 void main ()
 {
 	init_sampling();
@@ -260,21 +303,12 @@ void main ()
 	vec4 p_clip = get_clip_coordinates(param, p_nd.w);
 	vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
 
-	vec2 cparam = 2 * (texture(uv_colorindex_texture, param).xy - 0.5f);
-	float dist = length(cparam);
-
 	float aoc = texture(aoc_texture, param).x;
-
-	//vec3 material = vec3((p_nd.xyz + 1) * 0.5f);
-	//material = min( material / material .x, material / material .y);
-	//material = min( material, material / material .z);
-
-	vec3 material = texture(colorramp_texture, cparam).xyz;
+	vec3 material = get_material(p_pos, p_nd).xyz;
+	float shadow = get_shadow(p_pos);
 
 	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
 	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
-
-	float shadow = get_shadow(p_pos);
 
 	vec3 diffuse = material * max(dot(light.dir, p_nd.xyz) * (1 - shadow), 0);
 	vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);

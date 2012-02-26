@@ -224,6 +224,11 @@ namespace OpenTK
 					}
 				}
 			}
+			else if( val is Enum)
+			{
+				var mat = (int)val;
+				GL.Uniform1 (location, mat);
+			}
 			//todo: generate properly and generically
 			else// if (val.GetType().GetGenericTypeDefinition() == typeof(IValueProvider<>))
 			{

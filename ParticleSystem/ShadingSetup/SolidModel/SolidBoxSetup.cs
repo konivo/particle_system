@@ -20,7 +20,7 @@ namespace opentk.ShadingSetup
 		private RenderPass m_Pass;
 		private UniformState m_Uniforms;
 
-		private TextureBase UV_ColorIndex_None_Texture;
+		private TextureBase m_ParticleAttribute1_Texture;
 		private TextureBase AOC_Texture;
 		private TextureBase AOC_Texture_Blurred_H;
 		private TextureBase AOC_Texture_Blurred_HV;
@@ -93,10 +93,16 @@ namespace opentk.ShadingSetup
 			set;
 		}
 
+		public MaterialType MaterialType
+		{
+			get;
+			set;
+		}
+
 		private void TextureSetup()
 		{
 			//TEextures setup
-			UV_ColorIndex_None_Texture =
+			m_ParticleAttribute1_Texture =
 				new DataTexture<Vector3> {
 					Name = "UV_ColorIndex_None_Texture",
 					InternalFormat = PixelInternalFormat.Rgba8,
@@ -257,7 +263,7 @@ namespace opentk.ShadingSetup
 			if(AA_Texture != null &&
 			   AA_Texture.Width != SolidModeTextureSize)
 			{
-				((DataTexture<Vector3>)UV_ColorIndex_None_Texture).Data2D = new Vector3[SolidModeTextureSize, SolidModeTextureSize];
+				((DataTexture<Vector3>)m_ParticleAttribute1_Texture).Data2D = new Vector3[SolidModeTextureSize, SolidModeTextureSize];
 				((DataTexture<Vector4>)NormalDepth_Texture).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
 				((DataTexture<float>)Depth_Texture).Data2D = new float[SolidModeTextureSize, SolidModeTextureSize];
 				((DataTexture<Vector4>)AA_Texture).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
@@ -300,6 +306,7 @@ namespace opentk.ShadingSetup
 				}
 				return 0;
 			}));
+			m_Uniforms.Set("material_color_source", ValueProvider.Create(() => MaterialType));
 
 			var mode = ValueProvider.Create
 			(() =>
@@ -332,7 +339,7 @@ namespace opentk.ShadingSetup
 			var firstPassSolid =  RenderPassFactory.CreateSolidBox
 			(
 				 NormalDepth_Texture,
-				 UV_ColorIndex_None_Texture,
+				 m_ParticleAttribute1_Texture,
 				 Depth_Texture,
 				 p.PositionBuffer,
 				 p.ColorBuffer,
@@ -398,7 +405,7 @@ namespace opentk.ShadingSetup
 				 {
 				   { "colorramp_texture", ValueProvider.Create(() => (ColorRamp ?? ColorRamps.RedBlue).Texture)},
 				   { "normaldepth_texture", NormalDepth_Texture },
-				   { "uv_colorindex_texture", UV_ColorIndex_None_Texture },
+				   { "particle_attribute1_texture", m_ParticleAttribute1_Texture },
 				   { "shadow_texture", Shadow_Texture },
 				   { "aoc_texture", AOC_Texture_Blurred_HV }
 				 }

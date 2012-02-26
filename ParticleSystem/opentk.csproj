@@ -120,6 +120,7 @@
     <Compile Include="System3\IParticleGenerator.cs" />
     <Compile Include="Resources\ColorRamp.cs" />
     <Compile Include="Resources\ColorRampConverter.cs" />
+    <Compile Include="Scene\MaterialType.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

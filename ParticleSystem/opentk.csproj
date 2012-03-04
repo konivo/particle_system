@@ -121,6 +121,7 @@
     <Compile Include="Resources\ColorRamp.cs" />
     <Compile Include="Resources\ColorRampConverter.cs" />
     <Compile Include="Scene\MaterialType.cs" />
+    <Compile Include="ShadingSetup\SolidModel\SolidSetupBase.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

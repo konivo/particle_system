@@ -39,6 +39,12 @@ namespace opentk.System3
 			ForceField = 0x4
 		}
 
+		public enum IntegrationStepType
+		{
+			LimitDelta = 0x1,
+			DoNotLimit = 0x0
+		}
+
 		/// <summary>
 		/// Compute metadata.
 		/// </summary>
@@ -50,6 +56,11 @@ namespace opentk.System3
 		private float m_SpeedUpperBound;
 
 		public MapModeType MapMode
+		{
+			get; set;
+		}
+
+		public IntegrationStepType IntegrationStep
 		{
 			get; set;
 		}
@@ -73,119 +84,112 @@ namespace opentk.System3
 
 		void ISimulationScheme.Simulate (System3 system, DateTime simulationTime, long simulationStep)
 		{
-			var Position = system.Position;
-			var Dimension = system.Dimension;
-			var Meta = system.Meta;
-			var Rotation = system.Rotation;
-			var Color = system.Color;
-
-			var fun = system.ChaoticMap.Map;
-			var TrailSize = Math.Max(system.TrailSize, 1);
-			var StepsPerFrame = Math.Max(system.StepsPerFrame, 1);
 			m_SpeedUpperBound = Math.Max(m_SpeedUpperBound * 0.75f, 0.01f);
 
-			var trailCount = (Position.Length + TrailSize - 1) / TrailSize;
+			var trailSize = Math.Max(system.TrailSize, 1);
+			var trailCount = (system.Position.Length + trailSize - 1) / trailSize;
 			var trailBundleSize = Math.Max(TrailBundleSize, 1);
 			var trailBundleCount = (trailCount + trailBundleSize - 1) / trailBundleSize;
+
+			var stepsPerFrame = Math.Max(system.StepsPerFrame, 1);
+			var fun = system.ChaoticMap.Map;
+			var position = system.Position;
+			var dimension = system.Dimension;
+			var meta = system.Meta;
+			var rotation = system.Rotation;
+			var attribute1 = system.Color;
+
+			var particleCount = position.Length;
+			var particleScale = system.ParticleScaleFactor;
+			var dt = (float)system.DT;
 
 			Parallel.For (0, trailBundleCount,
 			bundleIndex =>
 			{
-				var particleCount = Position.Length;
-				var trailSize = TrailSize;
 				var firsttrail = bundleIndex * trailBundleSize * trailSize;
 				var lasttrail = Math.Min(firsttrail + trailBundleSize , particleCount);
-				var dt = (float)system.DT;
 				var speedBound = m_SpeedUpperBound;
 				var delta = Vector4.Zero;
 				var delta2 = Vector4.Zero;
 				var size = 0f;
 
-				for (int j = 0; j < StepsPerFrame; j++)
+				for (int j = 0; j < stepsPerFrame; j++)
 				{
 					for (int i = firsttrail ; i < lasttrail ; i += 1)
 					{
 						//i is the trail's first element
-						var pi = i + Meta[i].Leader;
-
-						Meta[i].Leader = (Meta[i].Leader + trailBundleSize) % (trailSize * trailBundleSize);
-						
-						var ii = i + Meta[i].Leader;
-						if (ii >= particleCount)
-						{
-							ii = i;
-							Meta[i].Leader = 0;
-						}
+						var pi = i + meta[i].Leader;
 
 						if(MapMode == MapModeType.ForceField)
 						{
-							delta = new Vector4 (Meta[i].Velocity * dt, 0);
-							fun (ref Position[pi], ref delta2);
-							Meta[i].Velocity += delta2.Xyz * dt;
+							delta = new Vector4 (meta[i].Velocity * dt, 0);
+							fun (ref position[pi], ref delta2);
+							meta[i].Velocity += delta2.Xyz * dt;
 						}
 						else
 						{
-							fun (ref Position[pi], ref delta);
+							fun (ref position[pi], ref delta);
 							delta *= dt;
-							//delta.W = 0;
 						}
 
-						//Vector4.Add(ref position_old, ref delta, out Position[ii]);
-						size = system.ParticleGenerator.UpdateSize(system, i, ii);
-
-						Position[ii] = Position[pi] + delta;
-						Dimension[ii] = new Vector4 (size, size, size, size);
-
+						size = Math.Max(system.ParticleGenerator.UpdateSize(system, i, 0), float.Epsilon);
 						//
 						var b0 = new Vector4( delta.Xyz, 0);
-						var b2 = new Vector4( Vector3.Cross( b0.Xyz, Rotation[pi].Row1.Xyz), 0);
+						var b2 = new Vector4( Vector3.Cross( b0.Xyz, rotation[pi].Row1.Xyz), 0);
 						var b1 = new Vector4( Vector3.Cross( b2.Xyz, b0.Xyz), 0);
 
 						b0.Normalize();
 						b1.Normalize();
 						b2.Normalize();
 
-						Rotation[ii] = new Matrix4(b0, b1, b2, new Vector4(0,0,0,1));
-
-//						//
-//						switch (ComputeMetadataMode)
-//						{
-//						case ColorSchemeType.Distance:
-////							var speed = delta.LengthFast/ dt;
-////							var A = MathHelper2.Clamp (speed / speedBound, 0, 1);
-////							speedBound = Math.Max(speedBound, speed);
-////							Color[ii] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
-//							var speed = delta.LengthFast/ dt;
-//							var A = speed / 100.1f;
-//							A = A - (float)Math.Floor(A);
-//							speedBound = Math.Max(speedBound, speed);
-//							Color[ii] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
-//							break;
-//						case ColorSchemeType.Color:
-//							Color[ii] = new Vector4 (0.2f, 1, 0.2f, 1);
-//							break;
-//						default:
-//							break;
-//						}
-
-						switch (ComputeMetadataMode) {
-						case ComputeMetadata.Speed:
-							Color[ii] = delta;
-						break;
-						case ComputeMetadata.Tangent:
-							Color[ii] = b0;
-						break;
-						default:
-						break;
-						}
-						
-						//
-						if (j == StepsPerFrame - 1)
+						if(IntegrationStep == IntegrationStepType.LimitDelta)
 						{
-							if (Meta[i].LifeLen <= 0)
+							delta *= Math.Min(1, 10 * (size * particleScale)/ delta.Length);
+						}
+
+						var localCount = (float)Math.Ceiling(delta.Length / (size * particleScale));
+						localCount = Math.Min(localCount, trailSize);
+						for(int li = 0; li < localCount; li++)
+						{
+							meta[i].Leader = (meta[i].Leader + trailBundleSize) % (trailSize * trailBundleSize);
+
+							var ii = i + meta[i].Leader;
+							if (ii >= particleCount)
+							{
+								ii = i;
+								meta[i].Leader = 0;
+							}
+
+							position[ii] = position[pi] + ((1 + li) / localCount) * delta;
+							dimension[ii] = new Vector4 (size, size, size, size);
+							rotation[ii] = new Matrix4(b0, b1, b2, new Vector4(0,0,0,1));
+
+							switch (ComputeMetadataMode) {
+							case ComputeMetadata.Speed:
+								attribute1[ii] = delta;
+							break;
+							case ComputeMetadata.Tangent:
+								attribute1[ii] = b0;
+							break;
+							default:
+							break;
+							}
+						}
+
+						//
+						if (j == stepsPerFrame - 1)
+						{
+							if (meta[i].LifeLen <= 0)
+							{
 								system.ParticleGenerator.NewBundle (system, i);
+								meta[i].Leader = trailBundleSize * ((meta[i].Leader + trailBundleSize - 1) / trailBundleSize % trailSize) ;
+								if (i + meta[i].Leader  >= particleCount)
+								{
+									meta[i].Leader = 0;
+								}
+							}
 							else
-								Meta[i].LifeLen--;
+								meta[i].LifeLen--;
 						}
 					}
 				}

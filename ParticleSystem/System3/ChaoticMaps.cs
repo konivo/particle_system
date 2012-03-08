@@ -39,6 +39,45 @@ namespace opentk.System3
 		{
 			Name = name;
 		}
+
+		public Tuple<double, Vector4> LyapunovExponent(int stepsCount = 100)
+		{
+			var stateA = (Vector4)MathHelper2.RandomVector4(23);
+			
+			var dA = stateA;
+			var stateB = stateA + (Vector4)MathHelper2.RandomVector4(0.001);
+			var dB = stateB;
+			var result = 0.0;
+			var deltaOld = 0f;
+			var deltaNew = 0f;
+
+      for (int i = 0; i < stepsCount; i++)
+      {
+				Map(ref stateA, ref dA);
+				Map(ref stateB, ref dB);
+
+				deltaOld = deltaNew;
+				stateA = stateA + 0.001f * dA;
+				stateB = stateB + 0.001f * dB;
+
+				deltaNew = (stateA - stateB).Length;
+
+				if(deltaOld == 0 || deltaNew == 0)
+					continue;
+
+				var d = 0.001f / deltaNew;
+				stateB = stateA + (stateB - stateA) * d;
+
+				d = deltaNew/deltaOld;
+				if(float.IsNaN(d))
+					continue;
+
+				result += Math.Log(deltaNew/deltaOld) * 1000;
+			}
+
+			return Tuple.Create(result/ stepsCount, stateA);
+		}
+
 	}
 
 	/// <summary>
@@ -343,29 +382,39 @@ namespace opentk.System3
 	public class C4D336MMap : ChaoticMap
 	{
 		private int ParamCount = 336;
-		private int Order = 3;
+		//private int Order = 3;
 		private long m_lastrun;
 		private long m_lastrunmask;
 
-		public float[] a {get; set;}
-		public float[] target_state {get; set;}
-		public float[] mask_state {get; set;}
-		public float[] prev_state {get; set;}
+		public float[] a {get; private set;}
+		public float[] target_state {get; private set;}
+		public float[] mask_state {get; private set;}
+		public float[] prev_state {get; private set;}
+
+		public Tuple<double, Vector4> L {get; private set;}
 
 		public C4D336MMap  () : base("C4D336MMap")
 		{
 			a = new float[ParamCount ];
 			target_state = MathHelper2.RandomVectorSet(ParamCount , 0.3 * Vector2d.One).Select(x => (float)x.X).ToArray();
 
+			Map = Implementation;
 			InitializeParams();
 			InitializeMask();
-			Map = Implementation;
 		}
 
 		private void InitializeParams()
 		{
+			int tryNumber = 0;
+			var a_prev = a;
 			prev_state = target_state;
-			target_state = MathHelper2.RandomVectorSet(ParamCount , 0.1 * Vector2d.One).Select(x => (float)x.X).ToArray();
+
+			do
+			{
+				a = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
+			}
+			while(Math.Abs((L = LyapunovExponent(500)).Item1) > 1.502 && tryNumber++ < 150);
+			a = a_prev;
 		}
 
 		private void InitializeMask()

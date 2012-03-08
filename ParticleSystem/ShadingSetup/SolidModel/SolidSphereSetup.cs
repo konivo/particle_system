@@ -283,7 +283,7 @@ namespace opentk.ShadingSetup
 
 			m_Pass = new CompoundRenderPass
 			(
-			 firstPassSolid, firstPassShadow, normalDepthBlur, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
+			 firstPassSolid, firstPassShadow, /*normalDepthBlur,*/ aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
 			);
 
 		}

@@ -182,11 +182,11 @@ namespace opentk.System3
 							if (meta[i].LifeLen <= 0)
 							{
 								system.ParticleGenerator.NewBundle (system, i);
-								meta[i].Leader = trailBundleSize * ((meta[i].Leader + trailBundleSize - 1) / trailBundleSize % trailSize) ;
+								/*meta[i].Leader = trailBundleSize * ((meta[i].Leader + trailBundleSize - 1) / trailBundleSize % trailSize) ;
 								if (i + meta[i].Leader  >= particleCount)
 								{
 									meta[i].Leader = 0;
-								}
+								}*/
 							}
 							else
 								meta[i].LifeLen--;

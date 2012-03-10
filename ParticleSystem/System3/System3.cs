@@ -18,7 +18,8 @@ namespace opentk.System3
 	public enum SeedDistributionType
 	{
 		RegularGrid = 0x1,
-		Random = 0x2
+		Random = 0x2,
+		RandomInBox = 0x3
 	}
 
 	public partial class System3 : ParticleSystemBase

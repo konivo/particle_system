@@ -42,8 +42,13 @@ namespace opentk.System3
 
 		public Tuple<double, Vector4> LyapunovExponent(int stepsCount = 100)
 		{
-			var stateA = (Vector4)MathHelper2.RandomVector4(23);
-			
+			return LyapunovExponent((Vector4)MathHelper2.RandomVector4(23));
+		}
+
+		public Tuple<double, Vector4> LyapunovExponent(Vector4 startingPoint, int stepsCount = 100, float dt = 0.001f)
+		{
+			var stateA = startingPoint;
+
 			var dA = stateA;
 			var stateB = stateA + (Vector4)MathHelper2.RandomVector4(0.001);
 			var dB = stateB;

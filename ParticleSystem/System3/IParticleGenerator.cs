@@ -88,6 +88,32 @@ namespace opentk.System3
 			set;
 		}
 
+		public bool PreferStableOrbits
+		{
+			get;
+			set;
+		}
+
+		public float StableOrbitsLMin
+		{
+			get; set;
+		}
+
+		public float StableOrbitsLMax
+		{
+			get; set;
+		}
+
+		public int StableOrbitsCount
+		{
+			get; set;
+		}
+
+		public float StableOrbitsMaxDist
+		{
+			get; set;
+		}
+
 		public SimpleGenerator ()
 		{
 			SizeRandomness = 0;
@@ -95,6 +121,11 @@ namespace opentk.System3
 			SizeScaleRatio = 0.001f;
 			LifeLengthMin = LifeLengthMax = 1000;
 			ScaleRatioMaxDifference = 0.01f;
+			PreferStableOrbits = true;
+			StableOrbitsLMax = 0;
+			StableOrbitsLMin = 0;
+			StableOrbitsCount = 20;
+			StableOrbitsMaxDist = 2000;
 		}
 
 		public void NewBundle(System3 system, int bundleFirstItem)
@@ -116,6 +147,18 @@ namespace opentk.System3
 			var Dimension = system.Dimension;
 			var Rotation = system.Rotation;
 			var Color = system.Color;
+
+			if(PreferStableOrbits)
+			{
+				var map = system.ChaoticMap;
+				var lp = map.LyapunovExponent(Position[i], StableOrbitsCount);
+
+				if(lp.Item1 > StableOrbitsLMin && lp.Item1 < StableOrbitsLMax)
+					return;
+
+				if(lp.Item2.Length < StableOrbitsMaxDist)
+					return;
+			}
 
 			var size = UpdateSize(system, bundleFirstItem, i);
 			var newpos = (Vector3)MathHelper2.RandomVector3 (12);

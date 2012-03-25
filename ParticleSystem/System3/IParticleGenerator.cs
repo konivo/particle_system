@@ -119,9 +119,10 @@ namespace opentk.System3
 			SizeRandomness = 0;
 			SizeScalePower = 1;
 			SizeScaleRatio = 0.001f;
-			LifeLengthMin = LifeLengthMax = 1000;
+			LifeLengthMax = 100;
+			LifeLengthMin = 90;
 			ScaleRatioMaxDifference = 0.01f;
-			PreferStableOrbits = true;
+			PreferStableOrbits = false;
 			StableOrbitsLMax = 0;
 			StableOrbitsLMin = 0;
 			StableOrbitsCount = 20;

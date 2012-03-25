@@ -50,6 +50,12 @@ namespace opentk.ShadingSetup
 			set;
 		}
 
+		public SmoothSetup ()
+		{
+			ParticleShape = ParticleShapeType.SmoothDot;
+			ParticleBrightness = 44;
+		}
+
 		//
 		private Vector3[,] TestTexture (int w, int h)
 		{

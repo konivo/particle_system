@@ -103,6 +103,8 @@ namespace opentk.System3
 
 		public int SearchLoopIterCount { get; set;}
 
+		public float SearchSpaceDiversityFactor { get; set;}
+
 		public ChaoticMap (string name)
 		{
 			Name = name;
@@ -126,18 +128,22 @@ namespace opentk.System3
 			var oldA = a;
 			var oldState = target_state;
 			var newL = L;
+			bool found = false;
 			m_SearchAttemptsLeft += SearchAttemptsCount;
 
 			for(; 1 <= m_SearchAttemptsLeft; m_SearchAttemptsLeft--)
 			{
 				//a = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
-				a = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X)
-				.Zip(target_state, (x, y) => x + 0.01f * y).ToArray();
-
-				for (int i = 0; i < a.Length; i++)
-				{
-					target_state[i] *= mask_state[i];
-				}
+				a = target_state =
+					MathHelper2
+					.RandomVectorSet(ParamCount , Vector2d.One)
+					.Select(
+							(x,i) => (float)x.X * mask_state[i])
+					.Zip(target_state,
+							(x, y) => (1 - SearchSpaceDiversityFactor) * y + SearchSpaceDiversityFactor * x)
+					.Select(
+							(x, i) => MathHelper2.Clamp(x, -mask_state[i], mask_state[i]))
+					.ToArray();
 
 				newL = LyapunovExponent(SearchLoopIterCount, SearchDt, SearchOrbitSeedExtent, 10, SearchOrbitDistanceLimit);
 				if(double.IsNaN(newL.Item1))
@@ -157,11 +163,22 @@ namespace opentk.System3
 						m_BestNextCandidate = target_state;
 						L = newL;
 					}
+					found = true;
 				}
 			}
 
+			UpdateSearchSpreadFactor(found);
+
 			a = oldA;
 			target_state = oldState;
+		}
+
+		private void UpdateSearchSpreadFactor(bool solutionFound)
+		{
+			if(solutionFound)
+				SearchSpaceDiversityFactor = Math.Max(0.01f, SearchSpaceDiversityFactor * 0.9f);
+			else
+				SearchSpaceDiversityFactor = Math.Min(1.00f, SearchSpaceDiversityFactor * 1.1f);
 		}
 
 		private void InitializeParams()
@@ -175,7 +192,7 @@ namespace opentk.System3
 			}
 		}
 
-		private void InitializeMask()
+		private void InitializeNewCandidate()
 		{
 //			mask_state = Enumerable.Range(0, ParamCount).Select(x => MathHelper2.GetThreadLocalRandom().NextDouble() > 0.5? 1f: 0f).ToArray();
 //			for (int i = 0; i < a.Length; i++) {
@@ -194,7 +211,7 @@ namespace opentk.System3
 			}
 			else if(m_lastrunmask + 10 * ChangePeriod < step )
 			{
-				InitializeMask();
+				SearchSpaceDiversityFactor = 1;
 				m_lastrunmask = step;
 			}
 			else
@@ -429,8 +446,8 @@ namespace opentk.System3
 			var z_p = input.Z;
 
 			var z_n = (float)Math.Sin (x_p);
-			var x_n = (float)Math.Sin (A * y_p) - z_p * (float)Math.Cos (B * x_p);
-			var y_n = z_p * (float)Math.Sin (C * x_p) - (float)Math.Cos (D * y_p);
+			var x_n = (float)Math.Sin (a[0] * y_p) - z_p * (float)Math.Cos (a[1] * x_p);
+			var y_n = z_p * (float)Math.Sin (a[2] * x_p) - (float)Math.Cos (a[3] * y_p);
 
 			output.X = x_n;
 			output.Y = y_n;
@@ -457,18 +474,18 @@ namespace opentk.System3
 
 		public float A
 		{
-			get;
-			set;
+			get{ return mask_state[0];}
+			set{ mask_state[0] = value;}
 		}
 		public float B
 		{
-			get;
-			set;
+			get{ return mask_state[1];}
+			set{ mask_state[1] = value;}
 		}
 		public float C
 		{
-			get;
-			set;
+			get{ return mask_state[2];}
+			set{ mask_state[2] = value;}
 		}
 
 		public PolynomialMap () : base("Polynomial")
@@ -476,6 +493,9 @@ namespace opentk.System3
 			A = 1.425f;
 			B = 1.24354f;
 			C = 1.02435342f;
+
+			TransitionRate = 1;
+			ChangePeriod = 1;
 			Map = Implementation;
 		}
 
@@ -485,9 +505,9 @@ namespace opentk.System3
 			var y_p = input.Y;
 			var z_p = input.Z;
 
-			var x_n = A + y_p - z_p * y_p;
-			var y_n = B + z_p - z_p * x_p;
-			var z_n = C + x_p - y_p * x_p;
+			var x_n = a[0] + y_p - z_p * y_p;
+			var y_n = a[1] + z_p - z_p * x_p;
+			var z_n = a[2] + x_p - y_p * x_p;
 
 			output.X = x_n;
 			output.Y = y_n;
@@ -512,18 +532,18 @@ namespace opentk.System3
 
 		public float A
 		{
-			get;
-			set;
+			get{ return mask_state[0];}
+			set{ mask_state[0] = value;}
 		}
 		public float B
 		{
-			get;
-			set;
+			get{ return mask_state[1];}
+			set{ mask_state[1] = value;}
 		}
 		public float C
 		{
-			get;
-			set;
+			get{ return mask_state[2];}
+			set{ mask_state[2] = value;}
 		}
 
 		public ChuaMap () : base("Chua")
@@ -531,6 +551,9 @@ namespace opentk.System3
 			A = 1.425f;
 			B = 1.24354f;
 			C = 1.02435342f;
+
+			TransitionRate = 1;
+			ChangePeriod = 1;
 			Map = Implementation;
 		}
 
@@ -540,9 +563,9 @@ namespace opentk.System3
 			var y_p = input.Y;
 			var z_p = input.Z;
 
-			var x_n = A * (y_p - PhiFunction (x_p));
+			var x_n = a[0] * (y_p - PhiFunction (x_p));
 			var y_n = x_p - y_p + z_p;
-			var z_n = -B * y_p - C * z_p;
+			var z_n = -a[1] * y_p - a[2] * z_p;
 
 			output.X = x_n;
 			output.Y = y_n;
@@ -600,9 +623,9 @@ namespace opentk.System3
 			var y_p = input.Y;
 			var z_p = input.Z;
 
-			var x_n = A * (float)Math.Cos(z_p - y_p);
-			var y_n = B * (float)Math.Sin(x_p - z_p);
-			var z_n = C * (float)Math.Cos(y_p - x_p);
+			var x_n = a[0] * (float)Math.Cos(z_p - y_p);
+			var y_n = a[1] * (float)Math.Sin(x_p - z_p);
+			var z_n = a[2] * (float)Math.Cos(y_p - x_p);
 
 			output.X = x_n;
 			output.Y = y_n;
@@ -671,37 +694,6 @@ namespace opentk.System3
 	public class C4D336MMap : ChaoticMap
 	{
 		public override int ParamCount { get{ return 336;}}
-//		private long m_lastrun;
-//		private long m_lastrunmask;
-//		private float m_SearchAttemptsLeft;
-//		private float[] m_BestNextCandidate;
-//
-//		public float[] a {get; private set;}
-//		public float[] target_state {get; private set;}
-//		public float[] mask_state {get; private set;}
-//		public float[] prev_state {get; private set;}
-//
-//		public Tuple<double, Vector4> L { get; private set;}
-//
-//		public int ChangePeriod { get; private set;}
-//
-//		public float TransitionRate { get; private set;}
-//
-//		public float SearchOrbitSeedExtent { get; private set;}
-//
-//		//public int SearchPeriod { get; private set;}
-//
-//		public float SearchAttemptsCount { get; private set;}
-//
-//		public float SearchOrbitDistanceLimit { get; private set;}
-//
-//		public float SearchDesiredMaxL { get; private set;}
-//
-//		public float SearchDesiredMinL { get; private set;}
-//
-//		public float SearchDt { get; private set;}
-//
-//		public int SearchLoopIterCount { get; private set;}
 
 		public C4D336MMap  () : base("C4D336MMap")
 		{
@@ -713,103 +705,8 @@ namespace opentk.System3
 			SearchOrbitSeedExtent = 1;
 			SearchDt = 0.01f;
 			TransitionRate = 0.1f;
-//			a = new float[ParamCount ];
-//
-//			m_BestNextCandidate = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
-//			mask_state = Enumerable.Range(0, ParamCount).Select(x => 1f).ToArray();
 			Map = Implementation;
-
-//			InitializeParams();
-//			InitializeMask();
 		}
-
-//		private void SearchForParams()
-//		{
-//			var oldA = a;
-//			var oldState = target_state;
-//			var newL = L;
-//			m_SearchAttemptsLeft += SearchAttemptsCount;
-//
-//			for(; 1 <= m_SearchAttemptsLeft; m_SearchAttemptsLeft--)
-//			{
-//				//a = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
-//				a = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X)
-//				.Zip(target_state, (x, y) => x + 0.01f * y).ToArray();
-//
-//				for (int i = 0; i < a.Length; i++)
-//				{
-//					target_state[i] *= mask_state[i];
-//				}
-//
-//				newL = LyapunovExponent(SearchLoopIterCount, SearchDt, SearchOrbitSeedExtent, 10, SearchOrbitDistanceLimit);
-//				if(double.IsNaN(newL.Item1))
-//					continue;
-//
-//				if(L == null)
-//				{
-//					m_BestNextCandidate = target_state;
-//					L = newL;
-//				}
-//				else if(
-//					!double.IsNaN(newL.Item1) &&
-//					newL.Item1 > SearchDesiredMinL && newL.Item1 < SearchDesiredMaxL && newL.Item2.Length < SearchOrbitDistanceLimit)
-//				{
-//					if(newL.Item1 > L.Item1 || L.Item1 > SearchDesiredMaxL)
-//					{
-//						m_BestNextCandidate = target_state;
-//						L = newL;
-//					}
-//				}
-//			}
-//
-//			a = oldA;
-//			target_state = oldState;
-//		}
-//
-//		private void InitializeParams()
-//		{
-//			prev_state = target_state;
-//			if(m_BestNextCandidate != null)
-//			{
-//				target_state = m_BestNextCandidate;
-//				m_BestNextCandidate = null;
-//				L = null;
-//			}
-//		}
-//
-//		private void InitializeMask()
-//		{
-////			mask_state = Enumerable.Range(0, ParamCount).Select(x => MathHelper2.GetThreadLocalRandom().NextDouble() > 0.5? 1f: 0f).ToArray();
-////			for (int i = 0; i < a.Length; i++) {
-////				target_state[i] *= mask_state[i];
-////			}
-//		}
-//
-//		public override void UpdateMap (DateTime simtime, long step)
-//		{
-//			SearchForParams();
-//
-//			if(m_lastrun + ChangePeriod < step )
-//			{
-//				InitializeParams();
-//				m_lastrun = step;
-//			}
-//			else if(m_lastrunmask + 10 * ChangePeriod < step )
-//			{
-//				InitializeMask();
-//				m_lastrunmask = step;
-//			}
-//			else
-//			{
-//				var t = (step - m_lastrun) / (ChangePeriod * TransitionRate);
-//				if(t <= 1)
-//				{
-//					for (int i = 0; i < a.Length; i++) {
-//						a[i] = prev_state[i] * (1 - t) + target_state[i] * t;
-//					}
-//				}
-//			}
-//		}
 
 		[ThreadStatic]
 		private static float[] m_Koefs;
@@ -861,13 +758,6 @@ namespace opentk.System3
 	/// </summary>
 	public class Q4D60MMap : ChaoticMap
 	{
-//		private int ParamCount = 61;
-//		private long m_lastrun;
-//
-//		public float[] a {get; set;}
-//		public float[] target_state {get; set;}
-//		public float[] prev_state {get; set;}
-
 		public float K1 {get; set;}
 		public float K2 {get; set;}
 		public float K0 {get; set;}
@@ -885,37 +775,11 @@ namespace opentk.System3
 
 		public Q4D60MMap  () : base("Q4D60MMap ")
 		{
-//			a = new float[ParamCount ];
-//			target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
-//
-//			InitializeParams();
 			K1 = 0.1f;
 			K2 = 0.01f;
 			K0 = 0.01f;
 			Map = Implementation;
 		}
-
-//		private void InitializeParams()
-//		{
-//			prev_state = target_state;
-//			target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
-//		}
-//
-//		public override void UpdateMap (DateTime simtime, long step)
-//		{
-//			if(m_lastrun + 100 < step )
-//			{
-//				InitializeParams();
-//				m_lastrun = step;
-//			}
-//			else
-//			{
-//				var t = (step - m_lastrun) / 100.0f ;
-//				for (int i = 0; i < a.Length; i++) {
-//					a[i] = prev_state[i] * (1 - t) + target_state[i] * t;
-//				}
-//			}
-//		}
 
 		private void Implementation (ref Vector4 input, ref Vector4 output)
 		{
@@ -928,12 +792,7 @@ namespace opentk.System3
 			var Y2 = (float)Math.Pow(Y, 2);
 			var Z2 = (float)Math.Pow(Z, 2);
 			var W2 = (float)Math.Pow(W, 2);
-			/*
-			X = X + 0.1a1Y
-	    Y = Y + 0.1(a2X + a3X3 + a4X2Y + a5XY2 + a6Y + a7Y3 + a8sin Z
-		  Z = [Z + 0.1(a9 + 1.3)] mod 2π
-		  W = (N - 1000) / (NMAX - 1000)
-		  */
+
 			var x_n = a[1] + a[2] * X + a[3] * X2 + a[4] * X * Y + a[5] * X* Z + a[6] * X* W + a[7]* Y + a[8]* Y2 + a[9]* Y* Z + a[10] * Y* W + a[11]* Z + a[12]* Z2 +	a[13]* Z* W + a[14]* W + a[15]* W2;
 			var y_n = a[16] + a[17]* X + a[18]* X2 + a[19]* X* Y + a[20]* X* Z + a[21]* X* W + a[22]* Y + a[23]* Y2 + a[24]* Y* Z + a[25]* Y* W + a[26]* Z + a[27]* Z2 + a[28]* Z* W + a[29]* W + a[30]* W2;
 
@@ -945,8 +804,6 @@ namespace opentk.System3
 			output.Y = y_n;
 			output.Z = z_n;
 			output.W = w_n;
-
-			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}
 

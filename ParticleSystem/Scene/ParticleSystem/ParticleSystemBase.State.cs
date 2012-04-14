@@ -69,18 +69,19 @@ namespace opentk.Scene.ParticleSystem
 					break;
 				case PublishMethod.Incremental:
 					{
-						var publishSize = PublishSize;
-						m_PublishCounter += 1;
+					  m_PublishCounter %= PARTICLES_COUNT;
 
-						var start = m_PublishCounter * publishSize % PARTICLES_COUNT;
-						var end = start + publishSize;
-						end = end > PARTICLES_COUNT ? PARTICLES_COUNT : end;
+						var start = m_PublishCounter;
+						var end = Math.Min(start + PublishSize, PARTICLES_COUNT);
+						var cnt = end - start;
 
-						m_PositionBuffer.PublishPart (start, end - start);
-						m_DimensionBuffer.PublishPart (start, end - start);
-						m_ColorBuffer.PublishPart (start, end - start);
-						m_RotationBuffer.PublishPart (start, end - start);
-						m_RotationLocalBuffer.PublishPart (start, end - start);
+						m_PositionBuffer.PublishPart (start, cnt);
+						m_DimensionBuffer.PublishPart (start, cnt);
+						m_ColorBuffer.PublishPart (start, cnt);
+						m_RotationBuffer.PublishPart (start, cnt);
+						m_RotationLocalBuffer.PublishPart (start, cnt);
+
+						m_PublishCounter = end;
 					}
 					break;
 				default:
@@ -115,9 +116,11 @@ namespace opentk.Scene.ParticleSystem
 			CameraMvp = new ModelViewProjectionParameters("", TransformationStack, ProjectionStack);
 
 			//
+			ModelScaleFactor = 1;
 			m_Manip = new OrbitManipulator (ProjectionStack);
 			m_Grid = new Grid (CameraMvp);
 			TransformationStack.Push (m_Manip.RT);
+			TransformationStack.Push( Matrix4.Scale(ModelScaleFactor));
 
 			//
 			Uniforms = new UniformState("");
@@ -142,6 +145,16 @@ namespace opentk.Scene.ParticleSystem
 		public void SetViewport(GameWindow window)
 		{
 			SetViewport(0, 0, window.Width, window.Height);
+		}
+
+		private void UpdateModelTransformation()
+		{
+			ModelScaleFactor = MathHelper2.Clamp(ModelScaleFactor, 0.1f, 100);
+
+			if (TransformationStack != null)
+			{
+				TransformationStack.ValueStack[1] = Matrix4.Scale(ModelScaleFactor);
+			}
 		}
 
 		public void SetCamera (GameWindow window)
@@ -184,10 +197,11 @@ namespace opentk.Scene.ParticleSystem
 			if (m_Manip != null)
 				m_Manip.HandleInput (window);
 
-			Shading.GetPass(this).Render(window);
-
+			UpdateModelTransformation();
 			SetCamera(window);
 
+			//
+			Shading.GetPass(this).Render(window);
 			if(ShowGrid)
 				m_Grid.Render(window);
 

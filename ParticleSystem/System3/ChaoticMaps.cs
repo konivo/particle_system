@@ -134,15 +134,21 @@ namespace opentk.System3
 			for(; 1 <= m_SearchAttemptsLeft; m_SearchAttemptsLeft--)
 			{
 				//a = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
-				a = target_state =
+				target_state =
 					MathHelper2
 					.RandomVectorSet(ParamCount , Vector2d.One)
 					.Select(
-							(x,i) => (float)x.X * mask_state[i])
+							(x,i) => (float)x.X/* * mask_state[i]*/)
 					.Zip(target_state,
 							(x, y) => (1 - SearchSpaceDiversityFactor) * y + SearchSpaceDiversityFactor * x)
 					.Select(
-							(x, i) => MathHelper2.Clamp(x, -mask_state[i], mask_state[i]))
+							(x, i) => MathHelper2.Clamp(x, -1, 1))
+					.ToArray();
+
+				//
+				a = target_state
+					.Select(
+						(x, i) => mask_state[i] * x)
 					.ToArray();
 
 				newL = LyapunovExponent(SearchLoopIterCount, SearchDt, SearchOrbitSeedExtent, 10, SearchOrbitDistanceLimit);
@@ -220,7 +226,7 @@ namespace opentk.System3
 				if(t <= 1)
 				{
 					for (int i = 0; i < a.Length; i++) {
-						a[i] = prev_state[i] * (1 - t) + target_state[i] * t;
+						a[i] = (prev_state[i] * (1 - t) + target_state[i] * t) * mask_state[i];
 					}
 				}
 			}
@@ -453,6 +459,83 @@ namespace opentk.System3
 			output.Y = y_n;
 			output.Z = z_n;
 			
+			//return new Vector4d (x_n, y_n, z_n, 0);
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public class CustomPickoverMap : ChaoticMap
+	{
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return 9;
+			}
+		}
+		#endregion
+
+		public float A
+		{
+			get{ return mask_state[0];}
+			set{ mask_state[0] = value;}
+		}
+		public float B
+		{
+			get{ return mask_state[1];}
+			set{ mask_state[1] = value;}
+		}
+		public float C
+		{
+			get{ return mask_state[2];}
+			set{ mask_state[2] = value;}
+		}
+		public float D
+		{
+			get{ return mask_state[3];}
+			set{ mask_state[3] = value;}
+		}
+		public float E
+		{
+			get{ return mask_state[4];}
+			set{ mask_state[4] = value;}
+		}
+		public float F
+		{
+			get{ return mask_state[5];}
+			set{ mask_state[5] = value;}
+		}
+
+		public CustomPickoverMap () : base("CustomPickoverMap")
+		{
+			A = 1.425f;
+			B = 1.24354f;
+			C = 1.02435342f;
+			mask_state[8] = mask_state[7] = mask_state[6] = E = F = D = 1.473503f;
+
+			TransitionRate = 1;
+			ChangePeriod = 1;
+
+			Map = Implementation;
+		}
+
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			var x_p = input.X;
+			var y_p = input.Y;
+			var z_p = input.Z;
+
+			var z_n = y_p * (float)Math.Sin (a[0] * x_p) - x_p * (float)Math.Cos (a[1] * y_p) - y_p * (float)Math.Cos (a[2] * z_p);
+			var x_n = z_p * (float)Math.Sin (a[3] * x_p) - y_p * (float)Math.Cos (a[4] * x_p) - z_p * (float)Math.Cos (a[5] * x_p);
+			var y_n = z_p * (float)Math.Sin (a[6] * x_p) - x_p * (float)Math.Cos (a[7] * z_p) - x_p * (float)Math.Cos (a[8] * y_p);
+
+			output.X = x_n;
+			output.Y = y_n;
+			output.Z = z_n;
+
 			//return new Vector4d (x_n, y_n, z_n, 0);
 		}
 	}

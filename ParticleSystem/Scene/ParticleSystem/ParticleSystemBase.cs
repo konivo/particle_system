@@ -179,6 +179,12 @@ namespace opentk.Scene.ParticleSystem
 			set;
 		}
 
+		public float ModelScaleFactor
+		{
+			get;
+			set;
+		}
+
 		public ProjectionType ProjectionType
 		{
 			get;

@@ -45,6 +45,11 @@ namespace opentk.System3
 			DoNotLimit = 0x0
 		}
 
+		public enum InterpolationType
+		{
+			Cubic, Linear
+		}
+
 		/// <summary>
 		/// Compute metadata.
 		/// </summary>
@@ -61,6 +66,11 @@ namespace opentk.System3
 		}
 
 		public IntegrationStepType IntegrationStep
+		{
+			get; set;
+		}
+
+		public InterpolationType Interpolation
 		{
 			get; set;
 		}
@@ -109,9 +119,13 @@ namespace opentk.System3
 				var firsttrail = bundleIndex * trailBundleSize * trailSize;
 				var lasttrail = Math.Min(firsttrail + trailBundleSize , particleCount);
 				var speedBound = m_SpeedUpperBound;
-				var delta = Vector4.Zero;
+				var dp = Vector4.Zero;
+				var dpA = Vector4.Zero;
+				var dpB = Vector4.Zero;
 				var delta2 = Vector4.Zero;
 				var size = 0f;
+				var middlepoint = Vector4.Zero;
+				var endpoint = Vector4.Zero;
 
 				for (int j = 0; j < stepsPerFrame; j++)
 				{
@@ -119,22 +133,23 @@ namespace opentk.System3
 					{
 						//i is the trail's first element
 						var pi = i + meta[i].Leader;
+						var K = dt;
+
+						size = Math.Max(system.ParticleGenerator.UpdateSize(system, i, 0), float.Epsilon);
 
 						if(MapMode == MapModeType.ForceField)
 						{
-							delta = new Vector4 (meta[i].Velocity * dt, 0);
+							dp = new Vector4 (meta[i].Velocity, 0);
 							fun (ref position[pi], ref delta2);
 							meta[i].Velocity += delta2.Xyz * dt;
 						}
 						else
 						{
-							fun (ref position[pi], ref delta);
-							delta *= dt;
+							fun (ref position[pi], ref dp);
 						}
 
-						size = Math.Max(system.ParticleGenerator.UpdateSize(system, i, 0), float.Epsilon);
 						//
-						var b0 = new Vector4( delta.Xyz, 0);
+						var b0 = new Vector4( dp.Xyz, 0);
 						var b2 = new Vector4( Vector3.Cross( b0.Xyz, rotation[pi].Row1.Xyz), 0);
 						var b1 = new Vector4( Vector3.Cross( b2.Xyz, b0.Xyz), 0);
 
@@ -142,13 +157,32 @@ namespace opentk.System3
 						b1.Normalize();
 						b2.Normalize();
 
+						//
 						if(IntegrationStep == IntegrationStepType.LimitDelta)
 						{
-							delta *= Math.Min(1, 10 * (size * particleScale)/ delta.Length);
+							K *= Math.Min(1, 10 * (size * particleScale)/ (dp.Length * dt));
 						}
 
-						var localCount = (float)Math.Ceiling(delta.Length / (size * particleScale));
+						if(Interpolation == InterpolationType.Cubic)
+							K *= 0.5f;
+
+						dp *= K;
+
+						//
+						var localCount = (float)Math.Ceiling(dp.Length / (size * particleScale));
 						localCount = Math.Min(localCount, trailSize);
+						if(Interpolation == InterpolationType.Cubic)
+						{
+							dpA = 2 * dp;
+							middlepoint = position[pi] + dp;
+							fun (ref middlepoint, ref dpB);
+							dpB *= K;
+							endpoint = middlepoint + dpB;
+
+							fun (ref endpoint, ref dpB);
+							dpB *= 2 * K;
+						}
+
 						for(int li = 0; li < localCount; li++)
 						{
 							meta[i].Leader = (meta[i].Leader + trailBundleSize) % (trailSize * trailBundleSize);
@@ -160,13 +194,33 @@ namespace opentk.System3
 								meta[i].Leader = 0;
 							}
 
-							position[ii] = position[pi] + ((1 + li) / localCount) * delta;
-							dimension[ii] = new Vector4 (size, size, size, size);
-							rotation[ii] = new Matrix4(b0, b1, b2, new Vector4(0,0,0,1));
+							if(Interpolation == InterpolationType.Cubic)
+							{
+								var t = (1 + li) / localCount;
+								var p1 = 2*t*t*t - 3*t*t + 1;
+								var p2 = t*t*t - 2*t*t + t;
+								var p3 = -p1 + 1;
+								var p4 = p2 + t*t - t;
+
+								position[ii] =
+									p1 *  position[pi] +
+									p2 * dpA +
+									p3 * endpoint +
+									p4 * dpB;
+
+								dimension[ii] = new Vector4 (size, size, size, size);
+								rotation[ii] = new Matrix4(b0, b1, b2, new Vector4(0,0,0,1));
+							}
+							else
+							{
+								position[ii] = position[pi] + ((1 + li) / localCount) * dp;
+								dimension[ii] = new Vector4 (size, size, size, size);
+								rotation[ii] = new Matrix4(b0, b1, b2, new Vector4(0,0,0,1));
+							}
 
 							switch (ComputeMetadataMode) {
 							case ComputeMetadata.Speed:
-								attribute1[ii] = delta;
+								attribute1[ii] = dp;
 							break;
 							case ComputeMetadata.Tangent:
 								attribute1[ii] = b0;
@@ -182,11 +236,6 @@ namespace opentk.System3
 							if (meta[i].LifeLen <= 0)
 							{
 								system.ParticleGenerator.NewBundle (system, i);
-								/*meta[i].Leader = trailBundleSize * ((meta[i].Leader + trailBundleSize - 1) / trailBundleSize % trailSize) ;
-								if (i + meta[i].Leader  >= particleCount)
-								{
-									meta[i].Leader = 0;
-								}*/
 							}
 							else
 								meta[i].LifeLen--;

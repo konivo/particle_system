@@ -120,7 +120,7 @@ namespace opentk.System3
 
 			a = new float[ParamCount];
 			prev_state = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
-			mask_state = Enumerable.Range(0, ParamCount).Select(x => 1f).ToArray();
+			mask_state = Enumerable.Range(0, ParamCount).Select(x => 5f).ToArray();
 		}
 
 		private void SearchForParams()
@@ -965,6 +965,206 @@ namespace opentk.System3
 			output.Z = z_n;
 
 			//return new Vector4d (x_n, y_n, z_n, 0);
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public class SpiralMap : ChaoticMap
+	{
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return 3;
+			}
+		}
+		#endregion
+
+		public float R
+		{
+			get;
+			set;
+		}
+
+		public SpiralMap () : base("SpiralMap")
+		{
+			Map = Implementation;
+		}
+
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			/*
+			 df/dt =  flow map ...
+
+			 single path:
+
+			 phi <=> t
+			 x = R * sin(w * phi + k),
+			 y = R * cos(w * phi + k),
+			 R = Rmax * sin(d * phi + k)
+			 z = Rmax * cos(d* phi + k)
+
+			 Rmax = sqrt(x^2 + y ^2 + z^2)
+
+			 dx/dphi = Rmax * cos (w * phi + k)* sin(d * phi + k) +  Rmax * cos (d * phi + k)* sin(w * phi + k)
+			 dy/dphi = - Rmax * sin(w * phi + k) * sin(d * phi + k) + Rmax * cos(w * phi + k) * sin(d * phi + k)
+			 dz/dphi = -Rmax * sin(phi + k)
+			*/
+
+			if( output.W == 0)
+			{
+				output = Vector4.Zero;
+			}
+
+			var Rmax = input.Xyz.Length;
+
+			var x_n = input.Y + input.Z * input.X / (float)(Rmax * Rmax - Math.Pow(input.Z, 2));
+			var y_n = - input.X + input.Z * input.Y / (float)(Rmax * Rmax - Math.Pow(input.Z, 2));
+			var z_n = (float)Math.Sqrt(Math.Pow(input.X, 2) + Math.Pow(input.Y, 2));
+
+			var d = new Vector3(x_n, y_n, z_n);
+			//d.Normalize();
+
+			if( output.W ++ < 3)
+			{
+				output.X -= d.Y ;
+				output.Y -= d.Z;
+				output.Z -= d.X;
+
+				//var tmp = output;
+				var tmp = new Vector4(input.Z, input.X, input.Y, 0);
+				Implementation(ref tmp, ref output);
+			}
+			else
+			{
+				output.X -= d.Y ;
+				output.Y -= d.Z;
+				output.Z -= d.X;
+				output.W = 0;
+			}
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
+	public class SpiralBMap : ChaoticMap
+	{
+		private int m_CenterCount = 30;
+		private int m_CenterParamCount = 5;
+
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return m_CenterCount * m_CenterParamCount;
+			}
+		}
+		#endregion
+
+		public SpiralBMap () : base("SpiralBMap")
+		{
+			Map = Implementation;
+
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i+= m_CenterParamCount)
+			{
+				mask_state[i] = mask_state[i + 1] = mask_state[i + 2] = 50;
+				mask_state[i + 3] = 1;
+				mask_state[i + 4] = 1;
+			}
+		}
+
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			output = Vector4.Zero;
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i+= m_CenterParamCount)
+			{
+				var center = new Vector4{ X = a[i], Y = a[i + 1], Z = a[i + 2]};
+				Spiral(a[i + 3], a[i + 4], ref center, ref input, ref output);
+			}
+
+			output /= m_CenterCount * 3;
+		}
+
+		private void Spiral(float k, float acc, ref Vector4 center, ref Vector4 input, ref Vector4 output)
+		{
+			var tmp = input - center;
+			var dist = tmp.Length;
+
+			for(int i = 0; i < 3; i++)
+			{
+				if(float.IsNaN(tmp.X) || float.IsNaN(tmp.Y))
+					break;
+
+				var x_n = k * tmp.Y;// + tmp.X;
+				var y_n = -k * tmp.X;// + tmp.Y;
+				var z_n = 1;
+
+				var d = new Vector4(x_n, y_n, z_n, 0);
+				d.Normalize();
+
+				d *= 1f/Math.Max((float)Math.Sqrt(dist), 0.1f);
+				output += acc * d;
+				tmp = new Vector4(tmp.Z, tmp.X, tmp.Y,0);
+				output = new Vector4(output .Z, output .X, output .Y,0);
+			}
+		}
+	}
+
+	/// <summary>
+	/// dx/dt = y + x*(R - v_l)/v_l, dy/dt = -x + y*(R - v_l)/v_l, dz/dt = 1
+	/// </summary>
+	public class AngularMomentumMap : ChaoticMap
+	{
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return 24;
+			}
+		}
+		#endregion
+
+		public AngularMomentumMap () : base("AngularMomentumMap")
+		{
+			Map = Implementation;
+
+			for(int i = 0; i < 6; i++)
+			{
+				mask_state[4*i] = mask_state[4*i + 1] = mask_state[4*i + 2] = 50;
+				mask_state[4* i + 3] = 1;
+			}
+		}
+
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			output = Vector4.Zero;
+			for(int i = 0; i < 6; i++)
+			{
+				var center = new Vector4{ X = a[4*i], Y = a[4*i + 1], Z = a[4* i + 2]};
+				Moment(a[4* i + 3], ref center, ref input, ref output);
+			}
+
+			output /= 18;
+		}
+
+		private void Moment(float k, ref Vector4 center, ref Vector4 input, ref Vector4 output)
+		{
+			var tmp = center - input;
+			var dist = tmp.Length;
+
+			for(int i = 0; i < 3; i++)
+			{
+				var d = new Vector4(tmp.Y, - tmp.X, 0, 0) / tmp.LengthSquared ;
+				output += d;
+				tmp = new Vector4(tmp.Z, tmp.X, tmp.Y,0);
+				output = new Vector4(output .Z, output .X, output .Y,0);
+			}
 		}
 	}
 

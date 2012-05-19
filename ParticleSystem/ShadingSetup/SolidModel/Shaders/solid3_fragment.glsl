@@ -277,31 +277,39 @@ float get_shadow(vec4 pos)
 
 vec4 get_material(vec4 pos, vec4 normaldepth)
 {
+	vec4 material;
+
 	switch(material_color_source)
 	{
 		case 0:
-			vec4 material = (normaldepth + 1) * 0.5f;
-			material = min( material / material .x, material / material .y);
-			material = min( material, material / material .z);
-			return material;
+			material = (normaldepth + 1) * 0.5f;
+			break;
 		case 1:
 			vec2 cparam = 2 * (texture(particle_attribute1_texture, param).xy - 0.5f);
-			return 0.5f * texture(colorramp_texture, cparam) + 0.5f;
+			material = 0.5f * texture(colorramp_texture, cparam) + 0.5f;
+			break;
 		case 2:
-			return texture(particle_attribute1_texture, param) * 0.5f + 0.5f;
+			material = texture(particle_attribute1_texture, param) * 0.5f + 0.5f;
+			break;
 		default:
-			return vec4(1, 1, 1, 1);
+			material = vec4(1, 1, 1, 1);
 	}
+
+	material = min( material / material .x, material / material .y);
+	material = min( material, material / material .z);
+	return material;
 }
 
 void main ()
 {
 	init_sampling();
 
-//TODO: cleanup
 	vec4 p_nd = get_normal_depth(param);
 	vec4 p_clip = get_clip_coordinates(param, p_nd.w);
 	vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
+
+	if(p_nd.w > 0.99999)
+		discard;
 
 	float aoc = texture(aoc_texture, param).x;
 	vec3 material = get_material(p_pos, p_nd).xyz;
@@ -312,8 +320,6 @@ void main ()
 
 	vec3 diffuse = material * max(dot(light.dir, p_nd.xyz) * (1 - shadow), 0);
 	vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);
-	//vec3 color = vec3(shadow);
-	//vec3 color = p_nd.xyz;
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
 	gl_FragDepth = texture(normaldepth_texture, param).w;

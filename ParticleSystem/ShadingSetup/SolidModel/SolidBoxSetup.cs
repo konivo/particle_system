@@ -26,7 +26,7 @@ namespace opentk.ShadingSetup
 			var mode = ValueProvider.Create
 			(() =>
 			{
-				switch (m_SunLightImpl.ImplementationType) {
+				switch (SunLightImpl.ImplementationType) {
 				case LightImplementationType.ExponentialShadowMap:
 					return 2;
 				case LightImplementationType.ShadowMap:
@@ -65,7 +65,7 @@ namespace opentk.ShadingSetup
 				 particle_count,
 				 particle_scale_factor,
 				 mode,
-				 m_SunLightImpl.LightMvp
+				 SunLightImpl.LightMvp
 			);
 
 			var aocPassSolid = RenderPassFactory.CreateAoc

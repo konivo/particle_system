@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using OpenTK;
+using System.ComponentModel;
+using opentk.PropertyGridCustom;
 
 namespace opentk.Scene
 {
@@ -14,6 +16,8 @@ namespace opentk.Scene
 	/// </summary>
 	public class LightImplementationParameters
 	{
+		[Category("Light properties")]
+		[TypeConverter(typeof(ParametersConverter<Light>))]
 		public Light Light
 		{
 			get; private set;

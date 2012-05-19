@@ -86,7 +86,7 @@ namespace opentk.System4
 		}
 
 		[Category("Aoc properties")]
-		[TypeConverter(typeof(AocParametersConverter))]
+		[TypeConverter(typeof(ParametersConverter<AocParameters>))]
 		[DescriptionAttribute("Expand to see the parameters of the ssao.")]
 		public AocParameters AocParameters
 		{

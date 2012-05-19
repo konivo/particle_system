@@ -17,6 +17,7 @@ namespace opentk.ShadingSetup
 	public class SolidSphereSetup: SolidSetupBase
 	{
 		private TextureBase NormalDepth_Texture_H;
+		private TextureBase NormalDepth_Texture_Unfiltered;
 		public float NormalBlurAvoidance
 		{
 			get; set;
@@ -24,59 +25,11 @@ namespace opentk.ShadingSetup
 
 		protected override void TextureSetup()
 		{
+			base.TextureSetup();
 
-			//TEextures setup
-			m_ParticleAttribute1_Texture =
-				new DataTexture<Vector3> {
-					Name = "UV_ColorIndex_None_Texture",
-					InternalFormat = PixelInternalFormat.Rgba8,
-					Data2D = new Vector3[SolidModeTextureSize, SolidModeTextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Nearest,
-						MagFilter = TextureMagFilter.Nearest,
-				}};
-
-			AOC_Texture =
-				new DataTexture<float> {
-					Name = "AOC_Texture",
-					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Nearest,
-				}};
-
-			AOC_Texture_Blurred_H =
-				new DataTexture<float> {
-					Name = "AOC_Texture_H",
-					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Nearest,
-				}};
-
-			AOC_Texture_Blurred_HV =
-				new DataTexture<float> {
-					Name = "AOC_Texture_HV",
-					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Linear,
-				}};
-
-			NormalDepth_Texture =
+			NormalDepth_Texture_Unfiltered =
 				new DataTexture<Vector4> {
-					Name = "NormalDepth_Texture",
+					Name = "NormalDepth_Texture_Unfiltered",
 					InternalFormat = PixelInternalFormat.Rgba32f,
 					//Format = PixelFormat.DepthComponent,
 					Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize],
@@ -99,57 +52,6 @@ namespace opentk.ShadingSetup
 						MinFilter = TextureMinFilter.Nearest,
 						MagFilter = TextureMagFilter.Nearest,
 				}};
-
-
-			Depth_Texture =
-				new DataTexture<float> {
-					Name = "Depth_Texture",
-					InternalFormat = PixelInternalFormat.DepthComponent32f,
-					Format = PixelFormat.DepthComponent,
-					Data2D = new float[SolidModeTextureSize, SolidModeTextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Nearest,
-						MagFilter = TextureMagFilter.Nearest,
-				}};
-
-			BeforeAA_Texture =
-				new DataTexture<Vector4> {
-					Name = "BeforeAA_Texture",
-					InternalFormat = PixelInternalFormat.Rgba8,
-					Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Linear,
-						MagFilter = TextureMagFilter.Linear,
-				}};
-
-			AA_Texture =
-				new DataTexture<Vector4> {
-					Name = "AA_Texture",
-					InternalFormat = PixelInternalFormat.Rgba8,
-					Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = false,
-						MinFilter = TextureMinFilter.Linear,
-						MagFilter = TextureMagFilter.Linear,
-				}};
-
-			Shadow_Texture =
-				new DataTexture<float> {
-					Name = "Shadow_Texture",
-					InternalFormat = PixelInternalFormat.DepthComponent32f,
-					Format = PixelFormat.DepthComponent,
-					Data2D = new float[ShadowTextureSize, ShadowTextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Linear,
-				}};
 		}
 
 		protected override void ParameterSetup()
@@ -165,7 +67,7 @@ namespace opentk.ShadingSetup
 			var mode = ValueProvider.Create
 			(() =>
 			{
-				switch (m_SunLightImpl.ImplementationType) {
+				switch (SunLightImpl.ImplementationType) {
 				case LightImplementationType.ExponentialShadowMap:
 					return 2;
 				case LightImplementationType.ShadowMap:
@@ -182,7 +84,7 @@ namespace opentk.ShadingSetup
 
 			var firstPassSolid =  RenderPassFactory.CreateSolidSphere
 			(
-				 NormalDepth_Texture,
+				 NormalDepth_Texture_Unfiltered,
 				 m_ParticleAttribute1_Texture,
 				 Depth_Texture,
 				 p.PositionBuffer,
@@ -202,13 +104,33 @@ namespace opentk.ShadingSetup
 				 particle_count,
 				 particle_scale_factor,
 				 mode,
-				 m_SunLightImpl.LightMvp
+				 SunLightImpl.LightMvp
 			);
 
-			var normalDepthBlur =  RenderPassFactory.CreateBilateralFilter
+			var mvpUniforms = new UniformState();
+			p.CameraMvp.SetUniforms("", mvpUniforms);
+			mvpUniforms.Set ("viewport_size", ValueProvider.Create(() => new Vector2(SolidModeTextureSize, SolidModeTextureSize)));
+			mvpUniforms.Set ("K", ValueProvider.Create(() => new Vector4(0.01f, 0.01f, 0.01f, 20 * NormalBlurAvoidance)));
+
+			var normalDepthBlur =  RenderPassFactory.CreateFullscreenQuad
 			(
-				 NormalDepth_Texture, NormalDepth_Texture_H, NormalDepth_Texture,
-				 ValueProvider.Create(() => 20 * new Vector4(0, 0, 0, NormalBlurAvoidance))
+				 "stringfilter", "SolidModel",
+				 ValueProvider.Create(() => new Vector2(SolidModeTextureSize, SolidModeTextureSize)),
+				 (window) => { },
+				 (window) =>
+				 {
+
+				 },
+				 //pass state
+				 new FramebufferBindingSet(
+				   new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = NormalDepth_Texture}
+				 ),
+				 m_Uniforms,
+				 mvpUniforms,
+				 new TextureBindingSet{
+				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture_Unfiltered },
+				   new TextureBinding { VariableName = "tangent_texture", Texture = m_ParticleAttribute1_Texture }
+				 }
 			);
 
 			var aocPassSolid = RenderPassFactory.CreateAoc
@@ -283,7 +205,7 @@ namespace opentk.ShadingSetup
 
 			m_Pass = new CompoundRenderPass
 			(
-			 firstPassSolid, firstPassShadow, /*normalDepthBlur,*/ aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
+			 firstPassSolid, firstPassShadow, normalDepthBlur, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
 			);
 
 		}

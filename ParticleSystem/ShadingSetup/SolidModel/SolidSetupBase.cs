@@ -33,10 +33,16 @@ namespace opentk.ShadingSetup
 
 		protected AocParameters m_AocParameters;
 		protected Light m_SunLight;
-		protected LightImplementationParameters m_SunLightImpl;
+
+		[Category("Sunlight properties")]
+		[TypeConverter(typeof(ParametersConverter<LightImplementationParameters>))]
+		public LightImplementationParameters SunLightImpl
+		{
+			get; set;
+		}
 
 		[Category("Aoc properties")]
-		[TypeConverter(typeof(AocParametersConverter))]
+		[TypeConverter(typeof(ParametersConverter<AocParameters>))]
 		[DescriptionAttribute("Expand to see the parameters of the ssao.")]
 		public AocParameters AocParameters
 		{
@@ -238,8 +244,8 @@ namespace opentk.ShadingSetup
 				Type = LightType.Directional
 			};
 
-			m_SunLightImpl = new LightImplementationParameters(m_SunLight);
-			m_SunLightImpl.ImplementationType = LightImplementationType.ExponentialShadowMap;
+			SunLightImpl = new LightImplementationParameters(m_SunLight);
+			SunLightImpl.ImplementationType = LightImplementationType.ExponentialShadowMap;
 
 			//
 			ShadowTextureSize = 2048;
@@ -283,11 +289,11 @@ namespace opentk.ShadingSetup
 		{
 			//
 			m_Uniforms = new UniformState(p.Uniforms);
-			m_Uniforms.SetMvp ("light", m_SunLightImpl.LightMvp);
+			m_Uniforms.SetMvp ("light", SunLightImpl.LightMvp);
 			m_Uniforms.Set("shadow_implementation", ValueProvider.Create
 			(() =>
 			{
-				switch (m_SunLightImpl.ImplementationType) {
+				switch (SunLightImpl.ImplementationType) {
 				case LightImplementationType.ExponentialShadowMap:
 					return 2;
 				case LightImplementationType.ShadowMap:

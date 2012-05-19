@@ -94,10 +94,8 @@
     <Compile Include="System21\System21.cs" />
     <Compile Include="System21\System21.SImulation.cs" />
     <Compile Include="RenderPassFactory\AocParameters.cs" />
-    <Compile Include="RenderPassFactory\AocParametersConverter.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Ssao.cs" />
     <Compile Include="Scene\Light.cs" />
-    <Compile Include="Scene\LightConverter.cs" />
     <Compile Include="Scene\LightImplementationParameters.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.SolidSphere.cs" />
     <Compile Include="Scene\ProjectionType.cs" />
@@ -122,6 +120,7 @@
     <Compile Include="Resources\ColorRampConverter.cs" />
     <Compile Include="Scene\MaterialType.cs" />
     <Compile Include="ShadingSetup\SolidModel\SolidSetupBase.cs" />
+    <Compile Include="PropertyGridCustom\ParametersConverter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -182,5 +181,6 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_geometry.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_vertex.glsl" />
+    <EmbeddedResource Include="ShadingSetup\SolidModel\Shaders\stringfilter_fragment.glsl" />
   </ItemGroup>
 </Project>

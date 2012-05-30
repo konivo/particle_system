@@ -73,7 +73,7 @@ void SetDefaultFragmentData(vec3 intersection)
 	gl_FragDepth = normal_depth.w = (projected_i.z + 1) * 0.5;
 	normal_depth.xyz = normalize(intersection - Sprite.pos.xyz) * 0.5f + 0.5f;
 
-	uv_colorindex_none = vec4(Sprite.color, 0);
+	uv_colorindex_none = vec4((Sprite.color + 1) * 0.5, 0);
 }
 
 //subroutine(SetOutputFragmentDataRoutine)

@@ -322,5 +322,6 @@ void main ()
 	vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
+	//color_luma = vec4(p_nd.xyz * 0.5 + 0.5, sqrt(dot(p_nd.rgb* 0.5 + 0.5, vec3(0.299, 0.587, 0.114))));
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

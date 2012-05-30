@@ -54,6 +54,16 @@ namespace opentk.ShadingSetup
 				}};
 		}
 
+		protected override void UpdateTextureResolutions()
+		{
+			if(AA_Texture != null &&
+			   AA_Texture.Width != SolidModeTextureSize)
+			{
+				((DataTexture<Vector4>)NormalDepth_Texture_Unfiltered).Data2D = new Vector4[SolidModeTextureSize, SolidModeTextureSize];
+			}
+			base.UpdateTextureResolutions();
+		}
+
 		protected override void ParameterSetup()
 		{
 			base.ParameterSetup();
@@ -110,7 +120,7 @@ namespace opentk.ShadingSetup
 			var mvpUniforms = new UniformState();
 			p.CameraMvp.SetUniforms("", mvpUniforms);
 			mvpUniforms.Set ("viewport_size", ValueProvider.Create(() => new Vector2(SolidModeTextureSize, SolidModeTextureSize)));
-			mvpUniforms.Set ("K", ValueProvider.Create(() => new Vector4(0.01f, 0.01f, 0.01f, 20 * NormalBlurAvoidance)));
+			mvpUniforms.Set ("K", ValueProvider.Create(() => new Vector4(0.0f, 0.0f, 0.0f, 20 * NormalBlurAvoidance)));
 
 			var normalDepthBlur =  RenderPassFactory.CreateFullscreenQuad
 			(

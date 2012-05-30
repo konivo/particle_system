@@ -66,6 +66,7 @@ namespace opentk.Scene.ParticleSystem
 		/// <returns>
 		/// A <see cref="IEnumerable<Shader>"/>
 		/// </returns>
+		[Obsolete]
 		public IEnumerable<Shader> GetShaders (string name)
 		{
 			var parentNamespace = GetType ().Namespace.Split ('.').Last ();
@@ -83,6 +84,7 @@ namespace opentk.Scene.ParticleSystem
 		/// <returns>
 		/// A <see cref="IEnumerable<Shader>"/>
 		/// </returns>
+		[Obsolete]
 		public IEnumerable<Shader> GetShaders ()
 		{
 			return GetShaders(string.Empty);

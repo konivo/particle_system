@@ -55,6 +55,7 @@ namespace opentk.ShadingSetup
 		/// <returns>
 		/// A <see cref="IEnumerable<Shader>"/>
 		/// </returns>
+		[Obsolete("move it to Shader class")]
 		public static IEnumerable<Shader> GetShaders (string name1, string name2)
 		{
 			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
@@ -150,6 +151,7 @@ namespace opentk.ShadingSetup
 		: this(passName, new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().DeclaringType.Namespace.Split('.').Last(), null, null, render, stateParts)
 		{	}
 
+		[Obsolete]
 		public IEnumerable<Shader> GetShaders ()
 		{
 			return GetShaders(PassName, PassNamespace);

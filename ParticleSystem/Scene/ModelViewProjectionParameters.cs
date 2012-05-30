@@ -72,6 +72,7 @@ namespace opentk.Scene
 			m_TransformationInv.Push(ProjectionInv);
 		}
 
+		[Obsolete("move it to extensions")]
 		public void SetUniforms(string prefix, UniformState state)
 		{
 			string pp = String.IsNullOrEmpty(prefix)?

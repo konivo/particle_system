@@ -1,4 +1,38 @@
 
+/////////////
+//constants//
+const float PI = 3.141592654f;
+const float TWO_PI = 2 * 3.141592654f;
+
+///////////////////
+//randomized vec2//
+//shall be uniformly distributed. Look for some advice, how to make it properly
+//they will be randomly rotated per pixel
+uniform vec2[256] sampling_pattern;
+vec2 SAMPLING_RANDOMIZATION_VECTOR;
+int SAMPLING_PATTERN_RANDOMIZATION_OFFSET;
+
+//
+void init_sampling()
+{
+	int indexA = int(gl_FragCoord.x) *  173547 + int(gl_FragCoord.y) * 364525 + 1013904223;
+	indexA = (indexA >> 4) & 0xFFF;
+
+	int indexB = int(gl_FragCoord.x) *  472541 + int(gl_FragCoord.y) * 198791 + 2103477191;
+	indexB = (indexB >> 4) & 0xFFF;
+
+	SAMPLING_RANDOMIZATION_VECTOR = vec2( cos(TWO_PI * (indexA * indexB)/360), sin(TWO_PI * (indexB * indexA)/360));
+	SAMPLING_PATTERN_RANDOMIZATION_OFFSET = indexB * indexA;
+}
+
+//
+vec2 get_sampling_point(int i)
+{
+	return reflect(sampling_pattern[(i * 7 + SAMPLING_PATTERN_RANDOMIZATION_OFFSET) % 256], SAMPLING_RANDOMIZATION_VECTOR);
+}
+
+//////////////////////////
+//transformation helpers//
 //
 vec4 get_clip_coordinates (vec2 param, float imagedepth)
 {
@@ -13,6 +47,8 @@ vec4 reproject (mat4 transform, vec4 vector)
 	return result;
 }
 
+/////////////////////////
+//shadowmapping helpers//
 //
 float get_shadow(
 	sampler2D shadow_texture,	//

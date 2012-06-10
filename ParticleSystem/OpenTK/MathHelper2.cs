@@ -72,7 +72,7 @@ namespace OpenTK
 				var highnoise = MathHelper2.RandomVector(magnitudeDelta);
 				var basedir = MathHelper2.RandomVector(magnitude);
 				var rand = highnoise + Vector2d.Multiply(basedir, magnitude * i / (w * basedir.Length));
-				result[i] = rand;
+				result[i] = basedir;
 			}
 
 			//var str = string.Join(Environment.NewLine, result);

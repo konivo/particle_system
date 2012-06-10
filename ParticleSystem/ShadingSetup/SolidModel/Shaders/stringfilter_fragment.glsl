@@ -1,4 +1,6 @@
 #version 400
+#pragma include <RenderPassFactory.Shaders.common.include>
+
 uniform mat4 modelviewprojection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform mat4 projection_transform;
@@ -30,8 +32,6 @@ out Fragdata
 {
 	vec4 result;
 };
-
-#pragma include <RenderPassFactory.Shaders.common.include>
 
 //
 void main ()

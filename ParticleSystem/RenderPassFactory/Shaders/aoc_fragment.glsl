@@ -1,14 +1,17 @@
-#version 330
+#version 400
+#pragma include <RenderPassFactory.Shaders.common.include>
+
+///////////////////////
+//model-view matrices//
 uniform mat4 modelviewprojection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform mat4 projection_transform;
 uniform mat4 projection_inv_transform;
 uniform vec2 viewport_size;
 
-//shall be uniformly distributed. Look for some advice, how to make it properly
-//they will be randomly rotated per pixel
-uniform vec2[256] sampling_pattern;
-//how many samples will be used for current pixel
+/////////////////////
+//SSAO settings//
+//how many samples will be used for current pixel (max is 256)
 uniform int sampling_pattern_len;
 
 //texture holding depth in projection space and normal in camera space
@@ -30,18 +33,9 @@ uniform float PROJECTED_OCCLUDER_DISTANCE_MAX_SIZE = 35;
 
 //determines how big fraction of the samples will be used for the minimal computed projection of occluder distance
 uniform float MINIMAL_SAMPLES_COUNT_RATIO = 0.5;
-
-//
 uniform float AOC_STRENGTH = 0.1;
-//
 uniform float AOC_BIAS = 0.1;
 
-//
-const float PI = 3.141592654f;
-const float TWO_PI = 2 * 3.141592654f;
-
-//
-vec2 SAMPLING_RANDOMIZATION_VECTOR;
 
 //param in range (0, 0) to (1, 1)
 in VertexData
@@ -61,20 +55,6 @@ vec4 get_normal_depth (vec2 param)
 	vec4 result = texture(normaldepth_texture, param);
 	result = result * 2 - 1;
 
-	return result;
-}
-
-//
-vec4 get_clip_coordinates (vec2 param, float imagedepth)
-{
-	return vec4((param * 2) - 1, imagedepth, 1);
-}
-
-//
-vec4 reproject (mat4 transform, vec4 vector)
-{
-	vec4 result = transform * vector;
-	result /= result.w;
 	return result;
 }
 
@@ -116,21 +96,6 @@ int compute_step_from_occluded_screen_size(vec2 rf)
  	return int(step);
 }
 
-void init_sampling()
-{
-	int index = int(gl_FragCoord.x) * int(gl_FragCoord.y) * 1664525 + 1013904223;
-	index = (index >> 16) & 0x1FF;
-
-	float angle = TWO_PI * (index % 360 / 360.0f);
-	SAMPLING_RANDOMIZATION_VECTOR = vec2( cos(angle), sin(angle));
-}
-
-//
-vec2 get_sampling_point(int i)
-{
-	return reflect(sampling_pattern[i], SAMPLING_RANDOMIZATION_VECTOR);
-}
-
 //
 void main ()
 {
@@ -158,7 +123,7 @@ void main ()
 		vec4 o_clip = get_clip_coordinates( oc_param, o_nd.w);
 		vec4 o_pos = reproject( modelviewprojection_inv_transform, o_clip);
 
-		float o_r =  reproject(projection_inv_transform, vec4(1.0 / viewport_size.x, 0, o_nd.w, 1)).x;
+		float o_r =  reproject(projection_inv_transform, vec4(2.0 / viewport_size.x, 0, o_nd.w, 1)).x;
 
 		//correction to prevent occlusion from itself or from neighbours which are on the same tangent plane
 		o_pos -= o_r * vec4(o_nd.xyz, 0);

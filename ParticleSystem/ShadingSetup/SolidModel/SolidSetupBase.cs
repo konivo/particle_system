@@ -225,14 +225,14 @@ namespace opentk.ShadingSetup
 			//
 			AocParameters = new AocParameters
 			{
-				TextureSize = 512,
+				TextureSize = 1024,
 				OccConstantArea = false,
 				OccMaxDist = 40,
 				OccMinSampleRatio = 0.5f,
-				OccPixmax = 100,
+				OccPixmax = 44,
 				OccPixmin = 2,
 				SamplesCount = 32,
-				Strength = 2,
+				Strength = 1,
 				Bias = 0.2f,
 				BlurEdgeAvoidance = 0.2f
 			};
@@ -254,7 +254,7 @@ namespace opentk.ShadingSetup
 			LightSize = 0.1f;
 			ExpMapLevel = 1;
 			ExpMapNsamples = 15;
-			ExpMapRange = 0.055f;
+			ExpMapRange = 0.0055f;
 			ExpMapRangeK = 0.85f;
 		}
 

@@ -1,7 +1,8 @@
 #version 400
+#pragma include <RenderPassFactory.Shaders.common.include>
+
 ///////////////////////
 //model-view matrices//
-
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform float particle_brightness;
@@ -9,7 +10,6 @@ uniform float smooth_shape_sharpness;
 
 ////////////
 //textures//
-
 uniform sampler2D custom_texture;
 uniform sampler2D normaldepth_texture;
 uniform sampler2D aoc_texture;
@@ -18,12 +18,10 @@ uniform sampler2D colorramp_texture;
 
 ///////////////////////////////
 //particle attribute textures//
-
 uniform sampler2D particle_attribute1_texture;
 
 /////////////////////
 //material settings//
-
 /*
 0 - normal
 1 - color-ramp
@@ -33,14 +31,14 @@ uniform int material_color_source;
 
 ////////////////////////////////
 //light settings and mattrices//
-
+//
 uniform vec3 ambient = vec3(.1, .1, .1);
 uniform mat4 light_modelviewprojection_transform;
 uniform mat4 light_modelview_transform;
 uniform mat4 light_projection_transform;
 uniform mat4 light_projection_inv_transform;
 uniform mat4 light_relativeillumination_transform;
-
+//
 //for spotlight real dimension
 //for directional light an spherical angles
 uniform float light_size;
@@ -49,16 +47,9 @@ uniform float light_expmap_range;
 uniform float light_expmap_range_k;
 uniform int light_expmap_nsamples;
 
-///////////////////
-//randomized vec2//
-
-uniform vec2[256] sampling_pattern;
-uniform int sampling_pattern_len;
-vec2 SAMPLING_RANDOMIZATION_VECTOR;
-
 ////////////////////////
 //soft shadow settings//
-
+//
 uniform bool enable_soft_shadow = true;
 /*
 0 - no filtering
@@ -71,9 +62,6 @@ uniform int shadow_implementation;
 
 ////////////////////
 //common constants//
-
-const float PI = 3.141592654f;
-const float TWO_PI = 2 * 3.141592654f;
 const float EXP_SCALE_FACTOR = 50;
 
 //
@@ -101,20 +89,6 @@ vec4 get_normal_depth (vec2 param)
 	vec4 result = texture(normaldepth_texture, param);
 	result = result * 2 - 1;
 
-	return result;
-}
-
-//
-vec4 get_clip_coordinates (vec2 param, float imagedepth)
-{
-	return vec4((param * 2) - 1, imagedepth, 1);
-}
-
-//
-vec4 reproject (mat4 transform, vec4 vector)
-{
-	vec4 result = transform * vector;
-	result /= result.w;
 	return result;
 }
 
@@ -186,21 +160,6 @@ float get_shadow_soft_pcf4x4(vec4 pos)
 		}
 
 	return dot(acc, vec4(1/count));
-}
-
-void init_sampling()
-{
-	int index = int(gl_FragCoord.x) * int(gl_FragCoord.y) * 1664525 + 1013904223;
-	index = (index >> 16) & 0x1FF;
-
-	float angle = TWO_PI * (index % 360 / 360.0f);
-	SAMPLING_RANDOMIZATION_VECTOR = vec2( cos(angle), sin(angle));
-}
-
-//
-vec2 get_sampling_point(int i)
-{
-	return reflect(sampling_pattern[i], SAMPLING_RANDOMIZATION_VECTOR);
 }
 
 float get_shadow_soft_exp(vec4 pos)

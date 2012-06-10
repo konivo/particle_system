@@ -57,14 +57,15 @@ namespace opentk
 		                                    IValueProvider<float> bias = null)
 		{
 			var viewport = ValueProvider.Create (() => new Vector2 (aoc.Width, aoc.Height));
-			var current_pattern = MathHelper2.RandomVectorSet (samplesCount.Value, new Vector2 (1, 1));
+//			var sampling_pattern = ValueProvider.Create
+//			(
+//				 () => MathHelper2.RandomVectorSet (256, new Vector2 (1, 1))
+//			);
 
-			var sampling_pattern = ValueProvider.Create
+			var current_pattern = mathhelper2.randomvectorset (256, new vector2 (1, 1));
+			var sampling_pattern = valueprovider.create
 			(
-				 () =>
-				 current_pattern.Length == samplesCount.Value?
-				 current_pattern:
-				 (current_pattern = MathHelper2.RandomVectorSet (samplesCount.Value, new Vector2 (1, 1)))
+				 () => current_pattern
 			);
 
 			var uniformState = new UniformState ();

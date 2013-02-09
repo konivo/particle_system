@@ -10,20 +10,18 @@ uniform bool horizontal;
 in VertexData
 {
 	vec2 param;
-};
+}
+IN_VertexData;
 
 //computed ambient occlusion estimate
-out Fragdata
-{
-	vec4 result;
-};
+out vec4 OUT_FragData_result;
 
 //
 void main ()
 {
 	vec2 blurSize = horizontal ? vec2(1.0/viewport_size.x, 0) : vec2(0, 1.0/viewport_size.y);
-
 	vec4 sum = vec4(0.0);
+	vec2 param = IN_VertexData.param;
 
 	// blur in y (vertical)
 	// take nine samples, with the distance blurSize between them
@@ -37,5 +35,5 @@ void main ()
 	sum += texture2D(source_texture, param + 3.0*blurSize) * 0.09;
 	sum += texture2D(source_texture, param + 4.0*blurSize) * 0.05;
 
-	result = sum;
+	OUT_FragData_result = sum;
 }

@@ -78,10 +78,9 @@ namespace opentk
 				GL.Disable (EnableCap.Blend);
 			//pass state
 			},
-			new FramebufferBindingSet (
-			new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = result }),
+			new FramebufferBindingSet {{ "OUT_FragData_result", result }},
 			uniformState,
-			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = source }));
+			new TextureBindingSet {{ "source_texture", source }});
 			return _1stPass;
 		}
 
@@ -119,11 +118,10 @@ namespace opentk
 				GL.Disable (EnableCap.Blend);
 			//pass state
 			},
-			new FramebufferBindingSet (
-			new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = interm }),
+			new FramebufferBindingSet {{ "OUT_FragData_result", interm }},
 			uniformState,
 			parameters,
-			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = source }));
+			new TextureBindingSet {{ "source_texture", source }});
 
 			var _2ndPass = CreateFullscreenQuad (filterName, filterNamespace, viewport,
 			window =>
@@ -138,11 +136,10 @@ namespace opentk
 				GL.Disable (EnableCap.Blend);
 			//pass state
 			},
-			new FramebufferBindingSet (
-			new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = result }),
+			new FramebufferBindingSet {{ "OUT_FragData_result", result }},
 			uniformState,
 			parameters,
-			new TextureBindingSet (new TextureBinding { VariableName = "source_texture", Texture = interm }));
+			new TextureBindingSet {{ "source_texture", interm }});
 
 			return new CompoundRenderPass(_1stPass, _2ndPass);
 		}

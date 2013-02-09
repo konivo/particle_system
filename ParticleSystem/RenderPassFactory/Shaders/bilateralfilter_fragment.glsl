@@ -14,13 +14,11 @@ const float[] g = float[](0, 0.05, 0.09, 0.12, 0.15, 0.16 );
 in VertexData
 {
 	vec2 param;
-};
+}
+IN_VertexData;
 
 //computed ambient occlusion estimate
-out Fragdata
-{
-	vec4 result;
-};
+out vec4 OUT_FragData_result;
 
 //
 void main ()
@@ -29,13 +27,13 @@ void main ()
 	vec2 blurSize = horizontal ? vec2(ksize/viewport_size.x, 0) : vec2(0, ksize/viewport_size.y);
 
 	vec4 sum = vec4(0.0);
-	vec4 val_S = texture2D(source_texture, param) * K;
+	vec4 val_S = texture2D(source_texture, IN_VertexData.param) * K;
 	float s2norm = dot(val_S, val_S);
 	float normFactor = 0;
 
 	for( int i = -4; i <= 4 ; i++)
 	{
-		vec4 tval = texture2D(source_texture, param - i * blurSize);
+		vec4 tval = texture2D(source_texture, IN_VertexData.param - i * blurSize);
 		vec4 tval_K = tval * K;
 		float k1 = s2norm - dot(tval_K, val_S);
 		float k2 = dot(abs(tval_K - val_S), vec4(1));
@@ -47,5 +45,5 @@ void main ()
 	}
 
 	sum /= normFactor;
-	result = sum;
+	OUT_FragData_result = sum;
 }

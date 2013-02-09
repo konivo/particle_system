@@ -1,4 +1,4 @@
-#version 400
+#version 430
 #pragma include <RenderPassFactory.Shaders.common.include>
 
 ///////////////////////
@@ -41,13 +41,11 @@ uniform float AOC_BIAS = 0.1;
 in VertexData
 {
 	vec2 param;
-};
+}
+IN_VertexData;
 
 //computed ambient occlusion estimate
-out Fragdata
-{
-	float aoc;
-};
+out float OUT_FragData_aoc;
 
 //
 vec4 get_normal_depth (vec2 param)
@@ -99,12 +97,12 @@ int compute_step_from_occluded_screen_size(vec2 rf)
 //
 void main ()
 {
-	aoc = 0.0f;
+	OUT_FragData_aoc = 0.0f;
 	init_sampling();
 
 //p is the sample, for which aoc is computed
-	vec4 p_nd = get_normal_depth(param);
-	vec4 p_clip = get_clip_coordinates(param, p_nd.w);
+	vec4 p_nd = get_normal_depth(IN_VertexData.param);
+	vec4 p_clip = get_clip_coordinates(IN_VertexData.param, p_nd.w);
 	vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
 	vec4 p_campos = reproject(projection_inv_transform, p_clip);
 
@@ -117,7 +115,7 @@ void main ()
 //for each sample compute occlussion estimation and add it to result
 	for(int i = 0; i < sampling_pattern_len; i+= step)
 	{
-		vec2 oc_param = param + get_sampling_point(i) * rf;
+		vec2 oc_param = IN_VertexData.param + get_sampling_point(i) * rf;
 
 		vec4 o_nd = get_normal_depth( oc_param);
 		vec4 o_clip = get_clip_coordinates( oc_param, o_nd.w);
@@ -130,11 +128,11 @@ void main ()
 
 		float o_p_distance = distance(o_pos, p_pos);
 		float s_omega = 2 * PI * (1 - cos( asin( clamp(o_r / o_p_distance, 0, 1))));
-		aoc +=
+		OUT_FragData_aoc +=
 			o_p_distance <= OCCLUDER_MAX_DISTANCE ?
 			s_omega * max(dot( normalize(o_pos.xyz - p_pos.xyz), normalize(p_nd.xyz)), 0):
 			0;
 	}
 
-	aoc = pow(aoc, AOC_BIAS) * AOC_STRENGTH;
+	OUT_FragData_aoc = pow(OUT_FragData_aoc, AOC_BIAS) * AOC_STRENGTH;
 }

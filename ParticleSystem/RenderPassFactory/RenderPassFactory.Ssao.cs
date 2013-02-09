@@ -86,13 +86,19 @@ namespace opentk
 			uniformState.Set ("AOC_STRENGTH", strength ?? ValueProvider.Create(2f));
 			uniformState.Set ("AOC_BIAS", bias ?? ValueProvider.Create(-0.5f));
 
-			return CreateFullscreenQuad ("aoc", "RenderPassFactory", viewport, null, window =>
-			{
-				GL.Clear (ClearBufferMask.ColorBufferBit);
-				GL.Disable (EnableCap.DepthTest);
-				GL.Disable (EnableCap.Blend);
-			//pass state
-			}, new FramebufferBindingSet (new DrawFramebufferBinding { VariableName = "Fragdata.aoc", Texture = aoc }), uniformState, new TextureBindingSet (new TextureBinding { VariableName = "normaldepth_texture", Texture = normalDepth }));
+			return CreateFullscreenQuad (
+				"aoc", "RenderPassFactory", 
+				viewport, null, 
+				window =>
+				{
+					GL.Clear (ClearBufferMask.ColorBufferBit);
+					GL.Disable (EnableCap.DepthTest);
+					GL.Disable (EnableCap.Blend);
+				},
+				
+				new FramebufferBindingSet{{ "OUT_FragData_aoc", aoc }},
+				uniformState,
+				new TextureBindingSet {{ "normaldepth_texture", normalDepth }});
 		}
 	}
 }

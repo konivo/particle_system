@@ -16,13 +16,11 @@ uniform vec2 viewport_size;
 in VertexData
 {
 	vec2 param;
-};
+}
+IN_VertexData;
 
 //computed ambient occlusion estimate
-out Fragdata
-{
-	vec4 result;
-};
+out vec4 OUT_FragData_result;
 
 //
 void main ()
@@ -39,11 +37,11 @@ void main ()
 	float4 rcpFrameOpt = vec4( 2 * rcpFrame, 0.5 * rcpFrame);
 
 	// {xy} = center of pixel
-	float2 pos = param;
+	float2 pos = IN_VertexData.param;
 
 	// {xy__} = upper left of pixel
 	// {__zw} = lower right of pixel
 	float4 posPos = vec4( pos - rcpFrameOpt.zw, pos + rcpFrameOpt.zw);
 
-	result = FxaaPixelShader(pos, posPos, source_texture, rcpFrame, rcpFrameOpt);
+	OUT_FragData_result = FxaaPixelShader(pos, posPos, source_texture, rcpFrame, rcpFrameOpt);
 }

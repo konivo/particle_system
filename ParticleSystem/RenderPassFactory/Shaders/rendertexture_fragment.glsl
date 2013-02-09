@@ -1,4 +1,4 @@
-#version 330
+#version 430
 //
 uniform sampler2D source_texture;
 uniform sampler2D depth_texture;
@@ -9,19 +9,12 @@ uniform vec2 viewport_size;
 in VertexData
 {
 	vec2 param;
-};
-
-/*
-//computed ambient occlusion estimate
-out Fragdata
-{
-	vec4 result;
-};
-*/
+}
+IN_VertexData;
 
 //
 void main ()
 {
-	gl_FragColor = texture2D(source_texture, param);
-	gl_FragDepth = texture2D(depth_texture, param).x;
+	gl_FragColor = texture2D(source_texture, IN_VertexData.param);
+	gl_FragDepth = texture2D(depth_texture, IN_VertexData.param).x;
 }

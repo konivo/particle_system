@@ -132,14 +132,14 @@ namespace opentk.ShadingSetup
 
 				 },
 				 //pass state
-				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { VariableName = "Fragdata.result", Texture = NormalDepth_Texture}
-				 ),
+				 new FramebufferBindingSet{
+				   { "Fragdata.result", NormalDepth_Texture}
+				 },
 				 m_Uniforms,
 				 mvpUniforms,
 				 new TextureBindingSet{
-				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture_Unfiltered },
-				   new TextureBinding { VariableName = "tangent_texture", Texture = m_ParticleAttribute1_Texture }
+				   { "normaldepth_texture", NormalDepth_Texture_Unfiltered },
+				   { "tangent_texture", m_ParticleAttribute1_Texture }
 				 }
 			);
 
@@ -173,18 +173,18 @@ namespace opentk.ShadingSetup
 					GL.Disable (EnableCap.Blend);
 				 },
 				 //pass state
-				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture },
-				   new DrawFramebufferBinding { VariableName = "Fragdata.color_luma", Texture = BeforeAA_Texture}
-				 ),
+				 new FramebufferBindingSet{
+				   { FramebufferAttachment.DepthAttachment, Depth_Texture },
+				   { "Fragdata.color_luma", BeforeAA_Texture}
+				 },
 				 p.ParticleStateArrayObject,
 				 m_Uniforms,
 				 new TextureBindingSet{
 					 { "colorramp_texture", ValueProvider.Create(() => (ColorRamp ?? ColorRamps.RedBlue).Texture)},
-				   new TextureBinding { VariableName = "normaldepth_texture", Texture = NormalDepth_Texture },
-				   new TextureBinding { VariableName = "particle_attribute1_texture", Texture = m_ParticleAttribute1_Texture },
-				   new TextureBinding { VariableName = "shadow_texture", Texture = Shadow_Texture },
-				   new TextureBinding { VariableName = "aoc_texture", Texture = AOC_Texture_Blurred_HV }
+				   { "normaldepth_texture", NormalDepth_Texture },
+				   { "particle_attribute1_texture", m_ParticleAttribute1_Texture },
+				   { "shadow_texture", Shadow_Texture },
+				   { "aoc_texture", AOC_Texture_Blurred_HV }
 				 }
 			);
 

@@ -138,7 +138,6 @@
     <Folder Include="System4\" />
     <Folder Include="System4\Shaders\" />
     <Folder Include="System21\" />
-    <Folder Include="System21\" />
     <Folder Include="Scene\" />
     <Folder Include="SystemBase\" />
     <Folder Include="ShadingSetup\" />

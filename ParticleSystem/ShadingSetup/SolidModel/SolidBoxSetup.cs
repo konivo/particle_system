@@ -98,10 +98,10 @@ namespace opentk.ShadingSetup
 					GL.Disable (EnableCap.Blend);
 				 },
 				 //pass state
-				 new FramebufferBindingSet(
-				   new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = Depth_Texture },
-				   new DrawFramebufferBinding { VariableName = "Fragdata.color_luma", Texture = BeforeAA_Texture}
-				 ),
+				 new FramebufferBindingSet{
+				   { FramebufferAttachment.DepthAttachment, Depth_Texture },
+				   { "Fragdata.color_luma", BeforeAA_Texture}
+				 },
 				 p.ParticleStateArrayObject,
 				 m_Uniforms,
 				 new TextureBindingSet

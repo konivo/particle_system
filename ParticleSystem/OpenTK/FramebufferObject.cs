@@ -43,7 +43,7 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class FramebufferBindingSet : StatePart
+	public class FramebufferBindingSet : StatePart, IEnumerable<DrawFramebufferBinding>
 	{
 		public static readonly StatePart Default = new DefaultFramebuffer();
 
@@ -52,6 +52,21 @@ namespace OpenTK
 		public FramebufferBindingSet (params DrawFramebufferBinding[] states)
 		{
 			Bindings.AddRange (states);
+		}
+		
+		public void Add (string variablename, TextureBase texture)
+		{
+			Bindings.Add(new DrawFramebufferBinding{ VariableName = variablename, Texture = texture });
+		}
+
+		public void Add (FramebufferAttachment attachment, TextureBase texture)
+		{
+			Bindings.Add(new DrawFramebufferBinding{ Attachment = attachment, Texture = texture});
+		}
+		
+		public void Add (DrawFramebufferBinding binding)
+		{
+			Bindings.Add(binding);
 		}
 
 		[System.Diagnostics.Conditional("DEBUG")]
@@ -143,6 +158,20 @@ namespace OpenTK
 		#region IDisposable implementation
 		protected override void DisposeCore ()
 		{
+		}
+		#endregion
+
+		#region IEnumerable implementation
+		public System.Collections.IEnumerator GetEnumerator ()
+		{
+			return Bindings.GetEnumerator();
+		}
+		#endregion
+
+		#region IEnumerable implementation
+		IEnumerator<DrawFramebufferBinding> IEnumerable<DrawFramebufferBinding>.GetEnumerator ()
+		{
+			return Bindings.GetEnumerator();
 		}
 		#endregion
 	}

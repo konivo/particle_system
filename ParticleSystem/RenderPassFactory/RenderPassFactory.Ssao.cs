@@ -62,8 +62,8 @@ namespace opentk
 //				 () => MathHelper2.RandomVectorSet (256, new Vector2 (1, 1))
 //			);
 
-			var current_pattern = mathhelper2.randomvectorset (256, new vector2 (1, 1));
-			var sampling_pattern = valueprovider.create
+			var current_pattern = MathHelper2.RandomVectorSet (256, new Vector2 (1, 1));
+			var sampling_pattern = ValueProvider.Create
 			(
 				 () => current_pattern
 			);

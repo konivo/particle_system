@@ -95,7 +95,7 @@ namespace OpenTK
 					foreach (var _binding in bgroup.bindings)
 					{
 						m_TextureUniformState.Set (_binding.VariableName, samplerValue);
-						PrintError (_binding.Texture.Target);
+						PrintError (bgroup.texture.Target);
 					}
 				}
 

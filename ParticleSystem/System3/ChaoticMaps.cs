@@ -1167,6 +1167,105 @@ namespace opentk.System3
 			}
 		}
 	}
+	
+	/// <summary>
+	///
+	/// </summary>
+	public class DomainMorphMap : ChaoticMap
+	{
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return 0;
+			}
+		}
+		#endregion
+
+		public DomainMorphMap () : base("DomainMorphMap")
+		{
+			Map = Implementation;
+		}
+
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			//spiralovy posun sintrans
+			Vector3 center = Vector3.UnitZ;
+			var v = input.Xyz;//.zxy;
+			
+			for(int i = 1; i <= 6; i++)
+			{
+				var temp = v;
+				//v = SinTrans(3, 0.25f, v, center, normalize(morph_rotate(v)));
+				//v = SinTrans(3, 0.25f, v, morph_rotate(center), normalize(v));
+				//v = SinTrans(0, 1, v, morph_rotate(center), normalize(morph_rotate(v)));
+				//v = SinTrans(3, 0.25f, v, morph_rotate(center), normalize(morph_rotate(v)));
+				//center = temp;
+		
+				//v = SinTrans(0, 1, v, center, normalize(v));
+				//v = SinTrans(0, 1, v, center, normalize(morph_rotate(v))) -	morph_rotate(center) * 0.1f;
+				//v = SinTrans(0, 1, v, center, normalize(v)) -	morph_rotate(v* 0.1f) ;
+				//center = temp;
+		
+				//v = SinTrans(0, 1, v, center, normalize(v));
+				//center = morph_rotate(temp);
+				
+				//v = morph_rotate(v, normalize(center));
+				//v = morph_rotate(v, normalize(-center));
+				v = SinTrans(3.0f/i, i, v, center, normalize(v));
+				v = morph_rotate(v, normalize(center));
+				center = temp;
+			}
+	
+			output = new Vector4(v, 0);
+		}
+		
+		private float sin(float f)
+		{
+			return (float)Math.Sin (f);
+		}
+		
+		private float cos(float f)
+		{
+			return (float)Math.Cos(f);
+		}
+		
+		private Vector3 normalize(Vector3 f)
+		{
+			f.Normalize();
+			return f;
+		}
+		
+		Vector3 morph_rotate(Vector3 pos)
+		{
+			float phi = pos.Y / Math.Max(new Vector2(pos.X, pos.Z).Length, 1);
+	
+			//matrices are specified in row-major order
+	
+			Matrix4 rotmatrix = 
+			 new Matrix4(
+					cos(phi), 0, -sin(phi), 0, 
+					0,1, 0, 0,
+					sin(phi), 0, cos(phi), 0,
+					0, 0, 0, 0);
+	
+			return Vector4.Transform(new Vector4(pos, 0), rotmatrix).Xyz;
+		}
+		
+		Vector3 morph_rotate(Vector3 pos, Vector3 axis)
+		{
+			//float phi = pos.Y / Math.Max(new Vector2(pos.X, pos.Z).Length, 1);
+			float phi = Vector3.Dot(pos, axis)/100;// pos.Y / Math.Max(new Vector2(pos.X, pos.Z).Length, 1);
+			return Vector3.Transform(pos, new Quaternion(axis, phi));
+		}
+		
+		Vector3 SinTrans(float amp, float octave, Vector3 v1, Vector3 center, Vector3 plane)
+		{
+			var k = amp * (float)Math.Sin(Vector3.Dot(v1 - center, plane) * octave)/octave * plane;
+			return v1 + k;
+		}
+	}
 
 
 }

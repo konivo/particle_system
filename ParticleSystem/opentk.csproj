@@ -9,7 +9,6 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>opentk</RootNamespace>
     <AssemblyName>opentk</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -41,15 +40,14 @@
     </Reference>
     <Reference Include="System.Core" />
     <Reference Include="WindowsBase" />
-    <Reference Include="OpenTK, Version=1.0.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\usr\lib\mono\OpenTK\OpenTK.dll</HintPath>
-    </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Mono.Simd" />
+    <Reference Include="OpenTK">
+      <HintPath>..\..\..\..\..\..\usr\lib\mono\OpenTK\OpenTK.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -147,6 +145,7 @@
     <Folder Include="ShadingSetup\SmoothShading\Shaders\" />
     <Folder Include="Scene\ParticleSystem\" />
     <Folder Include="Resources\" />
+    <Folder Include="shaders\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -181,5 +180,6 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_geometry.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_vertex.glsl" />
     <EmbeddedResource Include="ShadingSetup\SolidModel\Shaders\stringfilter_fragment.glsl" />
+    <EmbeddedResource Include="shaders\System4_raymarch_fragment.glsl" />
   </ItemGroup>
 </Project>

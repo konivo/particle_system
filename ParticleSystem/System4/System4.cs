@@ -84,6 +84,12 @@ namespace opentk.System4
 			get;
 			set;
 		}
+		
+		public float RayMarchStepFactor
+		{
+			get;
+			set;
+		}
 
 		[Category("Aoc properties")]
 		[TypeConverter(typeof(ParametersConverter<AocParameters>))]
@@ -105,7 +111,7 @@ namespace opentk.System4
 			foreach(var pass in m_Passes)
 				pass.Render(window);
 
-			m_Grid.Render (window);
+			//m_Grid.Render (window);
 
 			window.SwapBuffers ();
 		}
@@ -115,6 +121,7 @@ namespace opentk.System4
 			var result = new System4 {
 				Projection = System4.ProjectionType.Frustum,
 				VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240,
+				RayMarchStepFactor = 0.14f,
 				Fov = 0.6,
 				AocParameters = new AocParameters()};
 			return result;

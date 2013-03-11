@@ -92,7 +92,8 @@ namespace opentk.System3
 			var result = new System3 {
 				PARTICLES_COUNT = 60000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0051,
 				Fov = 0.9, PublishMethod = PublishMethod.AllAtOnce,
-				ParticleScaleFactor = 600};
+				ParticleScaleFactor = 600, 
+				SimulationScheme = new SingleStepScheme(), ChaoticMap = new DomainMorphMap(), ParticleGenerator = new SimpleGenerator{ SeedDistribution = SeedDistributionType.RegularGrid} };
 			return result;
 		}
 		

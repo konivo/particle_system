@@ -52,6 +52,13 @@ namespace OpenTK
 			
 			Console.WriteLine ("Program <{0}> declared, shaders: {1}", Name, String.Join (", ", shaders.Select (x => x.Name)));
 		}
+		
+		public Program (string name, IEnumerable<Shader> shaders) : this(name)
+		{
+			Shaders = Array.AsReadOnly (shaders.ToArray());
+			
+			Console.WriteLine ("Program <{0}> declared, shaders: {1}", Name, String.Join (", ", shaders.Select (x => x.Name)));
+		}
 
 		private void Link ()
 		{
@@ -77,7 +84,8 @@ namespace OpenTK
 
 		internal void EnsureLinked ()
 		{
-			if (!Linked.HasValue)
+			if (!Linked.HasValue ||
+			   Shaders.Any (s => !s.Compiled.HasValue))
 				Link ();
 		}
 
@@ -112,10 +120,6 @@ namespace OpenTK
 		/// <summary>
 		///
 		/// </summary>
-		public readonly string Code;
-		/// <summary>
-		///
-		/// </summary>
 		public readonly ShaderType Type;
 		/// <summary>
 		///
@@ -127,6 +131,18 @@ namespace OpenTK
 		public int Handle
 		{
 			get;
+			private set;
+		}
+		/// <summary>
+		/// The dynamic code.
+		/// </summary>
+		public readonly IValueProvider<string>[] DynamicCode;		
+		/// <summary>
+		///
+		/// </summary>
+		public string Code 
+		{
+			get; 
 			private set;
 		}
 		/// <summary>
@@ -152,70 +168,108 @@ namespace OpenTK
 		{
 			get; private set;
 		}
-
-		private Shader (string name, ShaderType type, string code)
+		/// <summary>
+		///
+		/// </summary>
+		private Shader (string name, ShaderType type, IValueProvider<string>[] dynamiccode)
 		{
 			Name = name;
-			Code = code;
+			DynamicCode = dynamiccode;
 			Type = type;
 			
-			Handle = GL.CreateShader (Type);
+			foreach (var item in dynamiccode) 
+			{
+				item.PropertyChanged += (sender, args) => Compiled = null;
+			}
 			
+			Handle = GL.CreateShader (Type);			
 			Console.WriteLine ("Shader {0}:{1} declared", Name, Type);
 		}
-
-		private Shader (ShaderType type, string code) : this(Guid.NewGuid ().ToString (), type, code)
-		{
-		}
-
-		private Shader (string name, string code) : this(name, GetShaderTypeFromName (name), code)
-		{
-		}
-
-		public static Shader GetShader(string name, string code)
-		{
-			Shader result = null;
-
-			if(!m_ShaderPool.TryGetValue(name, out result))
-				m_ShaderPool.Add(name, result =  new Shader(name, code));
-
-			return result;
-		}
-
+		/// <summary>
+		/// Gets the shader.
+		/// </summary>
+		/// <returns>
+		/// The shader.
+		/// </returns>
+		/// <param name='name'>
+		/// Name.
+		/// </param>
+		/// <param name='code'>
+		/// Code.
+		/// </param>
+		/// <param name='dynamiccode'>
+		/// Dynamiccode.
+		/// </param>
 		public static Shader GetShader(string name, ShaderType type, string code)
 		{
 			Shader result = null;
 
 			if(!m_ShaderPool.TryGetValue(name, out result))
-				m_ShaderPool.Add(name, result =  new Shader(name, type, code));
+				m_ShaderPool.Add(name, result =  new Shader(name, type, new []{ValueProvider.Create (code)}));
 
 			return result;
 		}
+		/// <summary>
+		/// Gets the shader.
+		/// </summary>
+		/// <returns>
+		/// The shader.
+		/// </returns>
+		/// <param name='name'>
+		/// Name.
+		/// </param>
+		/// <param name='type'>
+		/// Type.
+		/// </param>
+		/// <param name='code'>
+		/// Code.
+		/// </param>
+		/// <param name='dynamiccode'>
+		/// Dynamiccode.
+		/// </param>
+		public static Shader GetShader(string name, ShaderType type, params IValueProvider<string>[] dynamiccode)
+		{
+			Shader result = null;
 
+			if(!m_ShaderPool.TryGetValue(name, out result))
+				m_ShaderPool.Add(name, result =  new Shader(name, type, dynamiccode));
+
+			return result;
+		}
+		/// <summary>
+		/// Compile this instance.
+		/// </summary>
 		public void Compile ()
 		{
-			ExpandedCode =
-				m_IncludeRegex.Replace(Code,
-				m =>
-				{
-					try
+			foreach (var item in DynamicCode) 
+			{
+				Code = item.Value;
+				ExpandedCode =
+					m_IncludeRegex.Replace(Code,
+					m =>
 					{
-						return opentk.ResourcesHelper.GetTexts(m.Groups["includename"].Value, "", System.Text.Encoding.UTF8).Single();
-					}
-					catch (Exception ex)
-					{
-						throw new ApplicationException(string.Format("cannot find resource for inclusion: {0}", m.Groups["includename"].Value), ex);
-					}
-				});
-
-			GL.ShaderSource (Handle, ExpandedCode);
-			GL.CompileShader (Handle);
-			
-			int result;
-			GL.GetShader (Handle, ShaderParameter.CompileStatus, out result);
-			
-			Compiled = result == 0;
-			Log = GL.GetShaderInfoLog (Handle);
+						try
+						{
+							return opentk.ResourcesHelper.GetTexts(m.Groups["includename"].Value, "", System.Text.Encoding.UTF8).Single();
+						}
+						catch (Exception ex)
+						{
+							throw new ApplicationException(string.Format("cannot find resource for inclusion: {0}", m.Groups["includename"].Value), ex);
+						}
+					});
+	
+				GL.ShaderSource (Handle, ExpandedCode);
+				GL.CompileShader (Handle);
+				
+				int result;
+				GL.GetShader (Handle, ShaderParameter.CompileStatus, out result);
+				
+				Log = GL.GetShaderInfoLog (Handle);
+				Compiled = result == 1 && !Log.Contains ("error");
+				
+				if(Compiled.Value)
+				break;
+			}
 		}
 
 		public static ShaderType GetShaderTypeFromName (string name)

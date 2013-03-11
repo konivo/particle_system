@@ -166,7 +166,7 @@ namespace opentk.System3
 
 			if(SeedDistribution == SeedDistributionType.RegularGrid)
 			{
-				var gridStepSize = 0.1f;
+				var gridStepSize = 0.0131f;
 				var gridLongStepSize = 5 * 2.5f;
 				var gridCount = (int)Math.Floor(Math.Pow(Position.Length, 1/3.0) * 25);
 				var gridCount2 = (int)Math.Ceiling(Math.Pow(Position.Length, 1/3.0) / 5);

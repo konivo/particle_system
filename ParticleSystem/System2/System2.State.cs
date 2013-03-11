@@ -56,7 +56,7 @@ namespace opentk.System2
 			
 			
 			m_ParticleRenderingState = new ArrayObject (new VertexAttribute { AttributeName = "vertex_pos", Buffer = vdata_buffer, Size = 3, Type = VertexAttribPointerType.Float }, new VertexAttribute { AttributeName = "sprite_pos", Buffer = PositionBuffer, Divisor = 1, Size = 4, Stride = 0, Type = VertexAttribPointerType.Float }, new VertexAttribute { AttributeName = "sprite_colorandsize", Buffer = ColorAndSizeBuffer, Divisor = 1, Size = 4, Type = VertexAttribPointerType.Float });
-			m_ParticleRenderingProgram = new Program ("main_program", GetShaders().ToArray ());
+			m_ParticleRenderingProgram = new Program ("main_program", opentk.ShadingSetup.RenderPass.GetResourceShaders(string.Empty, GetType ().Namespace.Split ('.').Last ()).ToArray ());
 
 			m_SystemState = new State (null, m_ParticleRenderingState, m_ParticleRenderingProgram, m_UniformState);
 			

@@ -24,15 +24,13 @@ namespace opentk.System4
 		//
 		private TextureBase Depth_Texture;
 		//
-		private Grid m_Grid;
-		//
 		private OrbitManipulator m_Manip;
 		//
 		private RenderPass[] m_Passes;
 		//
 		private Vector2 m_Viewport;
 		//
-		private int m_SolidModeTextureSize = 1024;
+		private int m_SolidModeTextureSize = 512;
 		//
 		private int m_AocTextureSize = 512;
 
@@ -90,6 +88,7 @@ namespace opentk.System4
 			m_TransformationStack = new MatrixStack ().Push (m_Projection);
 			
 			m_UniformState = new UniformState ();
+			m_UniformState.Set ("pRayMarchStepFactor", ValueProvider.Create (() => this.RayMarchStepFactor));
 
 			//
 			var firstPassSolid = RenderPassFactory.CreateFullscreenQuad
@@ -126,7 +125,8 @@ namespace opentk.System4
 				OccPixmax = 100,
 				OccPixmin = 2,
 				SamplesCount = 32,
-				Strength = 2.3f
+				Strength = 2.3f,
+				Bias = 0.4f				
 			};
 
 			var aocPassSolid = RenderPassFactory.CreateAoc

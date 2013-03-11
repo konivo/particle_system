@@ -24,16 +24,16 @@ namespace opentk
 
 		public abstract bool HandleInput (GameWindow window);
 
-		public IEnumerable<Shader> GetShaders()
-		{
-			var parentNamespace = GetType().Namespace.Split('.').Last();
-
-			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
-				where res.Contains ("glsl") && res.Contains (parentNamespace)
-				select Shader.GetShader(res, ResourcesHelper.GetText (res, System.Text.Encoding.UTF8));
-
-			return shaders;
-		}
+//		public IEnumerable<Shader> GetShaders()
+//		{
+//			var parentNamespace = GetType().Namespace.Split('.').Last();
+//
+//			var shaders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
+//				where res.Contains ("glsl") && res.Contains (parentNamespace)
+//				select Shader.GetShader(res, ResourcesHelper.GetText (res, System.Text.Encoding.UTF8));
+//
+//			return shaders;
+//		}
 	}
 }
 

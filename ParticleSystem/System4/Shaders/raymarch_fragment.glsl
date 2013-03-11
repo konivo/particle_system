@@ -4,6 +4,7 @@ uniform mat4 modelviewprojection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform mat4 modelview_inv_transform;
 uniform vec2 viewport_size;
+uniform float pRayMarchStepFactor;
 
 const float epsilon = 0.001;
 const float nearPlaneZ = 1;
@@ -138,6 +139,28 @@ vec3 morph_rotate(vec3 pos)
 
 	return rotmatrix * pos;
 }
+/*
+vec3 morph_rotate(vec3 pos, vec4 axisangle)
+{
+	mat3 i;
+	vec3 e = axisangle.xyz;
+	float theta = axisangle.w;
+	mat3 eet = prod(axisangle.xyz, axisangle.xyz);
+	mat3 ex = mat3(
+		0, e.z, -e.y,
+		-e.z, 0, e.x,
+		e.y, -e.x, 0);
+
+//matrices are specified in column-major order
+
+	mat3 rotmatrix = i * cos(theta) + (1 - cos(theta))* eet + ex * sin(theta);
+	return rotmatrix * pos;
+}
+*/
+vec3 morph_mod(vec3 pos, vec3 grid)
+{
+	return pos - (floor(pos  / grid + 0.5))* grid;
+}
 
 /*
 vec3 DomainMorphFunction(vec3 pos)
@@ -160,8 +183,8 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 	return rotmatrix;
 }*/
-
 /*
+
 vec3 DomainMorphFunction(vec3 pos)
 {
 	vec3 v1 = vec3(
@@ -194,30 +217,92 @@ mat3 dDomainMorphFunction(vec3 pos)
 	);
 
 	return rotmatrix;
-}
-*/
+}*/
+
 
 vec3 SinTrans(float amp, float octave, vec3 v1)
 {
-	return vec3(v1.y + cos((v1.y - v1.z) * octave)/octave, v1.z + sin((v1.z - v1.y) * octave)/octave, v1.x - cos((v1.x - v1.z) * octave)/octave);
+	return vec3(v1.y + cos((v1.y - v1.z) * octave)/octave, v1.z + sin((v1.z - v1.x) * octave)/octave, v1.x - cos((v1.x - v1.y) * octave)/octave);
+}
+
+vec3 SinTrans(float amp, float octave, vec3 v1, vec3 center)
+{
+	v1 -= center;
+	return vec3(v1.y + cos((v1.y - v1.z) * octave)/octave, v1.z + sin((v1.z - v1.x) * octave)/octave, v1.x - cos((v1.x - v1.y) * octave)/octave);
+}
+
+vec3 SinTrans(float amp, float octave, vec3 v1, vec3 center, vec3 plane)
+{
+	vec3 k = amp * sin(dot(v1 - center, plane) * octave)/octave * plane;
+	return v1 + k;
 }
 
 vec3 DomainMorphFunction(vec3 pos)
 {
+/*
+//..?
 	vec3 v1 = pos;
 
 	v1 = vec3(pos.x, sin(pos.y / 30) * 30, cos(pos.z/ 30) * 30);
-	//v1 = morph_rotate(v1);
-	//v1 = morph_rotate(v1.yzx);
 	v1 = morph_rotate(v1);
 	v1 = morph_rotate(v1.yzx);
+	v1 = morph_rotate(v1);
+	v1 = morph_rotate(v1.zxy);
 	v1 = morph_rotate(v1.yzx);
 	v1 = vec3(v1.x, sin(v1.y / 30) * 30, cos(v1.z/ 30) * 30);
+*/
 
-	//v1 = SinTrans(0, 1, pos);
-	//v1 = SinTrans(0, 1, v1);
-	//v1 = SinTrans(0, 1, v1);
-	return v1;
+/*
+//zarotovana ve 3 osach 
+	vec3 v1 = pos;
+
+	v1 = SinTrans(0, 1, pos);
+	v1 = morph_rotate(v1);
+	v1 = SinTrans(0, 1, v1.zyx);
+	v1 = morph_rotate(v1);
+	v1 = SinTrans(0, 1, v1.zyx);
+	v1 = morph_rotate(v1);
+*/
+/*
+//spirala 1
+//vypada jinak pokud se prohodi ten zakomentovany morph_rotate s tim druhym
+	vec3 center = vec3(0, 0, 0);
+	vec3 v = pos;//.zxy;
+	
+	for(int i = 0; i < 3; i++)
+	{
+		vec3 temp = v;
+		v = morph_rotate(v);
+		v = SinTrans(0, 1, v, center, normalize(v));
+		//v = morph_rotate(v);
+		center = temp;
+	}
+*/
+
+//spiralovy posun sintrans
+	vec3 center = vec3(0, 0, 0);
+	vec3 v = pos;//.zxy;
+	
+	for(int i = 0; i < 3; i++)
+	{
+		vec3 temp = v;
+		//v = SinTrans(0, 1, v, center, normalize(morph_rotate(v)));
+		//v = SinTrans(0, 1, v, morph_rotate(center), normalize(v));
+		//v = SinTrans(0, 1, v, morph_rotate(center), normalize(morph_rotate(v)));
+		//center = temp;
+
+		//v = SinTrans(0, 1, v, center, normalize(v));
+		//v = SinTrans(0, 1, v, center, normalize(morph_rotate(v))) -	morph_rotate(center) * 0.1f;
+		v = SinTrans(5  , 1, v, center, normalize(v)) -	morph_rotate(v* 0.1f) ;
+		center = temp;
+
+		//v = SinTrans(0, 1, v, center, normalize(v));
+		//center = morph_rotate(temp);
+	}
+
+	v = morph_mod(v, vec3(150, 150, 150));
+
+	return v;
 }
 
 mat3 dDomainMorphFunction(vec3 pos)
@@ -238,9 +323,10 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 float SDBValue(vec3 pos)
 {
-	vec3 mpos = DomainMorphFunction(pos);
-	return torus_sdb(50, 10, mpos) * 0.4;
-	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * 0.1;
+	//vec3 mpos = DomainMorphFunction(pos);
+	vec3 mpos = pos;
+	return torus_sdb(50, 10, mpos) * pRayMarchStepFactor;
+	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * pRayMarchStepFactor;
 }
 
 vec3 EstimateGradient(vec3 pos, float d)
@@ -306,7 +392,7 @@ void main ()
 			//morphFunction = DomainMorphFunction(tracePoint);
 			//float step = SDBValue(morphFunction * tracePoint);
 			//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
-			float intTimeOffset = random(get_pixel_pos(param, viewport_size), 0.4252352);
+			float intTimeOffset = random(get_pixel_pos(param, viewport_size), .34252352);
 			float step = SDBValue(tracePoint) - intTimeOffset;
 
 			//move forward

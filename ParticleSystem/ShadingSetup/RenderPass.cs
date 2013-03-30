@@ -10,6 +10,10 @@ namespace opentk.ShadingSetup
 	/// </summary>
 	public abstract class RenderPass
 	{
+		private static System.IO.FileSystemWatcher m_Watcher = new System.IO.FileSystemWatcher { 
+			Path = "../../shaders/"/*, Filter = "*.glsl"*/, 
+			NotifyFilter = System.IO.NotifyFilters.LastWrite | System.IO.NotifyFilters.LastAccess | System.IO.NotifyFilters.FileName };
+	
 		/// <summary>
 		/// provides the State which is to be activated during the Render call
 		/// </summary>
@@ -63,8 +67,6 @@ namespace opentk.ShadingSetup
 
 			return shaders;
 		}
-		
-		private static System.IO.FileSystemWatcher m_Watcher = new System.IO.FileSystemWatcher { Path = "shaders/"/*, Filter = "*.glsl"*/, NotifyFilter = System.IO.NotifyFilters.LastWrite | System.IO.NotifyFilters.LastAccess};
 				
 		/// <summary>
 		/// returns set of shaders each of which contains in its resource identifier both name1 and name2
@@ -111,7 +113,7 @@ namespace opentk.ShadingSetup
 				invalidator =>
 				{
 				m_Watcher.EnableRaisingEvents = true;
-				m_Watcher.Changed += 
+				System.IO.FileSystemEventHandler hnd = 
 					(sender, e) => 
 					{
 					
@@ -121,7 +123,20 @@ namespace opentk.ShadingSetup
 						invalidator();
 					
 					};
-				};
+				m_Watcher.Renamed += 
+				(sender, e) => 
+					{
+					
+					 if(e.Name != f.Name)
+						return;
+						
+						invalidator();
+					
+					};
+					m_Watcher.Changed += hnd;
+					m_Watcher.Created += hnd;
+				m_Watcher.Deleted += hnd;
+			};
 		
 			return ValueProvider.Create(() => System.IO.File.ReadAllText(f.FullName), invalidatorFactory);
 		}

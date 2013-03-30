@@ -1194,7 +1194,7 @@ namespace opentk.System3
 			Vector3 center = Vector3.UnitZ;
 			var v = input.Xyz;//.zxy;
 			
-			for(int i = 1; i <= 6; i++)
+			for(int i = 1; i <= 3; i++)
 			{
 				var temp = v;
 				//v = SinTrans(3, 0.25f, v, center, normalize(morph_rotate(v)));
@@ -1217,6 +1217,15 @@ namespace opentk.System3
 				v = morph_rotate(v, normalize(center));
 				center = temp;
 			}
+			
+			//rovinna discretizace objektu
+//			var center = new Vector3(1, 0, 0);
+//			var v = input.Xyz;
+//		
+//			for(int i = 0; i < 3; i++)
+//			{
+//				v = SinTrans(1, 1, v, morph_rotate(center, new Vector4(0, 0, 1, 1)), normalize(morph_rotate(center)));
+//			}
 	
 			output = new Vector4(v, 0);
 		}
@@ -1258,6 +1267,11 @@ namespace opentk.System3
 			//float phi = pos.Y / Math.Max(new Vector2(pos.X, pos.Z).Length, 1);
 			float phi = Vector3.Dot(pos, axis)/100;// pos.Y / Math.Max(new Vector2(pos.X, pos.Z).Length, 1);
 			return Vector3.Transform(pos, new Quaternion(axis, phi));
+		}
+		
+		Vector3 morph_rotate(Vector3 pos, Vector4 axisangle)
+		{
+			return Vector3.Transform(pos, new Quaternion(axisangle.Xyz, axisangle.W));
 		}
 		
 		Vector3 SinTrans(float amp, float octave, Vector3 v1, Vector3 center, Vector3 plane)

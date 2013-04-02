@@ -181,5 +181,6 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_vertex.glsl" />
     <EmbeddedResource Include="ShadingSetup\SolidModel\Shaders\stringfilter_fragment.glsl" />
     <EmbeddedResource Include="shaders\System4_raymarch_fragment.glsl" />
+    <EmbeddedResource Include="shaders\System4_lighting_fragment.glsl" />
   </ItemGroup>
 </Project>

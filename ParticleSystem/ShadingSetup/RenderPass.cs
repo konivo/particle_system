@@ -9,10 +9,10 @@ namespace opentk.ShadingSetup
 	///
 	/// </summary>
 	public abstract class RenderPass
-	{
-		private static System.IO.FileSystemWatcher m_Watcher = new System.IO.FileSystemWatcher { 
-			Path = "../../shaders/"/*, Filter = "*.glsl"*/, 
-			NotifyFilter = System.IO.NotifyFilters.LastWrite | System.IO.NotifyFilters.LastAccess | System.IO.NotifyFilters.FileName };
+	{	
+		private static System.IO.FileSystemWatcher m_Watcher;
+			
+		private static Action<string> m_FileManipulated = x => {};
 	
 		/// <summary>
 		/// provides the State which is to be activated during the Render call
@@ -24,6 +24,22 @@ namespace opentk.ShadingSetup
 			{
 				throw new NotImplementedException();
 			}
+		}
+		
+		static RenderPass()
+		{
+			m_Watcher = new System.IO.FileSystemWatcher 
+			{ 
+				Path = "../../shaders/"/*, Filter = "*.glsl"*/,
+				NotifyFilter = System.IO.NotifyFilters.LastWrite | System.IO.NotifyFilters.LastAccess | System.IO.NotifyFilters.FileName 
+			};
+			
+			m_Watcher.EnableRaisingEvents = true;
+			System.IO.FileSystemEventHandler hnd = (sender, e) => m_FileManipulated(e.Name);
+			m_Watcher.Renamed += (sender, e) => m_FileManipulated(e.Name);
+			m_Watcher.Changed += hnd;
+			m_Watcher.Created += hnd;
+			m_Watcher.Deleted += hnd;
 		}
 
 		/// <summary>
@@ -112,30 +128,17 @@ namespace opentk.ShadingSetup
 			Action<Action> invalidatorFactory = 
 				invalidator =>
 				{
-				m_Watcher.EnableRaisingEvents = true;
-				System.IO.FileSystemEventHandler hnd = 
-					(sender, e) => 
+								
+				m_FileManipulated +=
+				(filename) => 
 					{
 					
-					 if(e.Name != f.Name)
+					 if(filename != f.Name)
 						return;
 						
 						invalidator();
 					
 					};
-				m_Watcher.Renamed += 
-				(sender, e) => 
-					{
-					
-					 if(e.Name != f.Name)
-						return;
-						
-						invalidator();
-					
-					};
-					m_Watcher.Changed += hnd;
-					m_Watcher.Created += hnd;
-				m_Watcher.Deleted += hnd;
 			};
 		
 			return ValueProvider.Create(() => System.IO.File.ReadAllText(f.FullName), invalidatorFactory);

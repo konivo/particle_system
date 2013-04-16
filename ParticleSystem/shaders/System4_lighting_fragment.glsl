@@ -39,7 +39,7 @@ void main ()
 	vec3 nd = get_normal_depth(param).rgb;
 	float aoc =  texture(aoc_texture, param).x;
  
-	vec3 material_diffuse = vec3(1);
+	vec3 material_diffuse = vec3(0.9, 0.9, 1);
 	vec3 shadowedmat =  0.5 * (material_diffuse + normalize(vec3(1, 1, 1)) * dot(nd, normalize(vec3(1, 1, 1))));
 	vec3 color = material_diffuse * ( 1 - aoc) + ambient * vec3(shadowedmat);
   

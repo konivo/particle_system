@@ -89,6 +89,11 @@ namespace opentk.System4
 			
 			m_UniformState = new UniformState ();
 			m_UniformState.Set ("pRayMarchStepFactor", ValueProvider.Create (() => this.RayMarchStepFactor));
+			m_UniformState.Set ("k1", ValueProvider.Create (() => this.K1));
+			m_UniformState.Set ("k2", ValueProvider.Create (() => this.K2));
+			m_UniformState.Set ("k3", ValueProvider.Create (() => this.K3));
+			m_UniformState.Set ("k4", ValueProvider.Create (() => this.K4));
+			m_UniformState.Set ("time", ValueProvider.Create (() => this.Time));
 
 			//
 			var firstPassSolid = RenderPassFactory.CreateFullscreenQuad

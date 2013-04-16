@@ -6,6 +6,8 @@ uniform mat4 modelview_inv_transform;
 uniform vec2 viewport_size;
 uniform float pRayMarchStepFactor;
 
+uniform float k1, k2, k3, k4, time;
+
 const float epsilon = 0.001;
 const float nearPlaneZ = 1;
 
@@ -324,8 +326,23 @@ vec3 DomainMorphFunction(vec3 pos)
 	
 	for(int i = 0; i < 3; i++)
 	{
-		v = SinTrans(1, 1, v, morph_rotate(center, vec4(0, 0, 1, 1)), normalize(morph_rotate(center)));
+		v = SinTrans(
+		1, 
+		1, 								//velikost kosticek
+		v, 								//
+		vec3(0), 					//offset pocatku
+		vec3(1, 0, 0));		//smer vektoru diskretizace
 	}*/
+
+//perute z kartonu
+/*	vec3 vA =  morph_rotate(v, vec4(1, 0, 1, length(v)));
+	vA =  morph_rotate(v, vec4(normalize(sin(vA/2) + 2), sin(length(v/2))));
+	v =  v + vA;*/
+
+//lampion
+/*	vec3 vA =  morph_rotate(v-10, vec4(1, 1, 0, length(v)));
+	vA =  morph_rotate(v - 10, vec4(normalize((vA/2) - 1), (length(v/1))));
+	v =  v + vA;*/
 
 //spiralovy posun sintrans 
 //	vec3 center = vec3(-pos.y, pos.xz);//vec3(1, 0, 0);
@@ -337,6 +354,10 @@ vec3 DomainMorphFunction(vec3 pos)
 	vec3 v3 = ceil(v1/ gridDim);
 	vec3 cellCenter = (v2 + v3)/2;
 	vec3 v_t = v1/ gridDim - v2 ;
+	float period = 40;
+	float t = fract(time/period)* period;
+	float smoothiness = 1;//t/period;
+	float boxSize = 3;//t/5;
 	
 	for(float i = 1; i <= 1; i++)
 	{
@@ -360,11 +381,39 @@ vec3 DomainMorphFunction(vec3 pos)
 			(v_t * abs(sin(9892.4213412*v3)) + (1 - v_t) * abs(sin(9892.4213412*v2))) + 
 			(v_t * abs(sin(214532.4213412*v3)) + (1 - v_t) * abs(sin(214532.4213412*v2)))) ;
 		//vec3 k = vec3(SimplePRSF(v/5))*10;
-
+/*
+		for(int i = 0; i < 2; i++)
+		{
+			v = SinTrans(smoothiness, boxSize, v, vec3(t), normalize(vec3(1, 0, 0)));//normalize(morph_rotate(center)));
+		}
+		for(int i = 0; i < 2; i++)
+		{
+			v = SinTrans(smoothiness, boxSize, v, vec3(0), normalize(vec3(0, 1, 0)));//normalize(morph_rotate(center)));
+		}
+		for(int i = 0; i < 2; i++)
+		{
+			v = SinTrans(smoothiness, boxSize, v, vec3(0), normalize(vec3(0, 0, 1)));//normalize(morph_rotate(center)));
+		}*/
+		//vec3 vA =  morph_rotate(v, vec4(1, 0, 1, length(v)));
+		//vA =  morph_rotate(v, vec4(normalize((vA/3) + t),(length(v/(t + 1)))));
+		//v =  v + vA;
 		//v = morph_rotate(v, vec4(normalize(vec3(SimplePRSF(v/25), SimplePRSF(v/25), SimplePRSF(v/25))), k));
 		//v = morph_rotate(v.xyz, vec4(0, 1, 0, k*10));//SimplePRSF(v/15)*3));
 		//v = morph_rotate(v.xyz, vec4(0, 0, 1, (1 - k)*10));
-		v =  v3 + morph_rotate(v - v3, vec4(1, 0, 0, -length(v3)/1));
+		//vec3 vA =  morph_rotate(v, vec4(normalize((v + k4)), length(v)*k2));
+		//vA =  morph_rotate(v, vec4(normalize(vA - 20), length(v)));
+		//vA =  morph_rotate(vA, vec4(normalize(vA - 20), 50/length(v)));
+		//v =  morph_rotate(vA , vec4(normalize((v + t)), (length(v)+t)));
+		//vA =  morph_rotate(v, vec4(normalize(vA), sin(length(v/2))));
+		//vA =  morph_rotate(v, vec4(normalize(vA), sin(length(v/3))));
+		//vA =  morph_rotate(v, vec4(normalize(vA + 20), 50/length(v)));
+		//vA =  morph_rotate(v, vec4(normalize(vA - 30), 30/length(v)));
+		
+		//vA =  morph_rotate(v, vec4(normalize(vA), length(v)/5));
+		//vA =  morph_rotate(v, vec4(normalize(vA), length(v)/5));
+		//v =  v + vA/1;
+		//v =  v + 35*normalize(morph_rotate(v, vec4(normalize(vA), length(v)/5)));
+		//v =  v3 + morph_rotate(v - v3, vec4(vec3(1, 0, 0) + v, -length(v3)/1));
 		//v = morph_rotate(v, vec4(0, 1, 0, 10*k));
 		//v = v + k;
 		//v = v + cos(sin(k * v+ sin(k * v.xzy + k) + 10*k) + cos(2 + 10*k + k* v.zyx + sin(k * v.yxz + k)) + sin(k *v.yzx + cos(5*k + k * v.zxy))) ;
@@ -382,7 +431,7 @@ vec3 DomainMorphFunction(vec3 pos)
 		//v2 = morph_mod(v, vec3(15, 15, 15));
 	}
 
-	//v = morph_mod(v, vec3(150, 150, 150));
+	//v = morph_mod(v, vec3(50, 50, 50));
 
 	return v;
 }
@@ -405,9 +454,20 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 float SDBValue(vec3 pos)
 {
+	float period = 3;
+	float t = sin(fract(time/period)* 2 * 3.14) + 5;
+	float smoothiness = 1;//t/period;
+	float boxSize = 0.5;//t/5;
+
 	vec3 mpos = DomainMorphFunction(pos);
 	//return torus_sdb(65, 8, mpos.xyz) * pRayMarchStepFactor;
-	return sphere_sdb(vec4(-10, 40, 10, 38), mpos) * pRayMarchStepFactor;
+	float d1 = sphere_sdb(vec4(-10, 40, 10, t*4), mpos);
+	float d2 = sphere_sdb(vec4(-80, 40, 10, 38), mpos);
+	float d3 = sphere_sdb(vec4(-0, 50, -50, 38), mpos);
+	float dN = d1 + d2 + d3 - 200*(1/d1 + 1/d2 + 1/d3);
+  float d = min(d1, min(d2, min(d3, dN)));
+	return (d) * pRayMarchStepFactor;
+	return (sphere_sdb(vec4(-10, 40, 10, 38), mpos)+ sphere_sdb(vec4(-20, 40, 10, 38), mpos)) * pRayMarchStepFactor;
 }
 
 vec3 EstimateGradient(vec3 pos, float d)
@@ -460,7 +520,7 @@ void main ()
 			tracePoint = Camera.pos.xyz + Camera.ray_dir.xyz * (nearPlaneDist);
 		}
 
-		while (numberOfIterations < 300) {
+		while (numberOfIterations < 1500) {
 
 			if(!SphereContains(testbs, tracePoint))
 				break;
@@ -473,7 +533,7 @@ void main ()
 			//morphFunction = DomainMorphFunction(tracePoint);
 			//float step = SDBValue(morphFunction * tracePoint);
 			//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
-			float intTimeOffset = _LatticeValue(tracePoint) * 0.0041013013001272034252352;
+			float intTimeOffset = _LatticeValue(tracePoint) * 0.0015321041013013001272034252352;
 			float step = SDBValue(tracePoint) - intTimeOffset;
 
 			//move forward

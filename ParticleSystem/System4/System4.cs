@@ -90,6 +90,39 @@ namespace opentk.System4
 			get;
 			set;
 		}
+		
+		[Editor(typeof(ContrastEditor), typeof(System.Drawing.Design.UITypeEditor))]
+		[RefreshProperties(RefreshProperties.All)]
+		public float K1
+		{
+			get;
+			set;
+		}
+		[Editor(typeof(ContrastEditor), typeof(System.Drawing.Design.UITypeEditor))]
+		public float K2
+		{
+			get;
+			set;
+		}
+		[Editor(typeof(ContrastEditor), typeof(System.Drawing.Design.UITypeEditor))]
+		public float K3
+		{
+			get;
+			set;
+		}
+		[Editor(typeof(ContrastEditor), typeof(System.Drawing.Design.UITypeEditor))]
+		public float K4
+		{
+			get;
+			set;
+		}
+		private DateTime m_Start = DateTime.UtcNow;
+		
+		[Browsable(false)]
+		public float Time
+		{
+			get{ return (float)(DateTime.UtcNow - m_Start).TotalSeconds;}
+		}		
 
 		[Category("Aoc properties")]
 		[TypeConverter(typeof(ParametersConverter<AocParameters>))]
@@ -122,6 +155,7 @@ namespace opentk.System4
 				Projection = System4.ProjectionType.Frustum,
 				VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240,
 				RayMarchStepFactor = 0.14f,
+				K1 = 1, K2 = 1, K3 = 1, K4 = 1,
 				Fov = 0.6,
 				AocParameters = new AocParameters()};
 			return result;

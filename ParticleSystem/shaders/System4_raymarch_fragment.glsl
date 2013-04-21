@@ -124,6 +124,114 @@ vec3 torus_sdb_grad(float r1, float r2, vec3 pos)
 	return normalize(rs);
 }
 
+vec4[] sph = vec4[](
+		vec4(45, 18, 31, 9),
+		vec4(15, 43, 40, 8),
+		vec4( 6, 37, 33, 6),
+		vec4(24, 25,  7, 4),
+		vec4(29, 32, 11, 3),
+		vec4(19, 14, 17, 5),
+		vec4(38, 27, 12, 3),
+		vec4(28,  8,  5, 3),
+		vec4(10, 26, 50, 3),
+		vec4(36, 46, 22, 9),
+		vec4(4, 4, 20,  9),
+		vec4(-10, 40, 10, 8),
+		vec4( 6, 18, -27, 1),
+		vec4(-42, 29, 31, 4),
+		vec4(27, 14, 33, 8),
+		vec4(-14, -33, 44, 8),
+		vec4(24, -1, -28, 10),
+		vec4(-46, -38, 13, 5),
+		vec4(-23, 43,  1, 8),
+		vec4(-26, 20, -43,  9),
+		vec4( 7, -22, -21, 3),
+		vec4(16, -49, 39, 9),
+		vec4(22, 25, -10, 4),
+		vec4(-50, -20, 38, 9),
+		vec4(-35,  5, 30, 4),
+		vec4(-11, -39, -17, 12),
+		vec4(-7, 21, 47, 6),
+		vec4(-13, 36,  2, 5),
+		vec4(-5, 40, -12, 6),
+		vec4(37, 11,  0, 6),
+		vec4(-2, -8, 10, 7),
+		vec4(-24,  4, -29, 9),
+		vec4(48,  8, 42, 9),
+		vec4(-47, 45, 50, 11),
+		vec4(15, -25, 46, 5),
+		vec4(32, -34, -36, 7),
+		vec4(-48, 34, 17,  3)
+	);
+
+
+float setofspheres_sdb(vec3 mpos)
+{
+	float d = 100000;
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(sph[i]*vec4(1,1,1,1), mpos);
+		d = min(d, di);
+	}
+	return d;
+}
+
+float setofmeltedspheres_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
+	float d = 100000;
+	float K = 109;
+	float dN = 20;//t*10;//needs to be customized with respeck to K
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(normalize(sph[i])*vec4(70.5,50.5,70.5,4.2), mpos);
+		d = min(d, di);
+		//dN = dN - K/(di + t/2);
+		dN = min(dN, di);
+//		dN = dN - K/max(di, t/2);
+	}
+	return min(d, dN);
+}
+
+float setofmeltedspheres1_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
+	float d = 100000;
+	float K = 109;
+	float dN = 20;//t*10;//needs to be customized with respeck to K
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(normalize(sph[i])*vec4(70.5,50.5,70.5,4.2), mpos);
+		d = min(d, di);
+		dN = dN - K/(di + t/2);
+		//dN = min(dN, di);
+		//dN = dN - K/max(di, t/2);
+	}
+	return min(d, dN);
+}
+
+float setofmeltedspheres2_sdb(vec3 mpos)
+{
+	float period = 3;
+	float t = 1*sin(fract(time/period)* 2 * 3.14) + 11.2;
+	float d = 100000;
+	float K = 99;
+	float dN = t*10;//needs to be customized with respeck to K
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(sph[i]*vec4(1.5,1.5,1.5,0.5), mpos);
+		d = min(d, di);
+		
+		if(di < 1)
+			dN = dN - (K - di + 1);
+		else
+			dN = dN - K/di;
+	}
+	return min(d, dN);
+}
+
 //====================================================================================
 
 
@@ -356,8 +464,8 @@ vec3 DomainMorphFunction(vec3 pos)
 	vec3 v_t = v1/ gridDim - v2 ;
 	float period = 40;
 	float t = fract(time/period)* period;
-	float smoothiness = 1;//t/period;
-	float boxSize = 3;//t/5;
+	float smoothiness = 0.95;//t/period;
+	float boxSize = 1;//t/5;
 	
 	for(float i = 1; i <= 1; i++)
 	{
@@ -382,21 +490,22 @@ vec3 DomainMorphFunction(vec3 pos)
 			(v_t * abs(sin(214532.4213412*v3)) + (1 - v_t) * abs(sin(214532.4213412*v2)))) ;
 		//vec3 k = vec3(SimplePRSF(v/5))*10;
 /*
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < 3; i++)
 		{
 			v = SinTrans(smoothiness, boxSize, v, vec3(t), normalize(vec3(1, 0, 0)));//normalize(morph_rotate(center)));
 		}
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < 3; i++)
 		{
 			v = SinTrans(smoothiness, boxSize, v, vec3(0), normalize(vec3(0, 1, 0)));//normalize(morph_rotate(center)));
 		}
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < 3; i++)
 		{
 			v = SinTrans(smoothiness, boxSize, v, vec3(0), normalize(vec3(0, 0, 1)));//normalize(morph_rotate(center)));
-		}*/
-		//vec3 vA =  morph_rotate(v, vec4(1, 0, 1, length(v)));
-		//vA =  morph_rotate(v, vec4(normalize((vA/3) + t),(length(v/(t + 1)))));
-		//v =  v + vA;
+		}
+*/
+		//vec3 vA =  morph_rotate(v, vec4(1, 0, 1, 20/length(v)));
+		//vA =  morph_rotate(v, vec4(normalize(sin(vA/2) + 2), sin(length(v/2))));
+		//v =  vA;
 		//v = morph_rotate(v, vec4(normalize(vec3(SimplePRSF(v/25), SimplePRSF(v/25), SimplePRSF(v/25))), k));
 		//v = morph_rotate(v.xyz, vec4(0, 1, 0, k*10));//SimplePRSF(v/15)*3));
 		//v = morph_rotate(v.xyz, vec4(0, 0, 1, (1 - k)*10));
@@ -451,23 +560,12 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 //====================================================================================
 
-
 float SDBValue(vec3 pos)
 {
-	float period = 3;
-	float t = sin(fract(time/period)* 2 * 3.14) + 5;
-	float smoothiness = 1;//t/period;
-	float boxSize = 0.5;//t/5;
-
 	vec3 mpos = DomainMorphFunction(pos);
+	return setofmeltedspheres_sdb(mpos) * pRayMarchStepFactor;
+	//return setofspheres_sdb(mpos) * pRayMarchStepFactor;
 	//return torus_sdb(65, 8, mpos.xyz) * pRayMarchStepFactor;
-	float d1 = sphere_sdb(vec4(-10, 40, 10, t*4), mpos);
-	float d2 = sphere_sdb(vec4(-80, 40, 10, 38), mpos);
-	float d3 = sphere_sdb(vec4(-0, 50, -50, 38), mpos);
-	float dN = d1 + d2 + d3 - 200*(1/d1 + 1/d2 + 1/d3);
-  float d = min(d1, min(d2, min(d3, dN)));
-	return (d) * pRayMarchStepFactor;
-	return (sphere_sdb(vec4(-10, 40, 10, 38), mpos)+ sphere_sdb(vec4(-20, 40, 10, 38), mpos)) * pRayMarchStepFactor;
 }
 
 vec3 EstimateGradient(vec3 pos, float d)
@@ -499,6 +597,8 @@ void main ()
   testbs.w += 1;
 
 	float intTime = SphereRayIntersection(bs, Camera.pos.xyz, Camera.ray_dir.xyz);
+	float upperLimit = epsilon;
+	float lowerLimit = -100*epsilon;
 
 	bool intersect = false;
 	bool startInside = SphereContains(bs, Camera.pos.xyz);
@@ -519,8 +619,9 @@ void main ()
 		else {
 			tracePoint = Camera.pos.xyz + Camera.ray_dir.xyz * (nearPlaneDist);
 		}
-
-		while (numberOfIterations < 1500) {
+		float stepFactor = 1;
+		float lastStep = 1;
+		while (numberOfIterations < 500) {
 
 			if(!SphereContains(testbs, tracePoint))
 				break;
@@ -533,16 +634,52 @@ void main ()
 			//morphFunction = DomainMorphFunction(tracePoint);
 			//float step = SDBValue(morphFunction * tracePoint);
 			//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
-			float intTimeOffset = _LatticeValue(tracePoint) * 0.0015321041013013001272034252352;
-			float step = SDBValue(tracePoint) - intTimeOffset;
+			float intTimeOffset = _LatticeValue(tracePoint) * 0.0094105321041013013001272034252352;
+			float step = SDBValue(tracePoint) - abs(intTimeOffset);
 
+			//customize backward movement
+			if(step < 0)
+			{
+				/*
+				//kind of binary search, but with changeable koeficient
+				//step = stepFactor * lastStep * step/(lastStep - step);
+				*/
+
+				
+				//binary search, step halfway of what remains from the last positive step
+//				step = -lastStep * 0.5;
+				
+
+				stepFactor *= k2/10;
+			}
+
+			//if the lastStep is below zero, then we are again in the positive space
+			//and we will shorten the step by a factor
+			/*if(step < 0 && lastStep > 0)
+			{
+				//stepFactor *= step/(step * stepFactor - lastStep * stepFactor);
+				//stepFactor *= k2;
+			}*/
+
+			//if the lastStep is below zero, then we are again in the positive space
+			//and we will shorten the step by a factor
+			/*if(step > 0 && lastStep < 0)
+			{
+				stepFactor *= k3;
+			}*/
+
+			//if(numberOfIterations % 30 == 9)
+				//stepFactor *= k2/10;
+
+			lastStep = step;
+			stepFactor = max(stepFactor, 0.01);
 			//move forward
-			if (step < epsilon) {
+			if (step < upperLimit && step > lowerLimit) {
 				intersect = true;
 				gradient = EstimateGradient(tracePoint, 0.01);
 				break;
 			} else {
-				tracePoint += Camera.ray_dir.xyz * step;
+				tracePoint += Camera.ray_dir.xyz * step * stepFactor;
 			}
 		}
 	}

@@ -154,7 +154,7 @@ namespace opentk.System4
 			var result = new System4 {
 				Projection = System4.ProjectionType.Frustum,
 				VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240,
-				RayMarchStepFactor = 0.14f,
+				RayMarchStepFactor = 0.84f,
 				K1 = 1, K2 = 1, K3 = 1, K4 = 1,
 				Fov = 0.6,
 				AocParameters = new AocParameters()};

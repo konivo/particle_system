@@ -78,7 +78,25 @@ bool SphereContains(in vec4 s, in vec3 point)
 	return length(s.xyz - point) < s.w;
 }
 
-const int[] PERMUTATION_TABLE = int[](151,160,137,91,90,15,131,13);
+//====================================================================================
+
+vec3 _noiseSinOmega1a = vec3(15.25263, 31.356474, 6.45575);
+float _LatticeValue(vec3 pos)
+{
+	return fract(sin(dot(pos * 128, _noiseSinOmega1a))* 45678.36364)*2.0 - 1.0 ;
+}
+
+float _LatticeValue(float pos)
+{
+	return fract(sin(pos * 45678.36364))*2.0 - 1.0 ;
+}
+
+float _LatticeValue(int pos)
+{
+	return fract(sin(pos * 45678.36364))*2.0 - 1.0 ;
+}
+
+int[] PERMUTATION_TABLE = int[](151,160,137,91,90,15,131,13);
 
 #define PERM(i) PERMUTATION_TABLE[(i)&0x7]
 
@@ -94,143 +112,38 @@ vec2 random(ivec2 p, vec2 amount)
 	return amount * vec2(A, B)/255.0;
 }
 
-//====================================================================================
-
-
-float sphere_sdb(vec4 sphere, vec3 pos)
+vec3 random(vec3 p, vec3 amount)
 {
-	return length(pos - sphere.xyz) - sphere.w;
+	float A = _LatticeValue(p.x),
+			B = _LatticeValue(p.y + A * 1000),
+			C = _LatticeValue(p.z + B * 1000);
+	return amount * vec3(_LatticeValue(p.x + C * 1000), B, C);
 }
 
-//
-vec3 sphere_sdb_grad(vec4 sphere, vec3 pos)
+vec3 random(vec3 p)
 {
-	return normalize(pos - sphere.xyz);
+	return random(p, vec3(1));
 }
 
-//
-float torus_sdb(float r1, float r2, vec3 pos)
+/*
+float SmoothVoronoi( in vec3 x )
 {
-	float d1 = (length(pos.xy) - r1);
-	d1 = sqrt(d1*d1 + pos.z*pos.z) - r2;
+    ivec3 p = floor( x );
+    vec3  f = fract( x );
 
-	return d1;
-}
+    float res = 0.0;
+		for( int k=-1; k<=1; k++ )
+    for( int j=-1; j<=1; j++ )
+    for( int i=-1; i<=1; i++ )
+    {
+        ivec3 b = ivec3( i, j, k );
+        vec3  r = vec3( b ) - f + random( p + b );
+        float d = length( r );
 
-vec3 torus_sdb_grad(float r1, float r2, vec3 pos)
-{
-	vec3 rs = vec3(pos.xy,0);
-	rs = pos - (r1*rs)/length(rs);
-	return normalize(rs);
-}
-
-vec4[] sph = vec4[](
-		vec4(45, 18, 31, 9),
-		vec4(15, 43, 40, 8),
-		vec4( 6, 37, 33, 6),
-		vec4(24, 25,  7, 4),
-		vec4(29, 32, 11, 3),
-		vec4(19, 14, 17, 5),
-		vec4(38, 27, 12, 3),
-		vec4(28,  8,  5, 3),
-		vec4(10, 26, 50, 3),
-		vec4(36, 46, 22, 9),
-		vec4(4, 4, 20,  9),
-		vec4(-10, 40, 10, 8),
-		vec4( 6, 18, -27, 1),
-		vec4(-42, 29, 31, 4),
-		vec4(27, 14, 33, 8),
-		vec4(-14, -33, 44, 8),
-		vec4(24, -1, -28, 10),
-		vec4(-46, -38, 13, 5),
-		vec4(-23, 43,  1, 8),
-		vec4(-26, 20, -43,  9),
-		vec4( 7, -22, -21, 3),
-		vec4(16, -49, 39, 9),
-		vec4(22, 25, -10, 4),
-		vec4(-50, -20, 38, 9),
-		vec4(-35,  5, 30, 4),
-		vec4(-11, -39, -17, 12),
-		vec4(-7, 21, 47, 6),
-		vec4(-13, 36,  2, 5),
-		vec4(-5, 40, -12, 6),
-		vec4(37, 11,  0, 6),
-		vec4(-2, -8, 10, 7),
-		vec4(-24,  4, -29, 9),
-		vec4(48,  8, 42, 9),
-		vec4(-47, 45, 50, 11),
-		vec4(15, -25, 46, 5),
-		vec4(32, -34, -36, 7),
-		vec4(-48, 34, 17,  3)
-	);
-
-
-float setofspheres_sdb(vec3 mpos)
-{
-	float d = 100000;
-	for(int i = 0; i < sph.length;i++)
-	{
-		float di = sphere_sdb(sph[i]*vec4(1,1,1,1), mpos);
-		d = min(d, di);
-	}
-	return d;
-}
-
-float setofmeltedspheres_sdb(vec3 mpos)
-{
-	float period = 6;
-	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
-	float d = 100000;
-	float K = 109;
-	float dN = 20;//t*10;//needs to be customized with respeck to K
-	for(int i = 0; i < sph.length;i++)
-	{
-		float di = sphere_sdb(normalize(sph[i])*vec4(70.5,50.5,70.5,4.2), mpos);
-		d = min(d, di);
-		//dN = dN - K/(di + t/2);
-		dN = min(dN, di);
-//		dN = dN - K/max(di, t/2);
-	}
-	return min(d, dN);
-}
-
-float setofmeltedspheres1_sdb(vec3 mpos)
-{
-	float period = 6;
-	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
-	float d = 100000;
-	float K = 109;
-	float dN = 20;//t*10;//needs to be customized with respeck to K
-	for(int i = 0; i < sph.length;i++)
-	{
-		float di = sphere_sdb(normalize(sph[i])*vec4(70.5,50.5,70.5,4.2), mpos);
-		d = min(d, di);
-		dN = dN - K/(di + t/2);
-		//dN = min(dN, di);
-		//dN = dN - K/max(di, t/2);
-	}
-	return min(d, dN);
-}
-
-float setofmeltedspheres2_sdb(vec3 mpos)
-{
-	float period = 3;
-	float t = 1*sin(fract(time/period)* 2 * 3.14) + 11.2;
-	float d = 100000;
-	float K = 99;
-	float dN = t*10;//needs to be customized with respeck to K
-	for(int i = 0; i < sph.length;i++)
-	{
-		float di = sphere_sdb(sph[i]*vec4(1.5,1.5,1.5,0.5), mpos);
-		d = min(d, di);
-		
-		if(di < 1)
-			dN = dN - (K - di + 1);
-		else
-			dN = dN - K/di;
-	}
-	return min(d, dN);
-}
+        res += exp( -32.0*d );
+    }
+    return -(1.0/32.0)*log( res );
+}*/
 
 //====================================================================================
 
@@ -356,12 +269,6 @@ vec3 SinTrans(float amp, float octave, vec3 v1, vec3 center, vec3 plane, vec3 qu
 	return v1 + k;
 }
 
-vec3 _noiseSinOmega1a = vec3(15.25263, 31.356474, 6.45575);
-float _LatticeValue(vec3 pos)
-{
-	return fract(sin(dot(pos * 128, _noiseSinOmega1a))* 45678.36364)*2.0 - 1.0 ;
-}
-
 float SimplePRSF(vec3 pos)
 {
 	vec3 ipos = floor(pos);
@@ -464,7 +371,7 @@ vec3 DomainMorphFunction(vec3 pos)
 	vec3 v_t = v1/ gridDim - v2 ;
 	float period = 40;
 	float t = fract(time/period)* period;
-	float smoothiness = 0.95;//t/period;
+	float smoothiness = t/5;//0.8485;//t/period;
 	float boxSize = 1;//t/5;
 	
 	for(float i = 1; i <= 1; i++)
@@ -540,7 +447,7 @@ vec3 DomainMorphFunction(vec3 pos)
 		//v2 = morph_mod(v, vec3(15, 15, 15));
 	}
 
-	//v = morph_mod(v, vec3(50, 50, 50));
+	//v = morph_mod(v, vec3(150, 150, 150));
 
 	return v;
 }
@@ -560,10 +467,255 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 //====================================================================================
 
+
+float sphere_sdb(vec4 sphere, vec3 pos)
+{
+	return length(pos - sphere.xyz) - sphere.w;
+}
+
+//
+vec3 sphere_sdb_grad(vec4 sphere, vec3 pos)
+{
+	return normalize(pos - sphere.xyz);
+}
+
+//
+float torus_sdb(float r1, float r2, vec3 pos)
+{
+	float d1 = (length(pos.xy) - r1);
+	d1 = sqrt(d1*d1 + pos.z*pos.z) - r2;
+
+	return d1;
+}
+
+vec3 torus_sdb_grad(float r1, float r2, vec3 pos)
+{
+	vec3 rs = vec3(pos.xy,0);
+	rs = pos - (r1*rs)/length(rs);
+	return normalize(rs);
+}
+
+vec4[] sph = vec4[](
+vec4( 0.04, -0.08, 0, 0.3366834171),
+vec4( -0.8, -0.88, -0.76, 0.469273743),
+vec4( 0.42, -0.36, -0.08, 0.2582417582),
+vec4( -0.34, -0.44, -0.4, 0.4072164948),
+vec4( 0.42, -0.82, 0.18, 0.3372093023),
+vec4( 0.54, -0.56, -0.26, 0.3782051282),
+vec4( 0.54, 0.9, -0.06, 0.2487046632),
+vec4( -0.4, 0.7, -0.92, 0.1923076923),
+vec4( -0.82, -0.14, -0.18, 0.3086419753),
+vec4( -0.16, 0.1, -0.38, 0.4370860927),
+vec4( 0.02, 0.7, 0.98, 0.496350365),
+vec4( 0.86, 0.92, -0.94, 0.3063583815),
+vec4( -0.9, 0.84, 0.1, 0.2402597403),
+vec4( -0.2, 0.7, 0.96, 0.2363636364),
+vec4( 0.72, 0.12, 0.92, 0.3846153846),
+vec4( -0.1, -0.72, 0.92, 0.2756756757),
+vec4( 0.26, 0.98, -0.78, 0.2959183673),
+vec4( -0.7, 0.62, -0.56, 0.2576419214),
+vec4( 0.14, -0.94, 0.12, 0.4470046083),
+vec4( 0.36, -0.28, 0.02, 0.4439461883),
+vec4( 0.96, 0.76, 0.56, 0.4672897196),
+vec4( -0.34, 0.82, 0.6, 0.3136363636),
+vec4( 0.78, 0.16, 0.48, 0.3157894737),
+vec4( 0.56, -0.12, -0.3, 0.2682926829),
+vec4( 0.14, 0.32, 0.78, 0.2842105263),
+vec4( -0.98, 0, -0.04, 0.2056074766),
+vec4( -0.2, -0.28, -0.86, 0.2873563218),
+vec4( 0.62, -0.96, -0.14, 0.3236714976),
+vec4( 0.56, -0.56, 0.14, 0.4425531915),
+vec4( 0.6, 0.38, 0.64, 0.3026315789),
+vec4( 0.86, -0.1, -0.38, 0.3233082707),
+vec4( -0.4, 0.96, -0.94, 0.3052631579),
+vec4( 0.42, 0.9, 0.18, 0.3992673993),
+vec4( -0.02, -0.14, 0.88, 0.3830508475),
+vec4( -0.26, 0.26, 0.54, 0.3219178082),
+vec4( 0.92, 0.18, -0.9, 0.3054662379),
+vec4( 0.46, -0.66, -0.04, 0.345323741),
+vec4( 0.88, -0.42, -0.36, 0.3867595819),
+vec4( -0.98, 0.7, -0.48, 0.3702422145),
+vec4( 1, -0.84, 0.68, 0.2664092664),
+vec4( -0.06, -0.28, -0.58, 0.3293172691),
+vec4( -0.24, -0.1, -0.46, 0.3234200743),
+vec4( 0.48, 0.74, -0.24, 0.4086956522),
+vec4( 0.34, -0.16, 0.28, 0.2666666667),
+vec4( -0.66, -0.32, 0.62, 0.3826530612),
+vec4( -0.42, 0.8, 0.9, 0.335),
+vec4( 0.48, 0.22, 0.24, 0.4736842105),
+vec4( -0.74, -0.92, -0.06, 0.2741935484),
+vec4( 0.32, -0.94, 0.96, 0.3679245283),
+vec4( -0.96, 0.24, -0.5, 0.25)
+	);
+
+
+float setofspheres_sdb(vec3 mpos)
+{
+	float d = 100000;
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(sph[i]*vec4(1,1,1,1), mpos);
+		d = min(d, di);
+	}
+	return d;
+}
+
+float spherecarvedbyspheres_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 3.2*(sin(fract(time/period)* 2 * 3.14));
+	float factor = 8;
+  float res = 0.0;
+	float cellSize = 45;
+
+  ivec3 p = ivec3(floor( mpos / cellSize ));
+  vec3  f = fract( mpos / cellSize);
+	float d0 = sphere_sdb(vec4(0,0,0,80.2), mpos);
+
+  for( int u=0; u < 2;u+=1)
+	for( int k=-1; k<=1; k++ )
+  for( int j=-1; j<=1; j++ )
+  for( int i=-1; i<=1; i++ )
+  {
+      ivec3 b = ivec3( i, j, k );
+      vec3  r = vec3( b ) - f + (random(b + p + u)+ 1)/2;
+      float d = cellSize * length( r );
+
+      res += pow(d, -factor);
+	}
+	return max(d0, pow(res, -1/factor) - 2.5);
+
+}
+
+float spherecarvedbyspheres1_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
+	float d = sphere_sdb(vec4(0,0,0,70.2), mpos);
+	float K = 109;
+	float dN = 20;//t*10;//needs to be customized with respeck to K
+	vec3 mmpos = morph_mod(mpos, vec3(40, 40, 40));
+	for(int i = 0; i < sph.length;i+=2)
+	{
+		float di = -sphere_sdb(normalize(sph[i])*vec4(13.5,13.5,13.5,12.2), mmpos);
+		d = max(d, di);
+	}
+	mmpos = morph_mod(mpos, vec3(27, 27, 27));
+	for(int i = 1; i < sph.length;i+=2)
+	{
+		float di = -sphere_sdb(normalize(sph[i])*vec4(10.5,10.5,10.5,9.2), mmpos);
+		d = max(d, di);
+	}
+	mmpos = morph_mod(mpos, vec3(11, 11, 11));
+	for(int i = 1; i < sph.length;i+=2)
+	{
+		float di = -sphere_sdb(normalize(sph[i])*vec4(3.5,3.5,3.5,4.2), mmpos);
+		d = max(d, di);
+	}
+	return d;
+}
+
+float setofmeltedspheres_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
+	float d = 100000;
+	float K = 109;
+	float dN = 20;//t*10;//needs to be customized with respeck to K
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(normalize(sph[i])*vec4(70.5,50.5,70.5,4.2), mpos);
+		d = min(d, di);
+		dN = dN - K/(di + t/2);
+		//dN = min(dN, di);
+		//dN = dN - K/max(di, t/2);
+	}
+	return min(d, dN);
+}
+
+float setofmeltedspheres2_sdb(vec3 mpos)
+{
+	float period = 3;
+	float t = 1*sin(fract(time/period)* 2 * 3.14) + 11.2;
+	float d = 100000;
+	float K = 99;
+	float dN = t*10;//needs to be customized with respeck to K
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(sph[i]*vec4(1.5,1.5,1.5,0.5), mpos);
+		d = min(d, di);
+		
+		if(di < 1)
+			dN = dN - (K - di + 1);
+		else
+			dN = dN - K/di;
+	}
+	return min(d, dN);
+}
+
+float setofmeltedspheres3_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 8*abs(sin(fract(time/period)* 2 * 3.14)) + 12.2;
+	float factor = 4;
+	float res = 0;
+	for(int i = 0; i < sph.length;i++)
+	{
+		float di = sphere_sdb(normalize(sph[i])*vec4(66.5,63.5,63.5,2.2), mpos);		
+		res += pow(di, -factor);
+	}
+	return pow(res, -1/factor) - t;
+}
+
+float setofsqueezedspheres_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
+	float factor = 4;
+	float d = sphere_sdb(vec4(0,0,0,30.2), mpos);
+	float dN = 30000000;//t*10;//needs to be customized with respeck to K
+	float res = 0;
+	float mindi = 30000000;
+	for(int i = 0; i < sph.length;i+=2)
+	{
+		float di = sphere_sdb(normalize(sph[i])*vec4(26.5,23.5,23.5,2.2), mpos);
+		res += pow(di, -factor);
+		mindi = min(mindi, di);
+	}
+	res -= pow(mindi, -factor);
+	dN = min( mindi - pow(res, -1/factor) - 1, dN);
+
+	return dN;
+	//return max(d, -dN);
+}
+
+float spherewithrelief_sdb(vec3 mpos)
+{
+	float period = 6;
+	float t = 3.2*(sin(fract(time/period)* 2 * 3.14));
+	float factor = 5;
+	float d = sphere_sdb(vec4(0,0,0,22), mpos);
+	float dO = sphere_sdb(vec4(0,0,0,21), mpos);
+	float dN = 30000000;
+	float res = 0;
+	float mindi = 333330;
+	for(int i = 0; i < sph.length;i+=3)
+	{
+		float di = sphere_sdb(normalize(sph[i])*vec4(26.5,23.5,23.5,0.2), mpos);
+		res += pow(di , -factor);
+		mindi = min(mindi, di);
+	}
+	res = min(mindi - pow(res - pow(mindi, -factor), -1/factor) + 5, dN);
+	res = pow(max(d, res) , -1.5) + pow(dO, -1.5);
+	return pow(res , -1/1.50) - 0.97521;
+}
+
+//====================================================================================
+
 float SDBValue(vec3 pos)
 {
 	vec3 mpos = DomainMorphFunction(pos);
-	return setofmeltedspheres_sdb(mpos) * pRayMarchStepFactor;
+	return spherecarvedbyspheres_sdb(mpos) * pRayMarchStepFactor;
 	//return setofspheres_sdb(mpos) * pRayMarchStepFactor;
 	//return torus_sdb(65, 8, mpos.xyz) * pRayMarchStepFactor;
 }
@@ -597,7 +749,7 @@ void main ()
   testbs.w += 1;
 
 	float intTime = SphereRayIntersection(bs, Camera.pos.xyz, Camera.ray_dir.xyz);
-	float upperLimit = epsilon;
+	float upperLimit = 100*epsilon;
 	float lowerLimit = -100*epsilon;
 
 	bool intersect = false;
@@ -621,7 +773,7 @@ void main ()
 		}
 		float stepFactor = 1;
 		float lastStep = 1;
-		while (numberOfIterations < 500) {
+		while (numberOfIterations < 60) {
 
 			if(!SphereContains(testbs, tracePoint))
 				break;
@@ -634,7 +786,7 @@ void main ()
 			//morphFunction = DomainMorphFunction(tracePoint);
 			//float step = SDBValue(morphFunction * tracePoint);
 			//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
-			float intTimeOffset = _LatticeValue(tracePoint) * 0.0094105321041013013001272034252352;
+			float intTimeOffset = _LatticeValue(tracePoint) * 0.0000094105321041013013001272034252352;
 			float step = SDBValue(tracePoint) - abs(intTimeOffset);
 
 			//customize backward movement

@@ -562,29 +562,45 @@ float setofspheres_sdb(vec3 mpos)
 
 float spherecarvedbyspheres_sdb(vec3 mpos)
 {
-	float period = 6;
-	float t = 3.2*(sin(fract(time/period)* 2 * 3.14));
-	float factor = 8;
-  float res = 0.0;
-	float cellSize = 45;
+	float factor = 15;//abs(sin(mpos.x*2)+ 1) * 10 + 5;
+  float res1 = 0.0;
+  float res2 = 0.0;
+	float cellSize1 = 8;
+	float cellSize2 = 1;
 
-  ivec3 p = ivec3(floor( mpos / cellSize ));
-  vec3  f = fract( mpos / cellSize);
-	float d0 = sphere_sdb(vec4(0,0,0,80.2), mpos);
+  ivec3 p = ivec3(floor( mpos / cellSize1 ));
+  vec3  f = fract( mpos / cellSize1);
+	float d0 = sphere_sdb(vec4(0,0,0,30.2), mpos);
+	float d1 = sphere_sdb(vec4(0,0,0,53.7), mpos);
 
-  for( int u=0; u < 2;u+=1)
+  for( int u=0; u < 1;u+=1)
 	for( int k=-1; k<=1; k++ )
   for( int j=-1; j<=1; j++ )
   for( int i=-1; i<=1; i++ )
   {
       ivec3 b = ivec3( i, j, k );
       vec3  r = vec3( b ) - f + (random(b + p + u)+ 1)/2;
-      float d = cellSize * length( r );
+      float d = cellSize1 * length( r );
 
-      res += pow(d, -factor);
+      res1 += pow(d, -factor);
 	}
-	return max(d0, pow(res, -1/factor) - 2.5);
 
+	ivec3 p2 = ivec3(floor( mpos / cellSize2 ));
+  vec3  f2 = fract( mpos / cellSize2);
+
+	for( int u=0; u < 1;u+=1)
+	for( int k=-1; k<=1; k++ )
+  for( int j=-1; j<=1; j++ )
+  for( int i=-1; i<=1; i++ )
+  {
+      ivec3 b = ivec3( i, j, k );
+      vec3  r = vec3( b ) - f2 + (random(b + p2 + u)+ 1)/2;
+      float d = cellSize2 * length( r );
+
+      res2 += pow(d, -factor);
+	}
+
+	return max(d0 - 2*pow(res2, -1/factor) - 2*pow(res1, -1/factor) - k4, d1 );
 }
 
 float spherecarvedbyspheres1_sdb(vec3 mpos)
@@ -708,6 +724,74 @@ float spherewithrelief_sdb(vec3 mpos)
 	res = min(mindi - pow(res - pow(mindi, -factor), -1/factor) + 5, dN);
 	res = pow(max(d, res) , -1.5) + pow(dO, -1.5);
 	return pow(res , -1/1.50) - 0.97521;
+}
+
+float spherewithrelief2_sdb(vec3 mpos)
+{
+	float factor = 15;//abs(sin(mpos.x*2)+ 1) * 10 + 5;
+  float res = 0.0;
+	float cellSize = 2;
+
+  ivec3 p = ivec3(floor( mpos / cellSize ));
+  vec3  f = fract( mpos / cellSize);
+	float d0 = sphere_sdb(vec4(0,0,0,20.2), mpos);
+	float d1 = sphere_sdb(vec4(0,0,0,33.7), mpos);
+
+  for( int u=0; u < 1;u+=1)
+	for( int k=-1; k<=1; k++ )
+  for( int j=-1; j<=1; j++ )
+  for( int i=-1; i<=1; i++ )
+  {
+      ivec3 b = ivec3( i, j, k );
+      vec3  r = vec3( b ) - f + (random(b + p + u)+ 1)/2;
+      float d = cellSize * length( r );
+
+      res += pow(d, -factor);
+	}
+	return max(d0 - pow(res, -1/factor) - k4, d1 );
+}
+
+float spherewithrelief3_sdb(vec3 mpos)
+{
+	float cellSize = 5;
+	float f_cellSize = 0.85;
+	float f_norm_pow = 48;
+	float f_bias = 2;
+	float f_scale = 1;
+	float scale = 1;
+	float bias = 1;
+
+	float res = 0.0;
+  ivec3 p = ivec3(floor( mpos / cellSize ));
+  vec3  f = fract( mpos / cellSize);
+	float d0 = sphere_sdb(vec4(0,0,0,45.2), mpos);
+	float d1 = sphere_sdb(vec4(0,0,0,53.7), mpos);
+	float factor = .12;
+
+	for( int k=-1; k<=1; k++ )
+  for( int j=-1; j<=1; j++ )
+  for( int i=-1; i<=1; i++ )
+  {
+      ivec3 b = ivec3( i, j, k );
+      vec3  r = vec3( b ) - f + (random(b + p )+ 1)/2;
+      float d = f_cellSize * length(r);
+
+      factor += pow(d, -f_norm_pow);
+	}
+	factor = f_scale * pow(factor, -1/f_norm_pow) + f_bias;
+
+  for( int u=0; u < 1;u+=1)
+	for( int k=-1; k<=1; k++ )
+  for( int j=-1; j<=1; j++ )
+  for( int i=-1; i<=1; i++ )
+  {
+      ivec3 b = ivec3( i, j, k );
+      vec3  r = vec3( b ) - f + (random(b + p + u)+ 1)/2;
+      float d = cellSize * length( r );
+
+      res += pow(d, -factor);
+	}
+	return max(d0 + scale*pow(res, -1/factor) - bias, d1);
 }
 
 //====================================================================================

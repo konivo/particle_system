@@ -396,16 +396,25 @@ vec3 DomainMorphFunction(vec3 pos)
 			(v_t * abs(sin(9892.4213412*v3)) + (1 - v_t) * abs(sin(9892.4213412*v2))) + 
 			(v_t * abs(sin(214532.4213412*v3)) + (1 - v_t) * abs(sin(214532.4213412*v2)))) ;
 		//vec3 k = vec3(SimplePRSF(v/5))*10;
-/*
-		for(int i = 0; i < 3; i++)
+/*		for(int i = 0; i < 2; i++)
 		{
-			v = SinTrans(smoothiness, boxSize, v, vec3(t), normalize(vec3(1, 0, 0)));//normalize(morph_rotate(center)));
+				vec3 fr = fract(v/boxSize);
+				vec3 k1 = vec3(pow(1-fr.x, t), pow(1-fr.y, t), pow(1-fr.z, t));
+				vec3 k2 = vec3(pow(fr.x, t), pow(fr.y, t), pow(fr.z, t));
+				vec3 k3 = vec3(0);
+				vec3 k4 = vec3(0);
+				v = boxSize * (floor(v/boxSize) * (k1 + k3) + ceil(v/boxSize) * (k2 + k4) + (1 - k1 - k2 - k3 -k4)* (floor(v/boxSize) + 0.5))/1;
 		}
-		for(int i = 0; i < 3; i++)
+*/
+/*		for(int i = 0; i < 4; i++)
+		{
+			v = SinTrans(smoothiness, boxSize, v, vec3(0), normalize(vec3(1, 0, 0)));//normalize(morph_rotate(center)));
+		}
+		for(int i = 0; i < 4; i++)
 		{
 			v = SinTrans(smoothiness, boxSize, v, vec3(0), normalize(vec3(0, 1, 0)));//normalize(morph_rotate(center)));
 		}
-		for(int i = 0; i < 3; i++)
+		for(int i = 0; i < 4; i++)
 		{
 			v = SinTrans(smoothiness, boxSize, v, vec3(0), normalize(vec3(0, 0, 1)));//normalize(morph_rotate(center)));
 		}

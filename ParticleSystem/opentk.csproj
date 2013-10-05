@@ -11,26 +11,26 @@
     <AssemblyName>opentk</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <DebugSymbols>true</DebugSymbols>
+    <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>False</Optimize>
     <OutputPath>bin\Debug</OutputPath>
     <DefineConstants>DEBUG</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Externalconsole>true</Externalconsole>
+    <Externalconsole>True</Externalconsole>
     <additionalargs>/unsafe</additionalargs>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Commandlineparameters>--llvm</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>
-    <Optimize>true</Optimize>
+    <Optimize>True</Optimize>
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <Externalconsole>true</Externalconsole>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Externalconsole>True</Externalconsole>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Commandlineparameters>--llvm</Commandlineparameters>
   </PropertyGroup>
   <ItemGroup>
@@ -182,5 +182,6 @@
     <EmbeddedResource Include="ShadingSetup\SolidModel\Shaders\stringfilter_fragment.glsl" />
     <EmbeddedResource Include="shaders\System4_raymarch_fragment.glsl" />
     <EmbeddedResource Include="shaders\System4_lighting_fragment.glsl" />
+    <EmbeddedResource Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
   </ItemGroup>
 </Project>

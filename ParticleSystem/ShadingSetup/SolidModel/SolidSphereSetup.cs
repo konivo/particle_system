@@ -94,7 +94,7 @@ namespace opentk.ShadingSetup
 
 			var firstPassSolid =  RenderPassFactory.CreateSolidSphere
 			(
-				 NormalDepth_Texture_Unfiltered,
+				 NormalDepth_Texture,
 				 m_ParticleAttribute1_Texture,
 				 Depth_Texture,
 				 p.PositionBuffer,
@@ -215,7 +215,7 @@ namespace opentk.ShadingSetup
 
 			m_Pass = new CompoundRenderPass
 			(
-			 firstPassSolid, firstPassShadow, normalDepthBlur, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
+			 firstPassSolid, firstPassShadow, /*normalDepthBlur,*/ aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
 			);
 
 		}

@@ -21,14 +21,14 @@ namespace opentk.System3
 
 		public override object ConvertFrom (ITypeDescriptorContext context, CultureInfo culture, object value)
 		{
-			if(typeof(ColorRamp).IsAssignableFrom(value.GetType()))
+			if(value == null)
+				return null;
+			else if(typeof(ColorRamp).IsAssignableFrom(value.GetType()))
 				return value;
-
 			else if(value is string)
-			{
 				return m_Shadings.First(x => x.Name == (string)value);
-			}
-			else return base.ConvertFrom(context, culture, value);
+			else 
+				return base.ConvertFrom(context, culture, value);
 		}
 
 		public override bool CanConvertTo (ITypeDescriptorContext context, Type destinationType)
@@ -39,11 +39,14 @@ namespace opentk.System3
 
 		public override object ConvertTo (ITypeDescriptorContext context, CultureInfo culture, object value, Type destinationType)
 		{
-			if(destinationType.IsAssignableFrom(typeof(ColorRamp)))
+			if(value == null)
+				return null;
+			else if(destinationType.IsAssignableFrom(typeof(ColorRamp)))
 				return value;
 			else if (destinationType == typeof(string))
 				return ((ColorRamp)value).Name;
-			else return base.ConvertTo(context, culture, value, destinationType);
+			else 
+				return base.ConvertTo(context, culture, value, destinationType);
 		}
 
 		public override TypeConverter.StandardValuesCollection GetStandardValues (ITypeDescriptorContext context)

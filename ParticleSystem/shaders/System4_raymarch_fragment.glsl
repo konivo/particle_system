@@ -556,12 +556,11 @@ vec4( -0.74, -0.92, -0.06, 0.2741935484),
 vec4( 0.32, -0.94, 0.96, 0.3679245283),
 vec4( -0.96, 0.24, -0.5, 0.25)
 	);
-
-
+	
 float setofspheres_sdb(vec3 mpos)
 {
 	float d = 100000;
-	for(int i = 0; i < sph.length;i++)
+	for(int i = 0; i < sph.length();i++)
 	{
 		float di = sphere_sdb(sph[i]*vec4(1,1,1,1), mpos);
 		d = min(d, di);
@@ -620,19 +619,19 @@ float spherecarvedbyspheres1_sdb(vec3 mpos)
 	float K = 109;
 	float dN = 20;//t*10;//needs to be customized with respeck to K
 	vec3 mmpos = morph_mod(mpos, vec3(40, 40, 40));
-	for(int i = 0; i < sph.length;i+=2)
+	for(int i = 0; i < sph.length();i+=2)
 	{
 		float di = -sphere_sdb(normalize(sph[i])*vec4(13.5,13.5,13.5,12.2), mmpos);
 		d = max(d, di);
 	}
 	mmpos = morph_mod(mpos, vec3(27, 27, 27));
-	for(int i = 1; i < sph.length;i+=2)
+	for(int i = 1; i < sph.length();i+=2)
 	{
 		float di = -sphere_sdb(normalize(sph[i])*vec4(10.5,10.5,10.5,9.2), mmpos);
 		d = max(d, di);
 	}
 	mmpos = morph_mod(mpos, vec3(11, 11, 11));
-	for(int i = 1; i < sph.length;i+=2)
+	for(int i = 1; i < sph.length();i+=2)
 	{
 		float di = -sphere_sdb(normalize(sph[i])*vec4(3.5,3.5,3.5,4.2), mmpos);
 		d = max(d, di);
@@ -647,7 +646,7 @@ float setofmeltedspheres_sdb(vec3 mpos)
 	float d = 100000;
 	float K = 109;
 	float dN = 20;//t*10;//needs to be customized with respeck to K
-	for(int i = 0; i < sph.length;i++)
+	for(int i = 0; i < sph.length();i++)
 	{
 		float di = sphere_sdb(normalize(sph[i])*vec4(70.5,50.5,70.5,4.2), mpos);
 		d = min(d, di);
@@ -665,7 +664,7 @@ float setofmeltedspheres2_sdb(vec3 mpos)
 	float d = 100000;
 	float K = 99;
 	float dN = t*10;//needs to be customized with respeck to K
-	for(int i = 0; i < sph.length;i++)
+	for(int i = 0; i < sph.length();i++)
 	{
 		float di = sphere_sdb(sph[i]*vec4(1.5,1.5,1.5,0.5), mpos);
 		d = min(d, di);
@@ -684,7 +683,7 @@ float setofmeltedspheres3_sdb(vec3 mpos)
 	float t = 8*abs(sin(fract(time/period)* 2 * 3.14)) + 12.2;
 	float factor = 4;
 	float res = 0;
-	for(int i = 0; i < sph.length;i++)
+	for(int i = 0; i < sph.length();i++)
 	{
 		float di = sphere_sdb(normalize(sph[i])*vec4(66.5,63.5,63.5,2.2), mpos);		
 		res += pow(di, -factor);
@@ -701,7 +700,7 @@ float setofsqueezedspheres_sdb(vec3 mpos)
 	float dN = 30000000;//t*10;//needs to be customized with respeck to K
 	float res = 0;
 	float mindi = 30000000;
-	for(int i = 0; i < sph.length;i+=2)
+	for(int i = 0; i < sph.length();i+=2)
 	{
 		float di = sphere_sdb(normalize(sph[i])*vec4(26.5,23.5,23.5,2.2), mpos);
 		res += pow(di, -factor);
@@ -724,7 +723,7 @@ float spherewithrelief_sdb(vec3 mpos)
 	float dN = 30000000;
 	float res = 0;
 	float mindi = 333330;
-	for(int i = 0; i < sph.length;i+=3)
+	for(int i = 0; i < sph.length();i+=3)
 	{
 		float di = sphere_sdb(normalize(sph[i])*vec4(26.5,23.5,23.5,0.2), mpos);
 		res += pow(di , -factor);

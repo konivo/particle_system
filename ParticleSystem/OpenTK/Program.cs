@@ -77,7 +77,7 @@ namespace OpenTK
 			Linked = result == 1;
 			
 			if (Linked.Value)
-				Console.WriteLine ("Program <{0}> linked:\n{1}", Name, Log);
+				Console.WriteLine ("Program <{0}> linked:\n{1}\nshader logs:\n{2}", Name, Log, string.Join(Environment.NewLine, ShaderLogs));
 			else
 				Console.WriteLine ("Program <{0}> error:\n{1}\n----------\n{2}", Name, Log, string.Join(Environment.NewLine, ShaderLogs));
 		}
@@ -264,11 +264,13 @@ namespace OpenTK
 				int result;
 				GL.GetShader (Handle, ShaderParameter.CompileStatus, out result);
 				
-				Log = GL.GetShaderInfoLog (Handle);
-				Compiled = result == 1 && !Log.Contains ("error");
+				var log = GL.GetShaderInfoLog (Handle);
+				Compiled = result == 1 && !log.Contains ("error");
 				
 				if(Compiled.Value)
 				break;
+				
+				Log = log;
 			}
 		}
 

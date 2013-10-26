@@ -17,6 +17,8 @@ namespace OpenTK
 //		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new Random(342));
 //		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new Random(464353546));
 
+		private static Vector3d m_PreviousRandomVector;
+
 		public static Random GetThreadLocalRandom ()
 		{
 			return m_Rnd.Value;
@@ -31,7 +33,9 @@ namespace OpenTK
 		public static Vector3d RandomVector3 (double magnitude)
 		{
 			double dmag = 2 * magnitude;
-			return new Vector3d (m_Rnd1.Value.NextDouble () * dmag, m_Rnd2.Value.NextDouble () * dmag, m_Rnd3.Value.NextDouble () * dmag) - new Vector3d (magnitude, magnitude, magnitude);
+			var current = new Vector3d (m_Rnd1.Value.NextDouble (), m_Rnd2.Value.NextDouble (), m_Rnd3.Value.NextDouble ());
+			m_PreviousRandomVector = (current + m_PreviousRandomVector) * 0.5;
+			return m_PreviousRandomVector * dmag - new Vector3d (magnitude, magnitude, magnitude);
 		}
 
 		public static Vector2d RandomVector2 (double magnitude)
@@ -71,7 +75,7 @@ namespace OpenTK
 			{
 				var highnoise = MathHelper2.RandomVector(magnitudeDelta);
 				var basedir = MathHelper2.RandomVector(magnitude);
-				var rand = highnoise + Vector2d.Multiply(basedir, magnitude * i / (w * basedir.Length));
+				//var rand = highnoise + Vector2d.Multiply(basedir, magnitude * i / (w * basedir.Length));
 				result[i] = basedir;
 			}
 

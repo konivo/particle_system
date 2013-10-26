@@ -25,9 +25,7 @@ namespace opentk.System3
 	public partial class System3 : ParticleSystemBase
 	{
 		private ChaoticMap m_ChaoticMap;
-
 		private ISimulationScheme m_SimulationScheme;
-
 		private IParticleGenerator m_ParticleGenerator;
 
 		public MetaInformation[] Meta
@@ -89,11 +87,15 @@ namespace opentk.System3
 
 		protected override ParticleSystem GetInstanceInternal (GameWindow win)
 		{
-			var result = new System3 {
+			var result = new System3 
+			{
 				PARTICLES_COUNT = 60000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0051,
 				Fov = 0.9, PublishMethod = PublishMethod.AllAtOnce,
 				ParticleScaleFactor = 600, 
-				SimulationScheme = new SingleStepScheme(), ChaoticMap = new DomainMorphMap(), ParticleGenerator = new SimpleGenerator{ SeedDistribution = SeedDistributionType.RegularGrid} };
+				SimulationScheme = new ParticlesWithTrails(), 
+				ChaoticMap = new DomainMorphMap(), 
+				ParticleGenerator = new SphereGenerator{ SeedDistribution = SeedDistributionType.RegularGrid, SphereInnerSize = 70, SphereOuterSize = 75 } 
+			};
 			return result;
 		}
 		

@@ -570,10 +570,10 @@ float setofspheres_sdb(vec3 mpos)
 
 float spherecarvedbyspheres_sdb(vec3 mpos)
 {
-	float factor = 15;//abs(sin(mpos.x*2)+ 1) * 10 + 5;
+	float factor = 22;//abs(sin(mpos.x*2)+ 1) * 10 + 5;
   float res1 = 0.0;
   float res2 = 0.0;
-	float cellSize1 = 8;
+	float cellSize1 = 2;
 	float cellSize2 = 1;
 
   ivec3 p = ivec3(floor( mpos / cellSize1 ));
@@ -593,7 +593,7 @@ float spherecarvedbyspheres_sdb(vec3 mpos)
       res1 += pow(d, -factor);
 	}
 
-	ivec3 p2 = ivec3(floor( mpos / cellSize2 ));
+	/*ivec3 p2 = ivec3(floor( mpos / cellSize2 ));
   vec3  f2 = fract( mpos / cellSize2);
 
 	for( int u=0; u < 1;u+=1)
@@ -606,9 +606,9 @@ float spherecarvedbyspheres_sdb(vec3 mpos)
       float d = cellSize2 * length( r );
 
       res2 += pow(d, -factor);
-	}
+	}*/
 
-	return max(d0 - 2*pow(res2, -1/factor) - 2*pow(res1, -1/factor) - k4, d1 );
+	return max(d0 - /*2*pow(res2, -1/factor) -*/ 2*pow(res1, -1/factor) - k4, d1 );
 }
 
 float spherecarvedbyspheres1_sdb(vec3 mpos)
@@ -841,8 +841,8 @@ void main ()
   testbs.w += 1;
 
 	float intTime = SphereRayIntersection(bs, Camera.pos.xyz, Camera.ray_dir.xyz);
-	float upperLimit = 100*epsilon;
-	float lowerLimit = -100*epsilon;
+	float upperLimit = epsilon;
+	float lowerLimit = -epsilon;
 
 	bool intersect = false;
 	bool startInside = SphereContains(bs, Camera.pos.xyz);
@@ -865,7 +865,7 @@ void main ()
 		}
 		float stepFactor = 1;
 		float lastStep = 1;
-		while (numberOfIterations < 60) {
+		while (numberOfIterations < 160) {
 
 			if(!SphereContains(testbs, tracePoint))
 				break;

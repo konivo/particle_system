@@ -12,8 +12,8 @@ uniform vec2 viewport_size;
 /*
 rendering constants
 */
-uniform float pRayMarchStepFactor = 1;
-uniform float k1, k2 = 0.8, k3, k4, time;
+uniform float pRayMarchStepFactor = 0.4194;
+uniform float k1, k2 = 0.9, k3, k4 = -1.412, time;
 const float epsilon = 0.01;
 const float nearPlaneZ = 1;
 
@@ -232,6 +232,17 @@ void main_NOTUSED ()
 
 //====================================================================================
 
+float sphere_sdb(vec4 sphere, vec3 pos)
+{
+	return length(pos - sphere.xyz) - sphere.w;
+}
+
+//
+vec3 sphere_sdb_grad(vec4 sphere, vec3 pos)
+{
+	return normalize(pos - sphere.xyz);
+}
+
 //
 float torus_sdb(float r1, float r2, vec3 pos)
 {
@@ -241,13 +252,113 @@ float torus_sdb(float r1, float r2, vec3 pos)
 	return d1;
 }
 
+vec3 torus_sdb_grad(float r1, float r2, vec3 pos)
+{
+	vec3 rs = vec3(pos.xy,0);
+	rs = pos - (r1*rs)/length(rs);
+	return normalize(rs);
+}
+
+vec4[] sph = vec4[](
+vec4( 0.04, -0.08, 0, 0.3366834171),
+vec4( -0.8, -0.88, -0.76, 0.469273743),
+vec4( 0.42, -0.36, -0.08, 0.2582417582),
+vec4( -0.34, -0.44, -0.4, 0.4072164948),
+vec4( 0.42, -0.82, 0.18, 0.3372093023),
+vec4( 0.54, -0.56, -0.26, 0.3782051282),
+vec4( 0.54, 0.9, -0.06, 0.2487046632),
+vec4( -0.4, 0.7, -0.92, 0.1923076923),
+vec4( -0.82, -0.14, -0.18, 0.3086419753),
+vec4( -0.16, 0.1, -0.38, 0.4370860927),
+vec4( 0.02, 0.7, 0.98, 0.496350365),
+vec4( 0.86, 0.92, -0.94, 0.3063583815),
+vec4( -0.9, 0.84, 0.1, 0.2402597403),
+vec4( -0.2, 0.7, 0.96, 0.2363636364),
+vec4( 0.72, 0.12, 0.92, 0.3846153846),
+vec4( -0.1, -0.72, 0.92, 0.2756756757),
+vec4( 0.26, 0.98, -0.78, 0.2959183673),
+vec4( -0.7, 0.62, -0.56, 0.2576419214),
+vec4( 0.14, -0.94, 0.12, 0.4470046083),
+vec4( 0.36, -0.28, 0.02, 0.4439461883),
+vec4( 0.96, 0.76, 0.56, 0.4672897196),
+vec4( -0.34, 0.82, 0.6, 0.3136363636),
+vec4( 0.78, 0.16, 0.48, 0.3157894737),
+vec4( 0.56, -0.12, -0.3, 0.2682926829),
+vec4( 0.14, 0.32, 0.78, 0.2842105263),
+vec4( -0.98, 0, -0.04, 0.2056074766),
+vec4( -0.2, -0.28, -0.86, 0.2873563218),
+vec4( 0.62, -0.96, -0.14, 0.3236714976),
+vec4( 0.56, -0.56, 0.14, 0.4425531915),
+vec4( 0.6, 0.38, 0.64, 0.3026315789),
+vec4( 0.86, -0.1, -0.38, 0.3233082707),
+vec4( -0.4, 0.96, -0.94, 0.3052631579),
+vec4( 0.42, 0.9, 0.18, 0.3992673993),
+vec4( -0.02, -0.14, 0.88, 0.3830508475),
+vec4( -0.26, 0.26, 0.54, 0.3219178082),
+vec4( 0.92, 0.18, -0.9, 0.3054662379),
+vec4( 0.46, -0.66, -0.04, 0.345323741),
+vec4( 0.88, -0.42, -0.36, 0.3867595819),
+vec4( -0.98, 0.7, -0.48, 0.3702422145),
+vec4( 1, -0.84, 0.68, 0.2664092664),
+vec4( -0.06, -0.28, -0.58, 0.3293172691),
+vec4( -0.24, -0.1, -0.46, 0.3234200743),
+vec4( 0.48, 0.74, -0.24, 0.4086956522),
+vec4( 0.34, -0.16, 0.28, 0.2666666667),
+vec4( -0.66, -0.32, 0.62, 0.3826530612),
+vec4( -0.42, 0.8, 0.9, 0.335),
+vec4( 0.48, 0.22, 0.24, 0.4736842105),
+vec4( -0.74, -0.92, -0.06, 0.2741935484),
+vec4( 0.32, -0.94, 0.96, 0.3679245283),
+vec4( -0.96, 0.24, -0.5, 0.25)
+	);
+	
+float setofspheres_sdb(float radius, vec3 mpos)
+{
+	float d = 100000;
+	for(int i = 0; i < sph.length()/6;i++)
+	{
+		float di = sphere_sdb(sph[i]*vec4(radius/2), mpos);
+		d = min(d, di);
+	}
+	return d;
+}
+
+float spherecarvedbyspheres_sdb(float radius, vec3 mpos)
+{
+	float factor = 15;//abs(sin(mpos.x*2)+ 1) * 10 + 5;
+  float res1 = 0.0;
+  float res2 = 0.0;
+	float cellSize1 = radius/13;
+	float cellSize2 = radius/64;
+
+  ivec3 p = ivec3(floor( mpos / cellSize1 ));
+  vec3  f = fract( mpos / cellSize1);
+	float d0 = sphere_sdb(vec4(0,0,0,radius * 0.85), mpos);
+	float d1 = sphere_sdb(vec4(0,0,0,radius* 0.99), mpos);
+
+  for( int u=0; u < 1;u+=1)
+	for( int k=-1; k<=1; k++ )
+  for( int j=-1; j<=1; j++ )
+  for( int i=-1; i<=1; i++ )
+  {
+      ivec3 b = ivec3( i, j, k );
+      vec3  r = vec3( b ) - f + (random(b + p + u)+ 1)/2;
+      float d = cellSize1 * length( r );
+
+      res1 += pow(d, -factor);
+	}
+	return max(d0 - 2*pow(res1, -1/factor) - k4, d1 );
+}
+
 
 float SDBValue(vec3 pos)
 {
 	//vec3 mpos = DomainMorphFunction(pos);
 	vec3 mpos = pos; 
-	return torus_sdb(Sprite.radius * 3/4.0, Sprite.radius/4, mpos - Sprite.pos) * pRayMarchStepFactor;
-	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * pRayMarchStepFactor;
+	return spherecarvedbyspheres_sdb (Sprite.radius, mpos - Sprite.pos) * pRayMarchStepFactor;
+	//return setofspheres_sdb(Sprite.radius, mpos - Sprite.pos) * pRayMarchStepFactor;
+	//return torus_sdb(Sprite.radius * 3/4.0, Sprite.radius/4, mpos - Sprite.pos) * pRayMarchStepFactor;
+	//return sphere_sdb(vec4(0, 0, 0, Sprite.radius), mpos - Sprite.pos) * pRayMarchStepFactor;
 }
 
 vec3 EstimateGradient(vec3 pos, float d)
@@ -276,11 +387,11 @@ void main ()
 	//test for intersection with bounds of function
 	vec4 bs = vec4(Sprite.pos, Sprite.radius);
   vec4 testbs = bs;
-  testbs.w += 1;
+  testbs.w += Sprite.radius * 0.1;
 
 	float intTime = SphereRayIntersection(bs, Camera.pos.xyz, Camera.ray_dir.xyz);
-	float upperLimit = 1*epsilon;
-	float lowerLimit = -1*epsilon;
+	float upperLimit = epsilon;
+	float lowerLimit = -epsilon;
 
 	bool intersect = false;
 	bool startInside = SphereContains(bs, Camera.pos.xyz);

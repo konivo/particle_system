@@ -7,17 +7,19 @@ namespace OpenTK
 	public static class MathHelper2
 	{
 		private static ThreadLocal<Random> m_Rnd = new ThreadLocal<Random>(() => new Random());
-		private static ThreadLocal<Random> m_Rnd1 = new ThreadLocal<Random>(() => new MersenneTwister(154352));
-		private static ThreadLocal<Random> m_Rnd2 = new ThreadLocal<Random>(() => new MersenneTwister(245346666));
-		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new MersenneTwister(342));
-		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new MersenneTwister(464353546));
+		private static ThreadLocal<Random> m_Rnd1 = new ThreadLocal<Random>(() => new MersenneTwister(m_Rnd.Value.Next()));
+		private static ThreadLocal<Random> m_Rnd2 = new ThreadLocal<Random>(() => new MersenneTwister(m_Rnd.Value.Next()));
+		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new MersenneTwister(m_Rnd.Value.Next()));
+		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new MersenneTwister(m_Rnd.Value.Next()));
+//		private static ThreadLocal<Random> m_Rnd1 = new ThreadLocal<Random>(() => new MersenneTwister(154352));
+//		private static ThreadLocal<Random> m_Rnd2 = new ThreadLocal<Random>(() => new MersenneTwister(245346666));
+//		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new MersenneTwister(342));
+//		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new MersenneTwister(464353546));
 
 //		private static ThreadLocal<Random> m_Rnd1 = new ThreadLocal<Random>(() => new Random(154352));
 //		private static ThreadLocal<Random> m_Rnd2 = new ThreadLocal<Random>(() => new Random(245346666));
 //		private static ThreadLocal<Random> m_Rnd3 = new ThreadLocal<Random>(() => new Random(342));
 //		private static ThreadLocal<Random> m_Rnd4 = new ThreadLocal<Random>(() => new Random(464353546));
-
-		private static Vector3d m_PreviousRandomVector;
 
 		public static Random GetThreadLocalRandom ()
 		{
@@ -33,9 +35,8 @@ namespace OpenTK
 		public static Vector3d RandomVector3 (double magnitude)
 		{
 			double dmag = 2 * magnitude;
-			var current = new Vector3d (m_Rnd1.Value.NextDouble (), m_Rnd2.Value.NextDouble (), m_Rnd3.Value.NextDouble ());
-			m_PreviousRandomVector = (current + m_PreviousRandomVector) * 0.5;
-			return m_PreviousRandomVector * dmag - new Vector3d (magnitude, magnitude, magnitude);
+			var current = new Vector3d (m_Rnd4.Value.NextDouble (), m_Rnd2.Value.NextDouble (), m_Rnd3.Value.NextDouble ());			
+			return current * dmag - new Vector3d (magnitude, magnitude, magnitude);
 		}
 
 		public static Vector2d RandomVector2 (double magnitude)

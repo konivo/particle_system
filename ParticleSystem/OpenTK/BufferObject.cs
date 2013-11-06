@@ -123,13 +123,15 @@ namespace OpenTK
 
 		public void PublishPart (int start, int count)
 		{
-			unsafe
+			var pptr = System.Runtime.InteropServices.GCHandle.Alloc(m_Data, GCHandleType.Pinned);
+			try
 			{
-				fixed (T* ptr = &Data[start])
-				{
-					GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
-					GL.BufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * start), (IntPtr)(TypeSize * count), (IntPtr)ptr);
-				}
+				GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+				GL.BufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * start), (IntPtr)(TypeSize * count), pptr.AddrOfPinnedObject());
+			}
+			finally
+			{
+				pptr.Free ();
 			}
 		}
 

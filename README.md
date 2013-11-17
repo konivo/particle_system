@@ -2,7 +2,7 @@
 
 This is my pet project which serves the sole purpose of learning new versions of OpenGL (currently 4.4), how to do programming on gpus and exploring capabilities of the concept of particle system itself (for example learn how to do a physics simulation in various ways, or explore concept of an IFS or a dynamic systems)
 
-Code consists of some OO wrappers over the pure OpenGL, which is imported by means of OpenTK library. Wrappers serve the purpose of defining a more declarative approach for the overall setup, and it works fine for me. Implemented are functions like:
+Code consists of some OO wrappers over the pure OpenGL, which is imported by means of OpenTK library. Wrappers serve the purpose of defining a more declarative approach for the overall setup, and it works fine for me. Implemented functions are:
 - manipulation with shaders, readout of shaders from the assembly resources and/or from files with observation of changes
 - setup of uniforms, uniforms can be set dynamically and/or bound to properties of a class (with some minor effort)
 - setup of vertex attributes, textures and framebuffers

@@ -123,6 +123,9 @@
     <Compile Include="System3\BoxGenerator.cs" />
     <Compile Include="System3\GridGenerator.cs" />
     <Compile Include="System3\SphereGenerator.cs" />
+    <Compile Include="System5\System5.cs" />
+    <Compile Include="System5\System5.State.cs" />
+    <Compile Include="OpenTK\ImageBinding.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -187,6 +190,10 @@
     <EmbeddedResource Include="shaders\System4_raymarch_fragment.glsl" />
     <EmbeddedResource Include="shaders\System4_lighting_fragment.glsl" />
     <EmbeddedResource Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
+    <EmbeddedResource Include="System5\Shaders\lighting_fragment.glsl" />
+    <EmbeddedResource Include="System5\Shaders\raymarch_compute.glsl" />
+    <EmbeddedResource Include="shaders\System5_raymarch_compute.glsl" />
+    <EmbeddedResource Include="shaders\System5_lighting_fragment.glsl" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

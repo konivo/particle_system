@@ -169,8 +169,8 @@ namespace OpenTK
 
 		public virtual BufferTarget Target
 		{
-			get { return BufferTarget.ArrayBuffer; }
-			set { }
+			get;
+			set;
 		}
 	}
 
@@ -178,7 +178,7 @@ namespace OpenTK
 	///
 	/// </summary>
 	public sealed class VertexAttribute : BufferObjectBinding
-	{
+	{	
 		public string AttributeName;
 		public int Size;
 		public VertexAttribPointerType Type;
@@ -186,6 +186,15 @@ namespace OpenTK
 		public int Stride;
 		public int Divisor;
 		public IntPtr Pointer;
+		
+		public override BufferTarget Target 
+		{
+			get 
+			{
+				return BufferTarget.ArrayBuffer;
+			}
+			set {	}
+		}
 	}
 
 	/// <summary>

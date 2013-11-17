@@ -1,4 +1,4 @@
-#version 330
+#version 440
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_transform;
 uniform mat4 modelviewprojection_inv_transform;
@@ -16,10 +16,7 @@ in VertexData
 	vec2 param;
 };
 
-out Fragdata
-{
-	vec4 normal_depth;
-};
+out vec4 normal_depth;
  
 //
 struct

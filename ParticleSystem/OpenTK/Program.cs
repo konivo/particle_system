@@ -34,6 +34,19 @@ namespace OpenTK
 		{
 			get { return Shaders.Select (x => x.Log); }
 		}
+		
+		public IEnumerable<string> Uniforms
+		{
+			get{
+				var result = new string[1000];
+				for(int i = 0; i < GLExtensions.GetProgramInterfaceiv(Handle, ProgramInterface.Uniform, InterfaceProperty.ActiveResources); i++)
+				{
+					result[i] = GLExtensions.GetProgramResourceName(Handle, ProgramInterface.Uniform, i);
+				}
+				
+				return result;
+			}
+		}
 
 		public string Log
 		{
@@ -282,6 +295,12 @@ namespace OpenTK
 				return ShaderType.VertexShader;
 			else if (name.Contains ("geom") || name.Contains ("geometry"))
 				return ShaderType.GeometryShader;
+			else if (name.Contains ("comp") || name.Contains ("compute"))
+				return (ShaderType) 0x91B9;
+			else if (name.Contains ("tese") || name.Contains ("tesseval"))
+				return (ShaderType) 0x8E87;
+			else if (name.Contains ("tesc") || name.Contains ("tesscont"))
+				return (ShaderType) 0x8E88;
 			
 			throw new ArgumentOutOfRangeException ();
 		}

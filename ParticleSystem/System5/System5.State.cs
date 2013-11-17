@@ -7,9 +7,9 @@ using opentk.GridRenderPass;
 using opentk.Manipulators;
 using opentk.ShadingSetup;
 
-namespace opentk.System4
+namespace opentk.System5
 {
-	public partial class System4
+	public partial class System5
 	{
 		//
 		private UniformState m_UniformState;
@@ -97,10 +97,10 @@ namespace opentk.System4
 				{"time", () => this.Time},
 			};
 
-			//
+			/*//
 			var firstPassSolid = RenderPassFactory.CreateFullscreenQuad
 			(
-				 "raymarch", "System4",
+				 "raymarch", "System5",
 				 ValueProvider.Create(() => new Vector2(m_SolidModeTextureSize, m_SolidModeTextureSize)),
 				 (window) =>
 				 {
@@ -122,7 +122,33 @@ namespace opentk.System4
 				   { "normal_depth", NormalDepth_Texture }
 				 },
 				 m_UniformState
-			);
+			);*/
+			
+			var firstPassSolid = new SeparateProgramPass (
+				"raymarch", 
+				(window) =>
+				{
+					SetCamera (window);
+				},
+				(window) =>
+				{
+					/*GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+					GL.Enable (EnableCap.DepthTest);
+					GL.DepthMask(true);
+					GL.DepthFunc (DepthFunction.Less);
+					GL.Disable (EnableCap.Blend);*/
+				},
+				x =>
+				{
+					GLExtensions.DispatchCompute(m_SolidModeTextureSize/(4 * 8), m_SolidModeTextureSize/(4 * 8), 1);
+				},
+				RenderPass.GetShaders ("raymarch", "System5"), 
+				//pass state
+				new ImageBindingSet
+				{
+					{ "u_NormalDepth", NormalDepth_Texture }
+				},
+				m_UniformState);			
 
 			AocParameters = new AocParameters
 			{
@@ -151,7 +177,7 @@ namespace opentk.System4
 			//
 			var thirdPassSolid = RenderPassFactory.CreateFullscreenQuad
 			(
-				 "lighting", "System4",
+				 "lighting", "System5",
 				 ValueProvider.Create(() => m_Viewport),
 				 (window) =>
 				 {

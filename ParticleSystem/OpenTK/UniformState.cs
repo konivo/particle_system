@@ -11,11 +11,11 @@ using System.Runtime.InteropServices;
 namespace OpenTK
 {
 	using Key = Tuple<int, string>;
-	public class UniformState : StatePart
+	public class UniformState : StatePart, IEnumerable<KeyValuePair<Key, object>>
 	{
-	/// <summary>
-	///
-	/// </summary>
+		/// <summary>
+		///
+		/// </summary>
 		private class SubroutineList
 		{
 			private readonly int[] m_Indexes = new int[100];
@@ -100,6 +100,21 @@ namespace OpenTK
 		{
 			m_Values[GetKey(name, stage)] = val;
 			return this;
+		}
+
+		public void Add<T> (string name, T val)
+		{
+			Set(name, val);
+		}
+		
+		public void Add<T> (string name, IValueProvider<T> val)
+		{
+			Set(name, val);
+		}
+		
+		public void Add<T> (string name, Func<T> val)
+		{
+			Set(name, ValueProvider.Create (val, null));
 		}
 
 		protected override Tuple<Action, Action> GetActivatorCore (State state)
@@ -256,6 +271,30 @@ namespace OpenTK
 		{
 			return Tuple.Create((int)type, name);
 		}
+
+		#region IEnumerable implementation
+
+
+		public IEnumerator<KeyValuePair<Key, object>> GetEnumerator ()
+		{
+			return m_Values.GetEnumerator ();
+		}
+
+
+		#endregion
+
+
+		#region IEnumerable implementation
+
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator ()
+		{
+			return m_Values.GetEnumerator ();
+		}
+
+
+		#endregion
+
 	}
 	
 }

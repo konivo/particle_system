@@ -118,8 +118,8 @@ vec4( 0.56, -0.12, -0.3, 0.2682926829),
 vec4( 0.14, 0.32, 0.78, 0.2842105263),
 vec4( -0.98, 0, -0.04, 0.2056074766),
 vec4( -0.2, -0.28, -0.86, 0.2873563218),
-vec4( 0.62, -0.96, -0.14, 0.3236714976),
-vec4( 0.56, -0.56, 0.14, 0.4425531915),
+vec4( 0.62, -0.96, -0.14, 0.3236714976));//,
+/*vec4( 0.56, -0.56, 0.14, 0.4425531915),
 vec4( 0.6, 0.38, 0.64, 0.3026315789),
 vec4( 0.86, -0.1, -0.38, 0.3233082707),
 vec4( -0.4, 0.96, -0.94, 0.3052631579),
@@ -309,12 +309,12 @@ float spherecarvedbyspheres_sdb(vec3 mpos)
 float spherecarvedbyspheres1_sdb(vec3 mpos)
 {
 	float period = 6;
-	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
+	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 8.2;
 	float d = sphere_sdb(vec4(0,0,0,70.2), mpos);
 	float K = 109;
 	float dN = 20;//t*10;//needs to be customized with respeck to K
-	vec3 mmpos = morph_mod(mpos, vec3(40, 40, 40));
-	for(int i = 0; i < sph.length();i+=2)
+	vec3 mmpos = morph_mod(mpos, vec3(30, 20, 40));
+	for(int i = 0; i < sph.length();i+=1)
 	{
 		float di = -sphere_sdb(normalize(sph[i])*vec4(13.5,13.5,13.5,12.2), mmpos);
 		d = max(d, di);
@@ -337,13 +337,13 @@ float spherecarvedbyspheres1_sdb(vec3 mpos)
 float setofmeltedspheres_sdb(vec3 mpos)
 {
 	float period = 6;
-	float t = 4*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
+	float t = 2*abs(sin(fract(time/period)* 2 * 3.14)) + 1.2;
 	float d = 100000;
 	float K = 109;
 	float dN = 20;//t*10;//needs to be customized with respeck to K
 	for(int i = 0; i < sph.length();i++)
 	{
-		float di = sphere_sdb(normalize(sph[i])*vec4(70.5,50.5,70.5,4.2), mpos);
+		float di = sphere_sdb(normalize(sph[i])*vec4(30.5,30.5,30.5,1.2), mpos);
 		d = min(d, di);
 		dN = dN - K/(di + t/2);
 		//dN = min(dN, di);
@@ -375,7 +375,7 @@ float setofmeltedspheres2_sdb(vec3 mpos)
 float setofmeltedspheres3_sdb(vec3 mpos)
 {
 	float period = 6;
-	float t = 8*abs(sin(fract(time/period)* 2 * 3.14)) + 12.2;
+	float t = 8*abs(sin(fract(time/period)* 2 * 3.14)) + 6.2;
 	float factor = 4;
 	float res = 0;
 	for(int i = 0; i < sph.length();i++)
@@ -500,25 +500,29 @@ float spherewithrelief3_sdb(vec3 mpos)
 vec3 DomainMorphFunction(vec3 pos)
 {
 //spiralovy posun sintrans
-	vec3 center = vec3(0, 0, 0);
-	vec3 v = pos;//.zxy;
+	vec3 center = vec3(1, 0, 0);
+	vec3 v = pos;
+	vec3 gridDim = vec3(15);
+	vec3 v1 = pos + 5.5;
+	vec3 v2 = floor(v1/ gridDim);
+	vec3 v3 = ceil(v1/ gridDim);
+	vec3 cellCenter = (v2 + v3)/2;
+	vec3 v_t = v1/ gridDim - v2 ;
+	float period = 20;
+	float t = fract(time/period)* period;
+	float smoothiness = 1./5;//0.8485;//t/period;
+	float boxSize = 1;//t/5;
 	
-	for(int i = 0; i < 3; i++)
-	{
-		vec3 temp = v;
-		//v = SinTrans(0, 1, v, center, normalize(morph_rotate(v)));
-		//v = SinTrans(0, 1, v, morph_rotate(center), normalize(v));
-		//v = SinTrans(0, 1, v, morph_rotate(center), normalize(morph_rotate(v)));
-		//center = temp;
+		for(int i = 0; i < 3; i++)
+		{
+				vec3 fr = fract(v/boxSize);
+				vec3 k1 = vec3(pow(1-fr.x, t), pow(1-fr.y, t), pow(1-fr.z, t));
+				vec3 k2 = vec3(pow(fr.x, t), pow(fr.y, t), pow(fr.z, t));
+				vec3 k3 = vec3(0);
+				vec3 k4 = vec3(0);
+				v = boxSize * (floor(v/boxSize) * (k1 + k3) + ceil(v/boxSize) * (k2 + k4) + (1 - k1 - k2 - k3 -k4)* (floor(v/boxSize) + 0.5))/1;
+		}
 
-		v = SinTrans(0, 1, v, center, normalize(v));
-		//v = SinTrans(0, 1, v, center, normalize(morph_rotate(v))) -	morph_rotate(center) * 0.1f;
-		//v = SinTrans(5  , 1, v, center, normalize(v)) -	morph_rotate(v* 0.1f) ;
-		center = temp;
-
-		//v = SinTrans(0, 1, v, center, normalize(v));
-		//center = morph_rotate(temp);
-	}
 
 	//v = morph_mod(v, vec3(150, 150, 150));
 
@@ -543,10 +547,10 @@ mat3 dDomainMorphFunction(vec3 pos)
 
 float SDBValue(vec3 pos)
 {
-	vec3 mpos = DomainMorphFunction(pos);
-	//vec3 mpos = pos;
+	//vec3 mpos = DomainMorphFunction(pos);
+	vec3 mpos = pos;
 	//return spherewithrelief_sdb(mpos) * pRayMarchStepFactor;
-	return spherewithrelief_sdb(mpos) * pRayMarchStepFactor;
+	return spherewithrelief2_sdb(mpos) * pRayMarchStepFactor;
 	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * pRayMarchStepFactor;
 }
 
@@ -592,131 +596,166 @@ void main ()
   vec4 testbs = bs;
   testbs.w += 1;
 
-	float intTime = 0;
 	float upperLimit = epsilon;
-	float lowerLimit = -epsilon;
+	float lowerLimit = 0;//-epsilon;
 
+	//flag indicating the intersection of the ray with the implicit surface
 	bool intersect = false;
-	bool startInside = SphereContains(bs, Camera.pos.xyz);;
-	
+	//does the camera start inside or not?
+	bool startInside = SphereContains(bs, Camera.pos.xyz);
+	//intersection time of currently computed ray with the bounding sphere 
+	float intTime;
 	//distance to a camera's nearplane from camera position
 	float nearPlaneDist = nearPlaneZ/dot(Camera.look_dir, Camera.ray_dir);
-
-	//transformation into sdb function domain
-	mat3 morphFunction;
-
-	for(int cx = 0; cx < u_ChunkSize.x; cx++)
-	for(int cy = 0; cy < u_ChunkSize.y; cy++)
+	
+	float stepFactor = 1;
+	float lastStep = 1;
+	//current ray direction	
+	vec4 ray_dir;
+	//current pixel id
+	ivec2 pixelID;
+	int cx, cy;
+	
+	if (intTime >= 0.0 || startInside)
 	{
-		vec4 ray_dir = normalize(cx * Camera.x_delta + cy * Camera.y_delta + (Camera.ray_intr - Camera.pos));
-		ivec2 pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
+		cx = 0;
+		cy = 0;
 		
+		ray_dir = normalize(cx * Camera.x_delta + cy * Camera.y_delta + (Camera.ray_intr - Camera.pos));
+		pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
 		intTime = SphereRayIntersection(bs, Camera.pos.xyz, ray_dir.xyz);
+		
+		intersect = false;
 		numberOfIterations = 0;
-		float stepFactor = 1;
-		float lastStep = 1;
+		stepFactor = 1;
+		lastStep = 1;
 		
-		if (intTime >= 0.0 || startInside)
+		if(intersect && cy != 0 && cx != 0)
 		{
-			if(intersect && cy != 0 && cx != 0)
+			float k = dot(Camera.look_dir.xyz, tracePoint - Camera.pos.xyz)/dot(Camera.look_dir, Camera.ray_dir);				
+			lastTracePoint = tracePoint = tracePoint + Camera.y_delta.xyz * k;
+		}
+		//initial phase, computation of start
+		else if (!startInside) 
+		{
+			intTime = intTime < nearPlaneDist? nearPlaneDist: intTime;
+			lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * intTime;
+		}
+		//start from near camera plane
+		else 
+		{
+			lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * nearPlaneDist;
+		}
+		
+		while(cx < u_ChunkSize.x)
+		{
+			if(!SphereContains(testbs, tracePoint) || numberOfIterations > 40 || intersect)
 			{
-				float k = dot(Camera.look_dir.xyz, tracePoint - Camera.pos.xyz)/dot(Camera.look_dir, Camera.ray_dir);				
-				lastTracePoint = tracePoint = tracePoint + Camera.y_delta.xyz * k;
-			}
-			//initial phase, computation of start
-			else if (!startInside) 
-			{
-				intTime = intTime < nearPlaneDist? nearPlaneDist: intTime;
-				lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * intTime;
-			}
-			//start from near camera plane
-			else 
-			{
-				lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * nearPlaneDist;
-			}
-			
-			intersect = false;
-			
-			while (numberOfIterations < 350) {
-	
-				if(!SphereContains(testbs, tracePoint))
-					break;
-	
-				numberOfIterations++;
-	
-				// traverse along the ray until intersection is found
-	
-				//at each successive step, step length is given by F(x)/lambda
-				//morphFunction = DomainMorphFunction(tracePoint);
-				//float step = SDBValue(morphFunction * tracePoint);
-				//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
-				float intTimeOffset = _LatticeValue(tracePoint) * 0.0194105321041013013001272034252352;
-				float step = SDBValue(tracePoint) - abs(intTimeOffset);
-	
-				/////////////////////////////////////////////
-				//backward movement strategy
-				/*if(step < 0)
-				{	
-					stepFactor *= k2/10;
+				//kind of culling
+				if(!intersect)
+				{
+					imageStore(u_NormalDepth, pixelID, vec4(0.0, 0.0, 0.0, 0));
 				}
-				//revert back to normal
-				else if(stepFactor < 1)
-				{
-					stepFactor = stepFactor * 1.2;
-				}
-				stepFactor = clamp(stepFactor, 0.1, 1);
-				*/
-				
-				/////////////////////////////////////////////
-				//binary search movement strategy
-				if(step < 0)
-				{
-					//binary search, step halfway of what remains from the last positive step
-					step = lastStep * 0.5;
-					tracePoint = lastTracePoint;
-				}	
-				
-				//move forward
-				if (step < upperLimit && step > lowerLimit)
-				{
-					intersect = true;
-					gradient = EstimateGradient(tracePoint, 0.01);
-					break;
-				} 
 				else
-				{
-					lastTracePoint = tracePoint;
-					lastStep = step;
-					tracePoint += ray_dir.xyz * step * stepFactor;
+				{	
+					//from ray origin, direction and sphere center and radius compute intersection
+					vec3 intersection = tracePoint;
+					vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
+					projected_i /= projected_i.w;
+				
+					vec4 result;
+					result.w = (projected_i.z + 1) * 0.5;
+					//result.w = numberOfIterations/30.0;
+					result.xyz = normalize(gradient) * 0.5f + 0.5f;
+					
+					//result = vec4(0.5,0.99,0.9,0);
+					imageStore(u_NormalDepth, pixelID, result);
 				}
+				
+				cx += ++cy / u_ChunkSize.y;
+				cy = cy % u_ChunkSize.y;
+				
+				ray_dir = normalize(cx * Camera.x_delta + cy * Camera.y_delta + (Camera.ray_intr - Camera.pos));
+				pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
+				intTime = SphereRayIntersection(bs, Camera.pos.xyz, ray_dir.xyz);				
+				
+				
+				if(intersect && cy != 0)
+				{
+					float k = dot(Camera.look_dir.xyz, tracePoint - Camera.pos.xyz)/dot(Camera.look_dir, Camera.ray_dir);				
+					tracePoint = tracePoint + Camera.y_delta.xyz * k;
+					lastTracePoint = tracePoint - 400* lastStep * ray_dir.xyz;
+				}
+				//initial phase, computation of start
+				else if (!startInside) 
+				{
+					intTime = intTime < nearPlaneDist? nearPlaneDist: intTime;
+					lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * intTime;
+				}
+				//start from near camera plane
+				else 
+				{
+					lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * length(tracePoint - Camera.pos.xyz) * 0.99;
+				}
+				
+				intersect = false;
+				numberOfIterations = 0;
+				stepFactor = 1;
+				lastStep = SDBValue(lastTracePoint);
+				
+				barrier();
 			}
-		}
-		else
-		{
-			intersect = false;
-		}
-		
-		//kind of culling
-		if(!intersect)
-		{
-			imageStore(u_NormalDepth, pixelID, vec4(0.0, 0.0, 0.0, 0));
-		}
-		else
-		{	
-			//from ray origin, direction and sphere center and radius compute intersection
-			vec3 intersection = tracePoint;
-			vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
-			projected_i /= projected_i.w;
-		
-			vec4 result;
-			result.w = (projected_i.z + 1) * 0.5;
-			//result.w = numberOfIterations/50.0;
-			result.xyz = normalize(gradient) * 0.5f + 0.5f;
 			
-			//result = vec4(0.5,0.99,0.9,0);
-			imageStore(u_NormalDepth, pixelID, result);
+			numberOfIterations++;
+
+			// traverse along the ray until intersection is found
+
+			//at each successive step, step length is given by F(x)/lambda
+			//morphFunction = DomainMorphFunction(tracePoint);
+			//float step = SDBValue(morphFunction * tracePoint);
+			//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
+			float intTimeOffset = 0;//_LatticeValue(tracePoint) * 0.0000194105321041013013001272034252352;
+			float step = SDBValue(tracePoint) - abs(intTimeOffset);
+
+			/////////////////////////////////////////////
+			//backward movement strategy
+			/*if(step < 0)
+			{	
+				stepFactor *= k2/10;
+			}
+			//revert back to normal
+			else if(stepFactor < 1)
+			{
+				stepFactor = stepFactor * 1.2;
+			}
+			stepFactor = clamp(stepFactor, 0.1, 1.);*/
+			
+			
+			/////////////////////////////////////////////
+			//binary search movement strategy
+			if(step < 0)// && lastStep > 0 || step > 0 && lastStep < 0)
+			{
+				//binary search, step halfway of what remains from the last positive step
+				step = lastStep * k2/10;
+				tracePoint = lastTracePoint;
+			}
+			//else
+			{
+				lastTracePoint = tracePoint;
+				lastStep = step;
+			}
+			
+			/////////////////////////////////////////////
+			//move forward
+			if (step < upperLimit && step > lowerLimit)
+			{
+				intersect = true;
+				gradient = EstimateGradient(tracePoint, 0.01);
+			} 
+			else
+			{		
+				tracePoint += ray_dir.xyz * step * stepFactor;
+			}				
 		}
-		
-		barrier();
 	}
 }

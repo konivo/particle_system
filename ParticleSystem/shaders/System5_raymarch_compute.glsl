@@ -552,7 +552,7 @@ float SDBValue(vec3 pos)
 	//vec3 mpos = DomainMorphFunction(pos);
 	vec3 mpos = pos;
 	//return spherewithrelief_sdb(mpos) * pRayMarchStepFactor;
-	return spherewithrelief2_sdb(mpos) * pRayMarchStepFactor;
+	return spherewithrelief_sdb(mpos) * pRayMarchStepFactor;
 	//return sphere_sdb(vec4(0, 0, 0, 28), mpos) * pRayMarchStepFactor;
 }
 
@@ -568,6 +568,7 @@ vec3 EstimateGradient(vec3 pos, float d)
 //local storage
 shared vec4[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSize_y] localResult;
 shared vec3[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSize_y] tracedPoints;
+shared vec3[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSize_y] tracedFlags;
 
 //
 void main ()
@@ -594,18 +595,14 @@ void main ()
 
 	//here is expected ray with unit direction, and starting from camera origin
 	int numberOfIterations = 0;
-
 	//starting point
-	vec3 tracePoint, gradient, initTracePoint, lastTracePoint;
-
+	vec3 tracePoint, initTracePoint, lastTracePoint;
 	//test for intersection with bounds of function
-	vec4 bs = vec4(0, 0, 0, 368);
-  vec4 testbs = bs;
-  testbs.w += 1;
-
+	vec4 bs = vec4(0, 0, 0, 28);
+  vec4 testbs = bs; testbs.w += 1;
+	//
 	float upperLimit = epsilon;
 	float lowerLimit = -epsilon;
-
 	//flag indicating the intersection of the ray with the implicit surface
 	bool intersect = false;
 	//does the camera start inside or not?
@@ -617,14 +614,23 @@ void main ()
 	//
 	float stepFactor = 1;
 	float lastStep = 1;
+	float step;
 	//current ray direction	
 	vec4 ray_dir;
 	//current pixel id
-	ivec2 pixelID;
 	int cx, cy;
-	float step;
+	ivec2 pixelID;
+	//
 	vec4 result;
 	vec4 projected_i;
+	vec3 gradient;
+	
+	for(cx = 0; cx < u_ChunkSize.x; cx++)
+		for(cy = 0; cy < u_ChunkSize.y; cy++)
+		{
+			tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy] = vec3(2^32);
+		}
+	cx = cy = 0;
 	
 	if (intTime >= 0.0 || startInside)
 	{
@@ -643,11 +649,11 @@ void main ()
 		
 		while(cx < u_ChunkSize.x)
 		{
-			if(!SphereContains(testbs, tracePoint) || numberOfIterations > 180 || intersect)
+			if(!SphereContains(testbs, tracePoint) || numberOfIterations > 30 || intersect)
 			{
 				//store the result into the a local storage
-				localResult[workGroupOffset + cx * u_ChunkSize.y + cy] = result;
 				tracedPoints[workGroupOffset + cx * u_ChunkSize.y + cy] = tracePoint;
+				tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy] = vec3(step, lastStep, numberOfIterations);
 				
 				//move to next pixel
 				cx += ++cy / u_ChunkSize.y;
@@ -659,20 +665,19 @@ void main ()
 				ivec2 deltacxy = ivec2(cx, cy) - prevcxy;
 				vec3 xy_delta = Camera.y_delta.xyz * deltacxy.y * k + Camera.x_delta.xyz * deltacxy.x * k;
 				
-				tracePoint = tracedPoints[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y] + xy_delta - ray_dir.xyz * 150;
-				lastTracePoint = tracePoint + ray_dir.xyz * .00003;
-				step = SDBValue(tracePoint);
-				lastStep = SDBValue(lastTracePoint);
-				stepFactor = 1;
+				tracePoint = tracedPoints[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y] + xy_delta - ray_dir.xyz * 0.000941;
+				lastTracePoint = tracePoint + ray_dir.xyz * .3;
+				step = tracedFlags[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y].x; //SDBValue(tracePoint);
+				lastStep = tracedFlags[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y].y;//SDBValue(lastTracePoint);
 				
+				stepFactor = 1;				
 				intersect = false;
-				//numberOfIterations = 0;
+				numberOfIterations = 0;
 			}
 			
 			numberOfIterations++;
 
-			// traverse along the ray until intersection is found
-
+			// traverse along the ray until an intersection is found
 			//at each successive step, step length is given by F(x)/lambda
 			//morphFunction = DomainMorphFunction(tracePoint);
 			//float step = SDBValue(morphFunction * tracePoint);
@@ -727,29 +732,39 @@ void main ()
 				step = SDBValue(tracePoint);
 			}*/
 			
+			/////////////////////////////////////////////
+			//simple 'sphere' tracing
 			tracePoint += ray_dir.xyz * step * stepFactor;
-			float intTimeOffset = _LatticeValue(tracePoint) * 0.0000194105321041013013001272034252352;
+			float intTimeOffset = _LatticeValue(tracePoint) * 0.00194105321041013013001272034252352;
 			step = SDBValue(tracePoint) - abs(intTimeOffset);
 			
-			/////////////////////////////////////////////
 			//signal end
-			result = vec4(0,0,0,0);
-			if (step < upperLimit && step > lowerLimit)
+			intersect = step < upperLimit && step > lowerLimit;
+		}
+	}
+	
+	for(cx = 0; cx < u_ChunkSize.x; cx++)
+		for(cy = 0; cy < u_ChunkSize.y; cy++)
+		{
+			step = tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy].x;
+			
+			if(step < upperLimit && step > lowerLimit)
 			{
-				intersect = true;
-				gradient = EstimateGradient(tracePoint, 0.01);
+				tracePoint = tracedPoints[workGroupOffset + cx * u_ChunkSize.y + cy];
+				numberOfIterations = int(tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy].z);
 				
+				gradient = EstimateGradient(tracePoint, 0.01);
 				projected_i = reproject(modelviewprojection_transform, vec4(tracePoint, 1));
 				result = vec4(normalize(gradient) * 0.5f + 0.5f, (projected_i.z + 1) * 0.5);
-				//result = vec4(normalize(gradient) * 0.5f + 0.5f, numberOfIterations/50.0);
+				//
+				result = vec4(normalize(gradient) * 0.5f + 0.5f, numberOfIterations/25.0);
 			}
-		}
-		
-		for(cx = 0; cx < u_ChunkSize.x; cx+=1)
-			for(cy = 0; cy < u_ChunkSize.y; cy+=1)
+			else
 			{
-				pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
-				imageStore(u_NormalDepth, pixelID, localResult[workGroupOffset + cx * u_ChunkSize.y + cy]);
+				result = vec4(0, 0, 0, 0);
 			}
-	}
+			
+			pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
+			imageStore(u_NormalDepth, pixelID, result);
+		}
 }

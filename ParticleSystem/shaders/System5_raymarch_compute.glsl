@@ -11,15 +11,17 @@ uniform vec2 viewport_size;
 uniform float pRayMarchStepFactor;
 uniform float k1, k2, k3, k4, time;
 
-//chunk algorithm
-uniform ivec2 u_ChunkSize = {4, 4};
- 
 layout(rgba32f) uniform image2D u_NormalDepth;
 
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
 const float epsilon = 0.001;
 const float nearPlaneZ = 1;
+
+//chunk algorithm
+const int c_ChunkSize_x = 4;
+const int c_ChunkSize_y = 4;
+const ivec2 u_ChunkSize = {c_ChunkSize_x, c_ChunkSize_y};
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -412,7 +414,7 @@ float spherewithrelief_sdb(vec3 mpos)
 {
 	float period = 6;
 	float t = 3.2*(sin(fract(time/period)* 2 * 3.14));
-	float factor = 19;
+	float factor = 3;
 	float d = sphere_sdb(vec4(0,0,0,22), mpos);
 	float dO = sphere_sdb(vec4(0,0,0,21), mpos);
 	float dN = 30000000;
@@ -424,9 +426,9 @@ float spherewithrelief_sdb(vec3 mpos)
 		res += pow(di , -factor);
 		mindi = min(mindi, di);
 	}
-	res = min(mindi - pow(res - pow(mindi, -factor), -1/factor) + 8, dN);
+	res = min(mindi - pow(res - pow(mindi, -factor), -1/factor) + 4, dN);
 	res = pow(max(d, res) , -1.5) + pow(dO, -1.5);
-	return pow(res , -1/1.50) - 4.97521;
+	return pow(res , -1/1.50) - 2.97521;
 }
 
 float spherewithrelief2_sdb(vec3 mpos)
@@ -563,6 +565,10 @@ vec3 EstimateGradient(vec3 pos, float d)
 			SDBValue(pos + vec3(0, 0, d)) - SDBValue(pos - vec3(0, 0, d))) / (2 * d);
 }
 
+//local storage
+shared vec4[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSize_y] localResult;
+shared vec3[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSize_y] tracedPoints;
+
 //
 void main ()
 {
@@ -571,6 +577,7 @@ void main ()
 	vec2 isize = 1./imageSize(u_NormalDepth);
 	vec2 param = vec2(gl_GlobalInvocationID.xy * u_ChunkSize) * isize;
 	ivec2 startPixelID = ivec2(gl_GlobalInvocationID.xy) * u_ChunkSize;
+	int workGroupOffset = int(gl_LocalInvocationID.x * gl_WorkGroupSize.y + gl_LocalInvocationID.y) * c_ChunkSize_x * c_ChunkSize_y;
 	
 	if(startPixelID.x >= size.x ||startPixelID.y >= size.y)
 	{
@@ -592,22 +599,22 @@ void main ()
 	vec3 tracePoint, gradient, initTracePoint, lastTracePoint;
 
 	//test for intersection with bounds of function
-	vec4 bs = vec4(0, 0, 0, 2000);
+	vec4 bs = vec4(0, 0, 0, 368);
   vec4 testbs = bs;
   testbs.w += 1;
 
 	float upperLimit = epsilon;
-	float lowerLimit = 0;//-epsilon;
+	float lowerLimit = -epsilon;
 
 	//flag indicating the intersection of the ray with the implicit surface
 	bool intersect = false;
 	//does the camera start inside or not?
 	bool startInside = SphereContains(bs, Camera.pos.xyz);
 	//intersection time of currently computed ray with the bounding sphere 
-	float intTime;
+	float intTime = SphereRayIntersection(bs, Camera.pos.xyz, Camera.ray_dir.xyz);
 	//distance to a camera's nearplane from camera position
 	float nearPlaneDist = nearPlaneZ/dot(Camera.look_dir, Camera.ray_dir);
-	
+	//
 	float stepFactor = 1;
 	float lastStep = 1;
 	//current ray direction	
@@ -615,28 +622,15 @@ void main ()
 	//current pixel id
 	ivec2 pixelID;
 	int cx, cy;
+	float step;
+	vec4 result;
+	vec4 projected_i;
 	
 	if (intTime >= 0.0 || startInside)
 	{
-		cx = 0;
-		cy = 0;
+		ray_dir = normalize(Camera.ray_intr - Camera.pos);
 		
-		ray_dir = normalize(cx * Camera.x_delta + cy * Camera.y_delta + (Camera.ray_intr - Camera.pos));
-		pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
-		intTime = SphereRayIntersection(bs, Camera.pos.xyz, ray_dir.xyz);
-		
-		intersect = false;
-		numberOfIterations = 0;
-		stepFactor = 1;
-		lastStep = 1;
-		
-		if(intersect && cy != 0 && cx != 0)
-		{
-			float k = dot(Camera.look_dir.xyz, tracePoint - Camera.pos.xyz)/dot(Camera.look_dir, Camera.ray_dir);				
-			lastTracePoint = tracePoint = tracePoint + Camera.y_delta.xyz * k;
-		}
-		//initial phase, computation of start
-		else if (!startInside) 
+		if (!startInside) 
 		{
 			intTime = intTime < nearPlaneDist? nearPlaneDist: intTime;
 			lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * intTime;
@@ -649,61 +643,30 @@ void main ()
 		
 		while(cx < u_ChunkSize.x)
 		{
-			if(!SphereContains(testbs, tracePoint) || numberOfIterations > 40 || intersect)
+			if(!SphereContains(testbs, tracePoint) || numberOfIterations > 180 || intersect)
 			{
-				//kind of culling
-				if(!intersect)
-				{
-					imageStore(u_NormalDepth, pixelID, vec4(0.0, 0.0, 0.0, 0));
-				}
-				else
-				{	
-					//from ray origin, direction and sphere center and radius compute intersection
-					vec3 intersection = tracePoint;
-					vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
-					projected_i /= projected_i.w;
+				//store the result into the a local storage
+				localResult[workGroupOffset + cx * u_ChunkSize.y + cy] = result;
+				tracedPoints[workGroupOffset + cx * u_ChunkSize.y + cy] = tracePoint;
 				
-					vec4 result;
-					result.w = (projected_i.z + 1) * 0.5;
-					//result.w = numberOfIterations/30.0;
-					result.xyz = normalize(gradient) * 0.5f + 0.5f;
-					
-					//result = vec4(0.5,0.99,0.9,0);
-					imageStore(u_NormalDepth, pixelID, result);
-				}
-				
+				//move to next pixel
 				cx += ++cy / u_ChunkSize.y;
 				cy = cy % u_ChunkSize.y;
-				
 				ray_dir = normalize(cx * Camera.x_delta + cy * Camera.y_delta + (Camera.ray_intr - Camera.pos));
-				pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
-				intTime = SphereRayIntersection(bs, Camera.pos.xyz, ray_dir.xyz);				
 				
+				float k = dot(Camera.look_dir.xyz, tracedPoints[workGroupOffset] - Camera.pos.xyz)/dot(Camera.look_dir, Camera.ray_dir);
+				ivec2 prevcxy = clamp(ivec2(cx - 1, cy - 1), 0, 4);
+				ivec2 deltacxy = ivec2(cx, cy) - prevcxy;
+				vec3 xy_delta = Camera.y_delta.xyz * deltacxy.y * k + Camera.x_delta.xyz * deltacxy.x * k;
 				
-				if(intersect && cy != 0)
-				{
-					float k = dot(Camera.look_dir.xyz, tracePoint - Camera.pos.xyz)/dot(Camera.look_dir, Camera.ray_dir);				
-					tracePoint = tracePoint + Camera.y_delta.xyz * k;
-					lastTracePoint = tracePoint - 400* lastStep * ray_dir.xyz;
-				}
-				//initial phase, computation of start
-				else if (!startInside) 
-				{
-					intTime = intTime < nearPlaneDist? nearPlaneDist: intTime;
-					lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * intTime;
-				}
-				//start from near camera plane
-				else 
-				{
-					lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * length(tracePoint - Camera.pos.xyz) * 0.99;
-				}
+				tracePoint = tracedPoints[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y] + xy_delta - ray_dir.xyz * 150;
+				lastTracePoint = tracePoint + ray_dir.xyz * .00003;
+				step = SDBValue(tracePoint);
+				lastStep = SDBValue(lastTracePoint);
+				stepFactor = 1;
 				
 				intersect = false;
-				numberOfIterations = 0;
-				stepFactor = 1;
-				lastStep = SDBValue(lastTracePoint);
-				
-				barrier();
+				//numberOfIterations = 0;
 			}
 			
 			numberOfIterations++;
@@ -714,8 +677,7 @@ void main ()
 			//morphFunction = DomainMorphFunction(tracePoint);
 			//float step = SDBValue(morphFunction * tracePoint);
 			//step /= length(dDomainMorphFunction(tracePoint) * Camera.ray_dir.xyz);
-			float intTimeOffset = 0;//_LatticeValue(tracePoint) * 0.0000194105321041013013001272034252352;
-			float step = SDBValue(tracePoint) - abs(intTimeOffset);
+			
 
 			/////////////////////////////////////////////
 			//backward movement strategy
@@ -726,36 +688,68 @@ void main ()
 			//revert back to normal
 			else if(stepFactor < 1)
 			{
-				stepFactor = stepFactor * 1.2;
+				stepFactor = stepFactor * 1.8;
 			}
-			stepFactor = clamp(stepFactor, 0.1, 1.);*/
+			stepFactor = clamp(stepFactor, 0.1, 1.);
+			tracePoint += ray_dir.xyz * step * stepFactor;
+			float intTimeOffset = _LatticeValue(tracePoint) * 0.0002194105321041013013001272034252352;
+			step = SDBValue(tracePoint) - abs(intTimeOffset);*/
+			//step = SDBValue(tracePoint);
 			
 			
 			/////////////////////////////////////////////
 			//binary search movement strategy
-			if(step < 0)// && lastStep > 0 || step > 0 && lastStep < 0)
+			//float intTimeOffset = _LatticeValue(tracePoint) * 0.0000194105321041013013001272034252352;
+			//step = SDBValue(tracePoint) - abs(intTimeOffset);
+			/*if(step < 0 && lastStep > 0 || step > 0 && lastStep < 0)
 			{
-				//binary search, step halfway of what remains from the last positive step
-				step = lastStep * k2/10;
-				tracePoint = lastTracePoint;
+				vec3 mp = k2/ 10 * tracePoint + (10 - k2)/10 * lastTracePoint;
+				float mp_step = SDBValue(mp);
+				vec2 s = sign(vec2(mp_step, mp_step) * vec2(step, lastStep));
+				
+				if(s.x < 0)
+				{
+					lastStep = mp_step;
+					lastTracePoint = mp;
+				}
+				else
+				{
+					step = mp_step;
+					tracePoint = mp;
+				}
 			}
-			//else
+			else
 			{
 				lastTracePoint = tracePoint;
 				lastStep = step;
-			}
+				
+				tracePoint += ray_dir.xyz * step * stepFactor;
+				step = SDBValue(tracePoint);
+			}*/
+			
+			tracePoint += ray_dir.xyz * step * stepFactor;
+			float intTimeOffset = _LatticeValue(tracePoint) * 0.0000194105321041013013001272034252352;
+			step = SDBValue(tracePoint) - abs(intTimeOffset);
 			
 			/////////////////////////////////////////////
-			//move forward
+			//signal end
+			result = vec4(0,0,0,0);
 			if (step < upperLimit && step > lowerLimit)
 			{
 				intersect = true;
 				gradient = EstimateGradient(tracePoint, 0.01);
-			} 
-			else
-			{		
-				tracePoint += ray_dir.xyz * step * stepFactor;
-			}				
+				
+				projected_i = reproject(modelviewprojection_transform, vec4(tracePoint, 1));
+				result = vec4(normalize(gradient) * 0.5f + 0.5f, (projected_i.z + 1) * 0.5);
+				//result = vec4(normalize(gradient) * 0.5f + 0.5f, numberOfIterations/50.0);
+			}
 		}
+		
+		for(cx = 0; cx < u_ChunkSize.x; cx+=1)
+			for(cy = 0; cy < u_ChunkSize.y; cy+=1)
+			{
+				pixelID = ivec2(gl_GlobalInvocationID.xy * u_ChunkSize) + ivec2(cx, cy);
+				imageStore(u_NormalDepth, pixelID, localResult[workGroupOffset + cx * u_ChunkSize.y + cy]);
+			}
 	}
 }

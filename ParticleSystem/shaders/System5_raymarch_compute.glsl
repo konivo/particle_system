@@ -510,10 +510,10 @@ vec3 DomainMorphFunction(vec3 pos)
 	vec3 v3 = ceil(v1/ gridDim);
 	vec3 cellCenter = (v2 + v3)/2;
 	vec3 v_t = v1/ gridDim - v2 ;
-	float period = 20;
-	float t = fract(time/period)* period;
-	float smoothiness = 1./5;//0.8485;//t/period;
-	float boxSize = 1;//t/5;
+	float period = 10;
+	float t = fract(time/period)* 3 + 4;
+	//float smoothiness = 1./2;//0.8485;//t/period;
+	float boxSize = 18;//t/5;
 	
 		for(int i = 0; i < 3; i++)
 		{
@@ -570,6 +570,79 @@ shared vec4[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSiz
 shared vec3[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSize_y] tracedPoints;
 shared vec3[gl_WorkGroupSize.x * gl_WorkGroupSize.y * c_ChunkSize_x * c_ChunkSize_y] tracedFlags;
 
+void newpix(inout int state, inout int cx, inout int cy, out ivec2 delta)
+{	
+	switch(state)
+	{
+/*		case 0:
+			cx += (cy + 1) / u_ChunkSize.y;
+			cy = (cy + 1) % u_ChunkSize.y;
+			delta = ivec2(-1, -1);
+			break;*/
+		case 0:
+			if(cx % 2 > 0)
+			{
+				if(cy == 0)
+					delta = ivec2(-1, 0);
+				else
+					delta = ivec2(0, 1);
+					
+				if(cx == u_ChunkSize.x - 1 && cy == 0)
+					state++;
+					
+				cx += (u_ChunkSize.y - cy) / u_ChunkSize.y;
+				cy = max(cy - 1, 0);
+			}
+			else
+			{
+				if(cy == u_ChunkSize.y - 1)
+					delta = ivec2(-1, 0);
+				else
+					delta = ivec2(0, -1);
+					
+				if(cx == u_ChunkSize.x - 1 && cy == u_ChunkSize.y - 1 )
+					state++;
+					
+				cx += ++cy / u_ChunkSize.y;
+				cy = min(cy, u_ChunkSize.y - 1);
+			}
+			break;
+		case 1:
+			if(cx % 2 > 0)
+			{
+				if(cy == u_ChunkSize.y - 1)
+					delta = ivec2(1, 0);
+				else
+					delta = ivec2(0, -1);
+					
+				if(cx == 0 && cy == u_ChunkSize.y - 1 )
+					state++;
+					
+				cx -= ++cy / u_ChunkSize.y;
+				cy = min(cy, u_ChunkSize.y - 1);
+			}
+			else
+			{
+				if(cy == 0)
+					delta = ivec2(1, 0);
+				else
+					delta = ivec2(0, 1);
+					
+				if(cx == 0 && cy == 0 )
+					state++;
+					
+				cx -= (u_ChunkSize.y - cy) / u_ChunkSize.y;
+				cy = min(cy - 1, 0);
+
+			}
+			break;
+		case 2:
+			cx = u_ChunkSize.x;
+			cy = u_ChunkSize.y;
+			break;
+	}
+}
+
 //
 void main ()
 {
@@ -598,7 +671,7 @@ void main ()
 	//starting point
 	vec3 tracePoint, initTracePoint, lastTracePoint;
 	//test for intersection with bounds of function
-	vec4 bs = vec4(0, 0, 0, 28);
+	vec4 bs = vec4(0, 0, 0, 68);
   vec4 testbs = bs; testbs.w += 1;
 	//
 	float upperLimit = epsilon;
@@ -618,7 +691,8 @@ void main ()
 	//current ray direction	
 	vec4 ray_dir;
 	//current pixel id
-	int cx, cy;
+	int cx, cy, cxystate = 0;
+	ivec2 cxydelta;
 	ivec2 pixelID;
 	//
 	vec4 result;
@@ -628,7 +702,7 @@ void main ()
 	for(cx = 0; cx < u_ChunkSize.x; cx++)
 		for(cy = 0; cy < u_ChunkSize.y; cy++)
 		{
-			tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy] = vec3(2^32);
+			tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy] = vec3(pow(2., 32));
 		}
 	cx = cy = 0;
 	
@@ -647,28 +721,38 @@ void main ()
 			lastTracePoint = tracePoint = Camera.pos.xyz + ray_dir.xyz * nearPlaneDist;
 		}
 		
-		while(cx < u_ChunkSize.x)
+		while(cx < u_ChunkSize.x && cy < u_ChunkSize.y)
 		{
-			if(!SphereContains(testbs, tracePoint) || numberOfIterations > 30 || intersect)
+			if(!SphereContains(testbs, tracePoint) || numberOfIterations > k1 || intersect)
 			{
 				//store the result into the a local storage
 				tracedPoints[workGroupOffset + cx * u_ChunkSize.y + cy] = tracePoint;
 				tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy] = vec3(step, lastStep, numberOfIterations);
 				
 				//move to next pixel
-				cx += ++cy / u_ChunkSize.y;
-				cy = cy % u_ChunkSize.y;
+				newpix(cxystate, cx, cy, cxydelta);
 				ray_dir = normalize(cx * Camera.x_delta + cy * Camera.y_delta + (Camera.ray_intr - Camera.pos));
 				
 				float k = dot(Camera.look_dir.xyz, tracedPoints[workGroupOffset] - Camera.pos.xyz)/dot(Camera.look_dir, Camera.ray_dir);
-				ivec2 prevcxy = clamp(ivec2(cx - 1, cy - 1), 0, 4);
+				ivec2 prevcxy = clamp(ivec2(cx, cy) + cxydelta, ivec2(0), u_ChunkSize - 1);
 				ivec2 deltacxy = ivec2(cx, cy) - prevcxy;
 				vec3 xy_delta = Camera.y_delta.xyz * deltacxy.y * k + Camera.x_delta.xyz * deltacxy.x * k;
 				
-				tracePoint = tracedPoints[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y] + xy_delta - ray_dir.xyz * 0.000941;
-				lastTracePoint = tracePoint + ray_dir.xyz * .3;
-				step = tracedFlags[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y].x; //SDBValue(tracePoint);
-				lastStep = tracedFlags[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y].y;//SDBValue(lastTracePoint);
+				step = tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy].x;
+				lastStep = tracedFlags[workGroupOffset + cx * u_ChunkSize.y + cy].y;
+				tracePoint = tracedPoints[workGroupOffset + cx * u_ChunkSize.y + cy];
+				lastTracePoint = tracePoint;
+					
+				float pstep = tracedFlags[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y].x;
+				if(abs(step) > abs(pstep))
+				{			
+					tracePoint = tracedPoints[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y] + xy_delta - ray_dir.xyz * 0.01;
+					lastTracePoint = tracePoint + ray_dir.xyz * 0.3;					
+					step = tracedFlags[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y].x;
+					lastStep = tracedFlags[workGroupOffset + prevcxy.x * u_ChunkSize.y + prevcxy.y].y;
+					//step = SDBValue(tracePoint);
+					//lastStep = SDBValue(lastTracePoint);
+				}
 				
 				stepFactor = 1;				
 				intersect = false;
@@ -735,7 +819,7 @@ void main ()
 			/////////////////////////////////////////////
 			//simple 'sphere' tracing
 			tracePoint += ray_dir.xyz * step * stepFactor;
-			float intTimeOffset = _LatticeValue(tracePoint) * 0.00194105321041013013001272034252352;
+			float intTimeOffset = _LatticeValue(tracePoint) * 0.0000194105321041013013001272034252352;
 			step = SDBValue(tracePoint) - abs(intTimeOffset);
 			
 			//signal end
@@ -757,7 +841,7 @@ void main ()
 				projected_i = reproject(modelviewprojection_transform, vec4(tracePoint, 1));
 				result = vec4(normalize(gradient) * 0.5f + 0.5f, (projected_i.z + 1) * 0.5);
 				//
-				result = vec4(normalize(gradient) * 0.5f + 0.5f, numberOfIterations/25.0);
+				//result = vec4(normalize(gradient) * 0.5f + 0.5f, numberOfIterations/5.0);
 			}
 			else
 			{

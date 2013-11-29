@@ -19,10 +19,13 @@ namespace opentk.System3
 	{
 		string Name	{	get; }
 
+		//TODO: rename to ResetBundle or InitBundle
 		void NewBundle(System3 system, int bundleFirstItem);
 
+		//TODO: rename to ResetParticle or InitParticle
 		void MakeBubble (System3 system, int bundleFirstItem, int i);
 
+		//TODO: rename to NewSize
 		float UpdateSize(System3 system, int bundleFirstItem, int i);
 	}
 }

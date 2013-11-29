@@ -13,16 +13,11 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class State : IDisposable
+	public class State : IDisposable, IEnumerable<StatePart>
 	{
 		private readonly Dictionary<Type, ISet<StatePart>> m_StateSet = new Dictionary<Type, ISet<StatePart>> ();
 
 		private Lazy<List<StateActivator>> m_Activators;
-
-		public IEnumerable<StatePart> StateParts
-		{
-			get { return m_StateSet.Values.SelectMany (x => x); }
-		}
 
 		public T GetSingleState<T> () where T : StatePart
 		{
@@ -46,11 +41,6 @@ namespace OpenTK
 			return states;
 		}
 
-		private void PutState (StatePart state)
-		{
-			GetSet (state.GetType ()).Add (state);
-		}
-
 		private State ()
 		{
 			m_Activators = new Lazy<List<StateActivator>> (() =>
@@ -72,8 +62,13 @@ namespace OpenTK
 			
 			foreach (StatePart item in states)
 			{
-				PutState (item);
+				Add (item);
 			}
+		}
+		
+		public void Add (StatePart state)
+		{
+			GetSet (state.GetType ()).Add (state);
 		}
 
 		public void Activate ()
@@ -90,6 +85,24 @@ namespace OpenTK
 				item.Dispose ();
 			}
 		}
+		#endregion
+
+		#region IEnumerable implementation
+
+		public IEnumerator<StatePart> GetEnumerator ()
+		{			
+			return m_StateSet.Values.SelectMany (x => x).GetEnumerator ();
+		}
+
+		#endregion
+
+		#region IEnumerable implementation
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator ()
+		{
+			return GetEnumerator();
+		}
+
 		#endregion
 	}
 

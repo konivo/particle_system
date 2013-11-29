@@ -26,7 +26,14 @@ namespace opentk.System3
 	{
 		private ChaoticMap m_ChaoticMap;
 		private ISimulationScheme m_SimulationScheme;
+		private IGenerationScheme m_GenerationScheme;
 		private IParticleGenerator m_ParticleGenerator;
+		
+		public BufferObject<MetaInformation> MetaBuffer
+		{
+			get;
+			private set;
+		}
 
 		public MetaInformation[] Meta
 		{
@@ -75,6 +82,15 @@ namespace opentk.System3
 			get { return m_SimulationScheme; }
 			set { DoPropertyChange (ref m_SimulationScheme, value, "SimulationScheme"); }
 		}
+		
+		[Category("Map properties")]
+		[TypeConverter(typeof(IGenerationSchemeConverter))]
+		[DescriptionAttribute("Expand to see the parameters of the GenerationScheme scheme.")]
+		public IGenerationScheme GenerationScheme
+		{
+			get { return m_GenerationScheme; }
+			set { DoPropertyChange (ref m_GenerationScheme, value, "GenerationScheme"); }
+		}
 
 		[Category("Map properties")]
 		[TypeConverter(typeof(IParticleGeneratorConverter))]
@@ -92,16 +108,12 @@ namespace opentk.System3
 				PARTICLES_COUNT = 60000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0051,
 				Fov = 0.9, PublishMethod = PublishMethod.AllAtOnce,
 				ParticleScaleFactor = 600, 
-				SimulationScheme = new ParticlesWithTrails(), 
+				SimulationScheme = new ParticlesWithTrails(),
+				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
 				ChaoticMap = new DomainMorphMap(), 
 				ParticleGenerator = new SphereGenerator{ SeedDistribution = SeedDistributionType.RegularGrid, SphereInnerSize = 70, SphereOuterSize = 75 } 
 			};
 			return result;
-		}
-		
-		protected override void PrepareStateCore ()
-		{
-			;
 		}
 	}
 }

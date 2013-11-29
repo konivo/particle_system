@@ -187,7 +187,33 @@ namespace OpenTK.Graphics.OpenGL
 		MAX_COMBINED_IMAGE_UNIFORMS = 0x90CF,
 		//ALL_BARRIER_BITS = 0xFFFFFFFF,
 	}
-
+	/*
+	#ifndef GL_ARB_shader_storage_buffer_object
+	#define GL_ARB_shader_storage_buffer_object 1
+	
+	#define GL_SHADER_STORAGE_BARRIER_BIT 0x2000
+	#define GL_MAX_COMBINED_SHADER_OUTPUT_RESOURCES 0x8F39
+	#define GL_SHADER_STORAGE_BUFFER 0x90D2
+	#define GL_SHADER_STORAGE_BUFFER_BINDING 0x90D3
+	#define GL_SHADER_STORAGE_BUFFER_START 0x90D4
+	#define GL_SHADER_STORAGE_BUFFER_SIZE 0x90D5
+	#define GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS 0x90D6
+	#define GL_MAX_GEOMETRY_SHADER_STORAGE_BLOCKS 0x90D7
+	#define GL_MAX_TESS_CONTROL_SHADER_STORAGE_BLOCKS 0x90D8
+	#define GL_MAX_TESS_EVALUATION_SHADER_STORAGE_BLOCKS 0x90D9
+	#define GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS 0x90DA
+	#define GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS 0x90DB
+	#define GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS 0x90DC
+	#define GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS 0x90DD
+	#define GL_MAX_SHADER_STORAGE_BLOCK_SIZE 0x90DE
+	#define GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT 0x90DF
+	
+	typedef void (GLAPIENTRY * PFNGLSHADERSTORAGEBLOCKBINDINGPROC) (GLuint program, GLuint storageBlockIndex, GLuint storageBlockBinding);
+	
+	#define glShaderStorageBlockBinding GLEW_GET_FUN(__glewShaderStorageBlockBinding)
+	
+	#define GLEW_ARB_shader_storage_buffer_object GLEW_GET_VAR(__GLEW_ARB_shader_storage_buffer_object)
+*/
 	public static class GLExtensions
 	{
 		[DllImport("GL", EntryPoint = "glVertexAttribDivisor", ExactSpelling = true)]
@@ -206,7 +232,7 @@ namespace OpenTK.Graphics.OpenGL
 		unsafe private extern static void glGetProgramInterfaceiv(int program, ProgramInterface intr, InterfaceProperty pname, int* parameters);
 		
 		[DllImport("GL", EntryPoint = "glGetProgramResourceIndex", ExactSpelling = true)]
-		unsafe private extern static int glGetProgramResourceIndex(int program, ProgramInterface intr, char* name);
+		unsafe private extern static int glGetProgramResourceIndex(int program, ProgramInterface intr, string name);
 		
 		[DllImport("GL", EntryPoint = "glGetProgramResourceName", ExactSpelling = true)]
 		unsafe private extern static void glGetProgramResourceName(int program, ProgramInterface intr, int index, int buffsize, int* length, sbyte* name);
@@ -219,7 +245,18 @@ namespace OpenTK.Graphics.OpenGL
 		
 		[DllImport("GL", EntryPoint = "glDispatchCompute", ExactSpelling = true)]
 		unsafe private extern static void glDispatchCompute(int nx, int ny, int nz);
-
+		
+		[DllImport("GL", EntryPoint = "glShaderStorageBlockBinding", ExactSpelling = true)]
+		unsafe private extern static void glShaderStorageBlockBinding(int program, int blockIndex, int blockBinding);
+		
+		public static void BindShaderStorage(int program, int blockIndex, int blockBinding)
+		{
+			unsafe
+			{
+				glShaderStorageBlockBinding(program, blockIndex, blockBinding);
+			}
+		}
+		
 		public static void BindImageTexture(int unit, int texture, int level, bool layered, int layer, ImageAccess access, ImageFormat format)
 		{
 			unsafe
@@ -283,7 +320,7 @@ namespace OpenTK.Graphics.OpenGL
 			{
 				fixed(char* fparams = pname)
 				{
-					return glGetProgramResourceIndex(program, intr, fparams);
+					return glGetProgramResourceIndex(program, intr, pname);
 				}
 			}
 		}

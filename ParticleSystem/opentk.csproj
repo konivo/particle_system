@@ -126,6 +126,12 @@
     <Compile Include="System5\System5.cs" />
     <Compile Include="System5\System5.State.cs" />
     <Compile Include="OpenTK\ImageBinding.cs" />
+    <Compile Include="OpenTK\ShaderStorageBinding.cs" />
+    <Compile Include="System3\SimulationSchemes.cs" />
+    <Compile Include="System3\ParticlesWithTrailsGpuSimulationScheme.cs" />
+    <Compile Include="System3\IGenerationScheme.cs" />
+    <Compile Include="System3\GenerationSchemes.cs" />
+    <Compile Include="System3\IGenerationSchemeConverter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -153,6 +159,7 @@
     <Folder Include="Scene\ParticleSystem\" />
     <Folder Include="Resources\" />
     <Folder Include="shaders\" />
+    <Folder Include="System3\Shaders\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />
@@ -194,6 +201,8 @@
     <EmbeddedResource Include="System5\Shaders\raymarch_compute.glsl" />
     <EmbeddedResource Include="shaders\System5_raymarch_compute.glsl" />
     <EmbeddedResource Include="shaders\System5_lighting_fragment.glsl" />
+    <EmbeddedResource Include="System3\Shaders\Simscheme_ParticlesWithTrails_compute.glsl" />
+    <EmbeddedResource Include="shaders\System3_Simscheme_ParticlesWithTrails_compute.glsl" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

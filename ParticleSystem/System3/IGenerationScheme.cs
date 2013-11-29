@@ -15,14 +15,14 @@ namespace opentk.System3
 	///
 	/// </summary>
 	[InheritedExport]
-	public interface ISimulationScheme
+	public interface IGenerationScheme
 	{
 		string Name
 		{
 			get;
 		}
 
-		void Simulate(System3 system, DateTime simulationTime, long simulationStep);
+		void Generate(System3 system, DateTime simulationTime, long simulationStep);
 	}
 }
 

@@ -38,10 +38,36 @@ namespace OpenTK
 		public IEnumerable<string> Uniforms
 		{
 			get{
-				var result = new string[1000];
+				var result = new List<string>();
 				for(int i = 0; i < GLExtensions.GetProgramInterfaceiv(Handle, ProgramInterface.Uniform, InterfaceProperty.ActiveResources); i++)
 				{
-					result[i] = GLExtensions.GetProgramResourceName(Handle, ProgramInterface.Uniform, i);
+					result.Add (GLExtensions.GetProgramResourceName(Handle, ProgramInterface.Uniform, i));
+				}
+				
+				return result;
+			}
+		}
+		
+		public IEnumerable<string> ShaderStorage
+		{
+			get{
+				var result = new List<string>();
+				for(int i = 0; i < GLExtensions.GetProgramInterfaceiv(Handle, ProgramInterface.ShaderStorageBlock, InterfaceProperty.ActiveResources); i++)
+				{
+					result.Add (GLExtensions.GetProgramResourceName(Handle, ProgramInterface.ShaderStorageBlock, i));
+				}
+				
+				return result;
+			}
+		}
+		
+		public IEnumerable<string> BufferVariables
+		{
+			get{
+				var result = new List<string>();
+				for(int i = 0; i < GLExtensions.GetProgramInterfaceiv(Handle, ProgramInterface.BufferVariable, InterfaceProperty.ActiveResources); i++)
+				{
+					result.Add (GLExtensions.GetProgramResourceName(Handle, ProgramInterface.BufferVariable, i));
 				}
 				
 				return result;

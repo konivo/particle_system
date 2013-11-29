@@ -13,7 +13,7 @@ namespace opentk.Scene.ParticleSystem
 {
 	public enum PublishMethod
 	{
-		Incremental, AllAtOnce
+		Incremental, AllAtOnce, Never
 	}
 
 	/// <summary>
@@ -25,7 +25,6 @@ namespace opentk.Scene.ParticleSystem
 		///
 		/// </summary>
 		protected abstract void InitializeSystem();
-
 		/// <summary>
 		///
 		/// </summary>
@@ -33,12 +32,17 @@ namespace opentk.Scene.ParticleSystem
 		/// A <see cref="DateTime"/>
 		/// </param>
 		protected abstract void Simulate (DateTime simulationTime);
-
 		/// <summary>
 		/// s
 		/// </summary>
-		protected abstract void PrepareStateCore();
-
+		protected abstract void PrepareStateCore();		
+		/// <summary>
+		/// Publish the specified start and count.
+		/// </summary>
+		/// <param name="start">Start.</param>
+		/// <param name="count">Count.</param>
+		protected virtual void Publish(int start, int count)
+		{ }
 		//
 		private void PrepareState ()
 		{
@@ -66,6 +70,7 @@ namespace opentk.Scene.ParticleSystem
 					m_RotationBuffer.Publish();
 					m_RotationLocalBuffer.Publish();
 
+					Publish (0, PARTICLES_COUNT);
 					break;
 				case PublishMethod.Incremental:
 					{
@@ -81,6 +86,7 @@ namespace opentk.Scene.ParticleSystem
 						m_RotationBuffer.PublishPart (start, cnt);
 						m_RotationLocalBuffer.PublishPart (start, cnt);
 
+					  Publish (start, cnt);
 						m_PublishCounter = end;
 					}
 					break;

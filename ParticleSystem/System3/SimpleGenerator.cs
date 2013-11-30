@@ -24,12 +24,6 @@ namespace opentk.System3
 			}
 		}
 	
-		public SeedDistributionType SeedDistribution
-		{
-			get;
-			set;
-		}
-	
 		public int LifeLengthMin
 		{
 			get;

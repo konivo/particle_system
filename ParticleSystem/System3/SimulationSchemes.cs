@@ -227,15 +227,25 @@ namespace opentk.System3
 			});
 		}
 	}
-
 	/// <summary>
 	/// IFS scheme.
 	/// </summary>
 	public class IFSScheme: ISimulationScheme
 	{
+		public enum ColorSchemeType
+		{
+			Distance,
+			Color
+		}
+		
 		private float m_SpeedUpperBound;
 		private bool m_MapModeComputed;
 		private long m_PrevSimulStep;
+		
+		public ColorSchemeType ColorScheme
+		{
+			get; set;
+		}
 
 		#region ISimulationScheme implementation
 		void ISimulationScheme.Simulate (System3 system, DateTime simulationTime, long simulationStep)
@@ -243,47 +253,49 @@ namespace opentk.System3
 			m_MapModeComputed &= simulationStep == m_PrevSimulStep + 1;
 			m_PrevSimulStep = simulationStep;
 
-			var Position = system.Position;
-			var Meta = system.Meta;
-			var ColorScheme = system.ColorScheme;
-			var Color = system.Color;
+			var position = system.Position;
+			var dimension = system.Dimension;
+			var meta = system.Meta;
+			var color = system.Color;
 			var dt = (float)system.DT;
 
 			var fun = system.ChaoticMap.Map;
 			m_SpeedUpperBound = Math.Max(m_SpeedUpperBound * 0.75f, 1);
 
 			var step = 150;
-			var ld = (Meta[0].Leader + 1) % step;
-			Meta[0].Leader = ld;
+			var ld = (meta[0].Leader + 1) % step;
+			meta[0].Leader = ld;
 
 			//prepare seed points
 			if (!m_MapModeComputed)
 			{
 				for (int i = 0; i < step; i++)
 				{
-					Position[i] = new Vector4 ((float)(MathHelper2.GetThreadLocalRandom().NextDouble () * 0.01), 0, 0, 1);
+					position[i] = new Vector4 ((float)(MathHelper2.GetThreadLocalRandom().NextDouble () * 0.01), 0, 0, 1);
+					dimension[i] = Vector4.Zero;
 				}
 				m_MapModeComputed = true;
 			}
 
 			//iterate the seed values
 			ld += step;
-			for (int i = ld; i < Position.Length; i += step)
+			for (int i = ld; i < position.Length; i += step)
 			{
-				fun (ref Position[i - step], ref Position[i] );
-				Position[i].W = 1;
+				fun (ref position[i - step], ref position[i] );
+				position[i].W = 1;
+				dimension[i] = new Vector4(meta[i].Size);
 
 				switch (ColorScheme)
 				{
 				case ColorSchemeType.Distance:
-					var speed = (Position[i] - Position[i - step]).LengthFast / dt;
+					var speed = (position[i] - position[i - step]).LengthFast / dt;
 					var A = MathHelper2.Clamp (2 * speed / m_SpeedUpperBound, 0, 1);
 					m_SpeedUpperBound = m_SpeedUpperBound < speed? speed: m_SpeedUpperBound;
 
-					Color[i] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
+					color[i] = (new Vector4 (1, 0.2f, 0.2f, 1) * A + new Vector4 (0.2f, 1, 0.2f, 1) * (1 - A));
 					break;
 				case ColorSchemeType.Color:
-					Color[i] = new Vector4 (0.2f, 1, 0.2f, 1);
+					color[i] = new Vector4 (0.2f, 1, 0.2f, 1);
 					break;
 				default:
 					break;
@@ -316,18 +328,18 @@ namespace opentk.System3
 			m_MapModeComputed &= simulationStep == m_PrevSimulStep + 1;
 			m_PrevSimulStep = simulationStep;
 
-			var Position = system.Position;
+			var position = system.Position;
 			var fun = system.ChaoticMap.Map;
 			m_SpeedUpperBound = Math.Max(m_SpeedUpperBound * 0.75f, 1);
 
 			//prepare seed points
 			if (!m_MapModeComputed)
 			{
-				for (int i = 0; i < Position.Length; i++)
+				for (int i = 0; i < position.Length; i++)
 				{
 					system.ParticleGenerator.MakeBubble(system, i, i);
-					fun (ref Position[i], ref Position[i]);
-					Position[i].W = 1;
+					fun (ref position[i], ref position[i]);
+					position[i].W = 1;
 				}
 				m_MapModeComputed = true;
 			}

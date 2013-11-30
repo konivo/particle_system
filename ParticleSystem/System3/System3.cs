@@ -1,33 +1,24 @@
 using System;
-using OpenTK;
-using OpenTK.Graphics;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
+using OpenTK;
+using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using opentk.PropertyGridCustom;
 using opentk.Scene.ParticleSystem;
 
 namespace opentk.System3
 {
-	public enum ColorSchemeType
-	{
-		Distance,
-		Color
-	}
-
-	public enum SeedDistributionType
-	{
-		RegularGrid = 0x1,
-		Random = 0x2,
-		RandomInBox = 0x3
-	}
-
+	/// <summary>
+	/// System3.
+	/// </summary>
 	public partial class System3 : ParticleSystemBase
 	{
 		private ChaoticMap m_ChaoticMap;
 		private ISimulationScheme m_SimulationScheme;
 		private IGenerationScheme m_GenerationScheme;
 		private IParticleGenerator m_ParticleGenerator;
+		private long m_Step;
 		
 		public BufferObject<MetaInformation> MetaBuffer
 		{
@@ -54,12 +45,6 @@ namespace opentk.System3
 		}
 
 		public bool SingleStepSimulation
-		{
-			get;
-			set;
-		}
-
-		public ColorSchemeType ColorScheme
 		{
 			get;
 			set;
@@ -111,9 +96,47 @@ namespace opentk.System3
 				SimulationScheme = new ParticlesWithTrails(),
 				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
 				ChaoticMap = new DomainMorphMap(), 
-				ParticleGenerator = new SphereGenerator{ SeedDistribution = SeedDistributionType.RegularGrid, SphereInnerSize = 70, SphereOuterSize = 75 } 
+				ParticleGenerator = new SphereGenerator{ SphereInnerSize = 70, SphereOuterSize = 75 } 
 			};
 			return result;
+		}
+		
+		protected override void InitializeSystem ()
+		{
+			ChaoticMap = ChaoticMap ?? new LorenzMap ();
+			SimulationScheme = SimulationScheme ?? new ParticlesWithTrails ();
+			GenerationScheme = GenerationScheme ?? new ParticlesWithTrailsGenerationScheme ();
+			ParticleGenerator = ParticleGenerator ?? new SimpleGenerator ();
+			TrailSize = Math.Max (TrailSize, 1);
+			
+			Meta = MetaBuffer.Data = new MetaInformation[Position.Length];
+			for (int i = 0; i < Position.Length; i++) {
+				ParticleGenerator.MakeBubble (this, i, i);
+			}
+		}
+		
+		protected override void Publish (int start, int count)
+		{
+			if(count == PARTICLES_COUNT)
+				MetaBuffer.Publish ();
+			else
+				MetaBuffer.PublishPart(start, count);
+		}
+		
+		protected override void PrepareStateCore ()
+		{
+			unsafe
+			{
+				MetaBuffer = new BufferObject<MetaInformation> (sizeof(MetaInformation), 0) { Name = "metadata_buffer", Usage = BufferUsageHint.DynamicDraw };
+			}
+		}
+		
+		protected override void Simulate (DateTime simulationTime)
+		{
+			ChaoticMap.UpdateMap (simulationTime, m_Step);
+			GenerationScheme.Generate (this, simulationTime, m_Step);
+			SimulationScheme.Simulate (this, simulationTime, m_Step);
+			m_Step++;
 		}
 	}
 }

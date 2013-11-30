@@ -25,5 +25,3 @@ namespace opentk.System3
 		void Generate(System3 system, DateTime simulationTime, long simulationStep);
 	}
 }
-
-

@@ -85,7 +85,8 @@ namespace opentk.System3
 
 		void ISimulationScheme.Simulate (System3 system, DateTime simulationTime, long simulationStep)
 		{
-			m_SpeedUpperBound = Math.Max (m_SpeedUpperBound * 0.75f, 0.01f);
+			var trailSize = Math.Max(system.TrailSize, 1);
+			var trailBundleSize = Math.Max(TrailBundleSize, 1);
 			
 			if (m_State == null) {
 				//create program from resources filtered by namespace and name
@@ -101,20 +102,35 @@ namespace opentk.System3
 							{"Position", system.PositionBuffer},
 						  {"Rotation", system.RotationBuffer},
 						  {"MapParameters", m_Parameters},
+						  {"Dimension", system.DimensionBuffer},
+						  {"Attribute1", system.ColorBuffer},
 						  {"Meta", system.MetaBuffer},
 					  },
 					  new UniformState
 					  {
-						  {"u_Dt", () => (float)system.DT }
+						  {"u_Dt", () => (float)system.DT },
+						  {"u_TrailSize", () => system.TrailSize },
+						  {"u_TrailBundleSize", () => TrailBundleSize },
+						  {"u_StepsPerFrame", () => system.StepsPerFrame },
+						  {"u_ParticleScale", () => (float)system.ParticleScaleFactor },
 					  }
 					};
 			}
+			
+			//system.MetaBuffer.Publish();
+			//system.PositionBuffer.Publish();
 			
 			m_Parameters.Data = system.ChaoticMap.a;
 			m_Parameters.Publish();
 			
 			m_State.Activate ();
-			GLExtensions.DispatchCompute (system.PARTICLES_COUNT/8 + 1, 1, 1);
+			GLExtensions.DispatchCompute (system.PARTICLES_COUNT/(8 * trailBundleSize)  + 1, 1, 1);
+			
+			//system.MetaBuffer.Readout();
+			//system.PositionBuffer.Readout();
+			//system.RotationBuffer.Readout();
+			//system.DimensionBuffer.Readout();
+			//system.ColorBuffer.Readout();
 		}
 	}
 }

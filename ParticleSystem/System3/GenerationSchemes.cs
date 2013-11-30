@@ -54,7 +54,7 @@ namespace opentk.System3
 							break;
 						}
 						
-						if(j != 0)
+						if(j != 0 || trailSize == 1)
 							meta[ii].Size = Math.Max (system.ParticleGenerator.UpdateSize (system, i, ii), float.Epsilon);
 						
 						if (j == trailSize - 1) {
@@ -85,7 +85,6 @@ namespace opentk.System3
 
 			var Position = system.Position;
 			var Meta = system.Meta;
-			var ColorScheme = system.ColorScheme;
 			var Color = system.Color;
 			var dt = (float)system.DT;
 

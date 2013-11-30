@@ -134,7 +134,14 @@ namespace OpenTK
 				pptr.Free ();
 			}
 		}
-
+		/// <summary>
+		/// 
+		/// </summary>
+		public void Readout ()
+		{
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+			GL.GetBufferSubData (BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * Data.Length), Data);
+		}
 		//todo:
 		// GetManagedSize() returns the size of a structure whose type
 		// is 'type', as stored in managed memory. For any referenec type

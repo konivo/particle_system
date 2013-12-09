@@ -14,9 +14,8 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class Program : StatePart, IHandle
+	public class Program : StatePart, IHandle, IEnumerable<Shader>
 	{
-		public readonly IEnumerable<Shader> Shaders;
 		public readonly string Name;
 		public int Handle
 		{
@@ -29,10 +28,16 @@ namespace OpenTK
 			get;
 			private set;
 		}
+		
+		public IEnumerable<Shader> Shaders
+		{
+			get;
+			private set;
+		}
 
 		public IEnumerable<string> ShaderLogs
 		{
-			get { return Shaders.Select (x => x.Log); }
+			get { return Shaders.Select (x => string.Format ("shader {0}:\n{1}", x.Name, x.Log)); }
 		}
 		
 		public IEnumerable<string> Uniforms
@@ -79,10 +84,11 @@ namespace OpenTK
 			get { return GL.GetProgramInfoLog (Handle); }
 		}
 
-		private Program (string name)
+		public Program (string name)
 		{
 			Handle = GL.CreateProgram ();
 			Name = name;
+			Shaders = new Shader[0];
 		}
 
 		public Program (string name, params Shader[] shaders) : this(name)
@@ -96,6 +102,18 @@ namespace OpenTK
 		{
 			Shaders = Array.AsReadOnly (shaders.ToArray());
 			
+			Console.WriteLine ("Program <{0}> declared, shaders: {1}", Name, String.Join (", ", shaders.Select (x => x.Name)));
+		}
+		
+		public void Add(Shader shader)
+		{
+			Shaders = Array.AsReadOnly(Shaders.Concat(new []{ shader }).ToArray ());
+			Console.WriteLine ("Program <{0}> declared, shaders: {1}", Name, shader.Name);
+		}
+		
+		public void Add(IEnumerable<Shader> shaders)
+		{
+			Shaders = Array.AsReadOnly(Shaders.Concat(shaders).ToArray ());
 			Console.WriteLine ("Program <{0}> declared, shaders: {1}", Name, String.Join (", ", shaders.Select (x => x.Name)));
 		}
 
@@ -136,6 +154,24 @@ namespace OpenTK
 				GL.UseProgram (Handle);
 			}, null);
 		}
+
+		#region IEnumerable implementation
+
+		IEnumerator<Shader> IEnumerable<Shader>.GetEnumerator ()
+		{
+			return Shaders.GetEnumerator();
+		}
+
+		#endregion
+
+		#region IEnumerable implementation
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator ()
+		{
+			return Shaders.GetEnumerator();
+		}
+
+		#endregion
 
 		#region IDisposable implementation
 		protected override void DisposeCore ()

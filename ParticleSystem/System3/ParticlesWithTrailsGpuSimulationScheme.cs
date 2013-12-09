@@ -85,12 +85,16 @@ namespace opentk.System3
 
 		void ISimulationScheme.Simulate (System3 system, DateTime simulationTime, long simulationStep)
 		{
-			var trailSize = Math.Max(system.TrailSize, 1);
+			//var trailSize = Math.Max(system.TrailSize, 1);
 			var trailBundleSize = Math.Max(TrailBundleSize, 1);
 			
 			if (m_State == null) {
 				//create program from resources filtered by namespace and name
-				var program = new Program ("SimulationScheme", RenderPass.GetShaders ("System3", "ParticlesWithTrails"));
+				var program = new Program ("SimulationScheme")
+				{
+					RenderPass.GetShaders ("System3", "ParticlesWithTrails"),
+					RenderPass.GetShaders ("System3", "PWTSub")
+				};
 				m_Parameters = new BufferObject<float>(sizeof(float), 0) { Name = "map_parameters_buffer", Usage = BufferUsageHint.DynamicDraw };
 				
 				m_State = 
@@ -113,6 +117,7 @@ namespace opentk.System3
 						  {"u_TrailBundleSize", () => TrailBundleSize },
 						  {"u_StepsPerFrame", () => system.StepsPerFrame },
 						  {"u_ParticleScale", () => (float)system.ParticleScaleFactor },
+						  {"u_Map", (ShaderType)ShaderTypeExt.ComputeShader, () => system.ChaoticMap.Name },
 					  }
 					};
 			}

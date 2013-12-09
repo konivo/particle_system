@@ -56,7 +56,10 @@ namespace OpenTK
 		{
 			{ ShaderType.FragmentShader, new SubroutineList()},
 			{ ShaderType.GeometryShader, new SubroutineList()},
-			{ ShaderType.VertexShader, new SubroutineList()}
+			{ ShaderType.VertexShader, new SubroutineList()},
+			{ (ShaderType)ShaderTypeExt.ComputeShader, new SubroutineList()},
+			{ (ShaderType)ShaderTypeExt.TesselationControlShader, new SubroutineList()},
+			{ (ShaderType)ShaderTypeExt.TesselationShader, new SubroutineList()}
 		};
 
 		public readonly bool Default;
@@ -115,6 +118,21 @@ namespace OpenTK
 		public void Add<T> (string name, Func<T> val)
 		{
 			Set(name, ValueProvider.Create (val, null));
+		}
+		
+		public void Add<T> (string name, ShaderType stage, T val)
+		{
+			Set(name, stage, val);
+		}
+		
+		public void Add<T> (string name, ShaderType stage, IValueProvider<T> val)
+		{
+			Set(name, stage, val);
+		}
+		
+		public void Add<T> (string name, ShaderType stage, Func<T> val)
+		{
+			Set(name, stage, ValueProvider.Create (val, null));
 		}
 
 		protected override Tuple<Action, Action> GetActivatorCore (State state)
@@ -288,7 +306,6 @@ namespace OpenTK
 
 		#endregion
 
-
 		#region IEnumerable implementation
 
 
@@ -299,7 +316,5 @@ namespace OpenTK
 
 
 		#endregion
-
 	}
-	
 }

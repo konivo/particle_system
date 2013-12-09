@@ -8,8 +8,10 @@ struct MetaInformation
 	int LifeLen;
 	int Leader;
 	float Size;
-	vec3 Velocity;
+	vec3 Velocity; 
 };
+
+subroutine vec4 Map(vec4 p);
 
 ////////////////////////////////////////////////////////////////////////////////
 //uniforms//
@@ -18,6 +20,7 @@ uniform int u_TrailSize = 100;
 uniform int u_TrailBundleSize = 1;
 uniform int u_StepsPerFrame = 1;
 uniform float u_ParticleScale = 600;
+subroutine uniform Map u_Map;
 
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
@@ -26,6 +29,9 @@ uniform float u_ParticleScale = 600;
 const int c_ChunkSize_x = 4;
 const int c_ChunkSize_y = 1;
 const ivec2 u_ChunkSize = {c_ChunkSize_x, c_ChunkSize_y};
+
+//SpiralBMap map
+const int c_CenterCount = 30, c_CenterParamCount = 5;
 
 ////////////////////////////////////////////////////////////////////////////////
 //buffer//
@@ -59,18 +65,10 @@ layout(std140) buffer Meta
 	MetaInformation[] meta;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+//implementations//
 
-vec4 Func(vec4 p)
-{
-	return vec4(
-		a[0] * (p.y - p.x),
-		p.x * (a[1] - p.z) - p.y,
-		p.x * p.y - p.z * a[2],
-		0);
-}
-
-void main()
-{
+void main(){
 	int particleCount = position.length();
 	
 	int trailSize = max(u_TrailSize, 1);
@@ -101,7 +99,7 @@ void main()
 			float K = u_Dt;
 
 			size = max(meta[pi].Size, 0.0001f);
-			dp = Func (position[pi]);
+			dp = u_Map(position[pi]);
 
 			//
 			vec4 b0 = vec4( dp.xyz, 0);
@@ -130,11 +128,11 @@ void main()
 			{
 				dpA = 2 * dp;
 				middlepoint = position[pi] + dp;
-				dpB = Func (middlepoint);
+				dpB = u_Map (middlepoint);
 				dpB *= K;
 				endpoint = middlepoint + dpB;
 
-				dpB = Func (endpoint);
+				dpB = u_Map (endpoint);
 				dpB *= 2 * K;
 			}
 
@@ -185,5 +183,94 @@ void main()
 				//}
 			}
 		}
+			
+		for(int pi = firsttrail; pi < min(firsttrail + trailSize * trailBundleSize, particleCount); pi++)
+		{
+			dp = u_Map(position[pi]);
+			float K = u_Dt;
+			//
+			vec4 b0 = vec4( dp.xyz, 0);
+			vec4 b2 = vec4( cross( b0.xyz, rotation[pi][1].xyz), 0);
+			vec4 b1 = vec4( cross( b2.xyz, b0.xyz), 0);
+
+			b0 = normalize(b0);
+			b1 = normalize(b1);
+			b2 = normalize(b2);
+			
+			//K *= min(1, 10 * (size * particleScale)/ (length(dp) * u_Dt));
+			//K *= 0.5f;
+
+			dp *= K;
+			
+			position[pi] = position[pi] + dp;
+			rotation[pi] = mat4(b0, b1, b2, vec4(0,0,0,1));
+		}
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//subroutines//
+
+///////////////
+subroutine(Map)
+vec4 Func(vec4 p)
+{
+	return vec4(
+		a[0] * (p.y - p.x),
+		p.x * (a[1] - p.z) - p.y,
+		p.x * p.y - p.z * a[2],
+		0);
+}
+
+///////////////
+subroutine(Map)
+vec4 Lorenz(vec4 p)
+{
+	return vec4(
+		a[0] * (p.y - p.x),
+		p.x * (a[1] - p.z) - p.y,
+		p.x * p.y - p.z * a[2],
+		0);
+}
+
+///////////////
+vec4 SpiralBMapInternal(float k, float acc, vec4 center, vec4 vin, vec4 vout)
+{
+	vec4 tmp = vin - center;
+	float dist = length(tmp);
+
+	for(int i = 0; i < 3; i++)
+	{
+		//if(float.IsNaN(tmp.X) || float.IsNaN(tmp.Y))
+			//break;
+
+		vec4 d = 
+			normalize(vec4(
+				k * tmp.y,
+				-k * tmp.x,
+				1,
+				0
+			));
+
+		d *= 1f/max(sqrt(dist), 0.1f);
+		vout += acc * d;
+		tmp = vec4(tmp.zxy,0);
+		vout = vec4(vout.zxy, 0);
+	}
+	
+	return vout;
+}
+
+subroutine(Map)
+vec4 SpiralBMap(vec4 vin)
+{
+	vec4 o = vec4(0, 0, 0, 0);
+	for(int i = 0; i < c_CenterCount * c_CenterParamCount; i+= c_CenterParamCount)
+	{
+		vec4 center = vec4(a[i], a[i + 1], a[i + 2], 0);
+		o = SpiralBMapInternal(a[i + 3], a[i + 4], center, vin, o);
+	}
+
+	o /= c_CenterCount * 3;
+	return o;
 }

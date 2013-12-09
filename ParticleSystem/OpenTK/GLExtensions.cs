@@ -3,6 +3,15 @@ using System.Runtime.InteropServices;
 
 namespace OpenTK.Graphics.OpenGL
 {
+	public enum ShaderTypeExt: int{
+		FragmentShader = ShaderType.FragmentShader,		
+		VertexShader = ShaderType.VertexShader,
+		GeometryShader = ShaderType.GeometryShader,
+		ComputeShader = 0x91B9,
+		TesselationShader = 0x8E87,
+		TesselationControlShader = 0x8E88
+	}
+
 	public enum ProgramInterface: int{
 		//#define GL_ATOMIC_COUNTER_BUFFER 0x92C0
 		AtomicCounterBuffer = 0x92C0,

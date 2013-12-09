@@ -21,7 +21,6 @@
     <Externalconsole>True</Externalconsole>
     <additionalargs>/unsafe</additionalargs>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <Commandlineparameters>--llvm</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>
@@ -194,15 +193,9 @@
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_geometry.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\solid_box_vertex.glsl" />
     <EmbeddedResource Include="ShadingSetup\SolidModel\Shaders\stringfilter_fragment.glsl" />
-    <EmbeddedResource Include="shaders\System4_raymarch_fragment.glsl" />
-    <EmbeddedResource Include="shaders\System4_lighting_fragment.glsl" />
-    <EmbeddedResource Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
     <EmbeddedResource Include="System5\Shaders\lighting_fragment.glsl" />
     <EmbeddedResource Include="System5\Shaders\raymarch_compute.glsl" />
-    <EmbeddedResource Include="shaders\System5_raymarch_compute.glsl" />
-    <EmbeddedResource Include="shaders\System5_lighting_fragment.glsl" />
     <EmbeddedResource Include="System3\Shaders\Simscheme_ParticlesWithTrails_compute.glsl" />
-    <EmbeddedResource Include="shaders\System3_Simscheme_ParticlesWithTrails_compute.glsl" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
@@ -269,4 +262,13 @@
       </Properties>
     </MonoDevelop>
   </ProjectExtensions>
+  <ItemGroup>
+    <None Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
+    <None Include="shaders\System3_Simscheme_ParticlesWithTrails_compute.glsl" />
+    <None Include="shaders\System3_Simscheme_PWTSub_compute.glsl" />
+    <None Include="shaders\System4_lighting_fragment.glsl" />
+    <None Include="shaders\System4_raymarch_fragment.glsl" />
+    <None Include="shaders\System5_lighting_fragment.glsl" />
+    <None Include="shaders\System5_raymarch_compute.glsl" />
+  </ItemGroup>
 </Project>

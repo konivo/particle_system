@@ -107,8 +107,8 @@ namespace opentk
 			(
 				 new FramebufferBindingSet(
 				  new DrawFramebufferBinding { Attachment = FramebufferAttachment.DepthAttachment, Texture = depth_texture },
-				  new DrawFramebufferBinding { VariableName = "Fragdata.uv_colorindex_none", Texture = uv_colorindex_target },
-				  new DrawFramebufferBinding { VariableName = "Fragdata.normal_depth", Texture = normal_depth_target }
+				  new DrawFramebufferBinding { VariableName = "uv_colorindex_none", Texture = uv_colorindex_target },
+				  new DrawFramebufferBinding { VariableName = "normal_depth", Texture = normal_depth_target }
 				 ),
 				 sprite_pos_buffer, sprite_color_buffer, sprite_dimensions_buffer, sprite_rotation_local_buffer, sprite_rotation_buffer,
 				 viewport,

@@ -1,10 +1,12 @@
 
-/////////////
+////////////////////////////////////////////////////////////////////////////////
 //constants//
 const float PI = 3.141592654f;
 const float TWO_PI = 2 * 3.141592654f;
 
-///////////////////
+////////////////////////////////////////////////////////////////////////////////
+//uniforms//
+
 //randomized vec2//
 //shall be uniformly distributed. Look for some advice, how to make it properly
 //they will be randomly rotated per pixel
@@ -12,6 +14,8 @@ uniform vec2[256] sampling_pattern;
 vec2 SAMPLING_RANDOMIZATION_VECTOR;
 int SAMPLING_PATTERN_RANDOMIZATION_OFFSET;
 
+////////////////////////////////////////////////////////////////////////////////
+//utility and library functions//
 //
 void init_sampling()
 {
@@ -31,8 +35,6 @@ vec2 get_sampling_point(int i)
 	return reflect(sampling_pattern[(i * 7 + SAMPLING_PATTERN_RANDOMIZATION_OFFSET) % 256], SAMPLING_RANDOMIZATION_VECTOR);
 }
 
-//////////////////////////
-//transformation helpers//
 //
 vec4 get_clip_coordinates (vec2 param, float imagedepth)
 {
@@ -47,7 +49,7 @@ vec4 reproject (mat4 transform, vec4 vector)
 	return result;
 }
 
-/////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //shadowmapping helpers//
 //
 float get_shadow(
@@ -57,11 +59,28 @@ float get_shadow(
 	)
 {
 	vec3 r_pos = (reproject(light_transform, pos).xyz + 1) * 0.5;
-	vec4 acc;
-
-	for(int i = -1; i < 2; i += 2)
-		for(int j = -1; j < 2; j += 2)
-			acc += vec4(lessThan(textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j)), vec4(r_pos.z)));
+	vec4 comp = vec4(r_pos.z);	
+	vec4 acc = vec4(0);
+	
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, -1)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, -1)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, 1)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, 1)) ));
+	
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-0, -1)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(2, -1)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-0, 1)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(2, 1)) ));
+	
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, 0)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, 2)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, 0)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, 2)) ));
+	
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(0, 0)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(2, 0)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(0, 2)) ));
+	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(2, 2)) ));
 
 	return dot(acc, vec4(1/16.0));
 }

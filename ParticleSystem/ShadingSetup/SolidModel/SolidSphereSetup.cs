@@ -175,7 +175,7 @@ namespace opentk.ShadingSetup
 				 //pass state
 				 new FramebufferBindingSet{
 				   { FramebufferAttachment.DepthAttachment, Depth_Texture },
-				   { "Fragdata.color_luma", BeforeAA_Texture}
+				   { "color_luma", BeforeAA_Texture}
 				 },
 				 p.ParticleStateArrayObject,
 				 m_Uniforms,

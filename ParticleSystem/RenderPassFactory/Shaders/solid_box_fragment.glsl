@@ -1,4 +1,6 @@
 #version 410
+////////////////////////////////////////////////////////////////////////////////
+//uniforms//
 uniform mat4 modelview_transform;
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_transform;
@@ -9,7 +11,14 @@ uniform mat4 modelviewprojection_transform;
 */
 uniform int mode;
 
+////////////////////////////////////////////////////////////////////////////////
+//common constants//
+
 const float EXP_SCALE_FACTOR = 50;
+
+
+////////////////////////////////////////////////////////////////////////////////
+//inputs and outputs//
 
 in SpriteData
 {
@@ -25,13 +34,12 @@ in SpriteData
 	flat vec3 normal;
 } Sprite;
 
-out Fragdata
-{
-	vec4 uv_colorindex_none;
-	vec4 normal_depth;
-};
+out vec4 uv_colorindex_none;
+out vec4 normal_depth;
 
-//
+
+////////////////////////////////////////////////////////////////////////////////
+//kernel//
 void main ()
 {
 	//

@@ -1,4 +1,12 @@
 #version 410
+////////////////////////////////////////////////////////////////////////////////
+//types//
+
+//subroutine void SetOutputFragmentDataRoutine(vec3 ray_sphere_intersection);
+//subroutine uniform SetOutputFragmentDataRoutine SetOutputFragmentData;
+
+////////////////////////////////////////////////////////////////////////////////
+//uniforms//
 uniform mat4 modelview_transform;
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_transform;
@@ -9,10 +17,13 @@ uniform mat4 modelviewprojection_transform;
 */
 uniform int mode;
 
+////////////////////////////////////////////////////////////////////////////////
+//common constants//
 const float EXP_SCALE_FACTOR = 50;
 
-//subroutine void SetOutputFragmentDataRoutine(vec3 ray_sphere_intersection);
-//subroutine uniform SetOutputFragmentDataRoutine SetOutputFragmentData;
+
+////////////////////////////////////////////////////////////////////////////////
+//inputs and outputs//
 
 in SpriteData
 {
@@ -63,7 +74,10 @@ float SphereRayIntersection(vec4 sphere, vec3 raycenter, vec3 rayDirection)
 		return (-ky - sqrt(discr))/(2.0*kx);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//subroutines//
 
+///////////////
 //subroutine(SetOutputFragmentDataRoutine)
 void SetDefaultFragmentData(vec3 intersection)
 {
@@ -76,6 +90,7 @@ void SetDefaultFragmentData(vec3 intersection)
 	uv_colorindex_none = vec4((Sprite.color + 1) * 0.5, 0);
 }
 
+///////////////
 //subroutine(SetOutputFragmentDataRoutine)
 void SetShadowFragmentData(vec3 intersection)
 {
@@ -84,14 +99,16 @@ void SetShadowFragmentData(vec3 intersection)
 	gl_FragDepth = (projected_i.z + 1) * 0.5;
 }
 
-//
+///////////////
+//subroutine(SetOutputFragmentDataRoutine)
 void SetExpShadowFragmentData(vec3 intersection)
 {
 	vec4 projected_i = modelviewprojection_transform * vec4(intersection, 1);
 	gl_FragDepth = exp(((projected_i.z/projected_i.w + 1) * 0.5) * EXP_SCALE_FACTOR - EXP_SCALE_FACTOR);
 }
 
-//
+////////////////////////////////////////////////////////////////////////////////
+//kernel//
 void main ()
 {
 	float t = SphereRayIntersection(vec4(Sprite.pos, Sprite.radius), Camera.pos.xyz, Camera.ray_dir.xyz);

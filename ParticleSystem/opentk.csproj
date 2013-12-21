@@ -196,6 +196,7 @@
     <EmbeddedResource Include="System5\Shaders\lighting_fragment.glsl" />
     <EmbeddedResource Include="System5\Shaders\raymarch_compute.glsl" />
     <EmbeddedResource Include="System3\Shaders\Simscheme_ParticlesWithTrails_compute.glsl" />
+    <EmbeddedResource Include="shaders\ShadingSetup_SolidModel_solid3_fragment.glsl" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

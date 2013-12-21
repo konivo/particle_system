@@ -239,20 +239,20 @@ vec4 SpiralBMapInternal(float k, float acc, vec4 center, vec4 vin, vec4 vout)
 	vec4 tmp = vin - center;
 	float dist = length(tmp);
 
-	for(int i = 0; i < 3; i++)
+	for(int i = 0; i < 1; i++)
 	{
 		//if(float.IsNaN(tmp.X) || float.IsNaN(tmp.Y))
 			//break;
 
 		vec4 d = 
 			normalize(vec4(
-				k * tmp.y,
-				-k * tmp.x,
-				1,
+				1 * tmp.y,
+				-1 * tmp.x,
+				tmp.z,
 				0
 			));
 
-		d *= 1f/max(sqrt(dist), 0.1f);
+		d *= 1f/max(pow(length(tmp.xyz), 0.75), 0.01f);
 		vout += acc * d;
 		tmp = vec4(tmp.zxy,0);
 		vout = vec4(vout.zxy, 0);

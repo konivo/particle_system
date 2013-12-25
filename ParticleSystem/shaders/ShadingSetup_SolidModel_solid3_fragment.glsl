@@ -99,13 +99,13 @@ vec4 get_normal_depth (vec2 param)
 float get_shadow_no_filter(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	return r_pos.z - 0.001 > texture(shadow_texture, r_pos.xy).x ? 1: 0;
+	return r_pos.z - 0.01 > texture(shadow_texture, r_pos.xy).x ? 1: 0;
 }
 
 float get_shadow_pcf4x4(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	vec4 comp = r_pos.zzzz - 0.001;
+	vec4 comp = r_pos.zzzz - 0.01;
 	vec4 acc = vec4(0);
 	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, -1), 0) ));
 	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, -1), 0) ));
@@ -158,65 +158,132 @@ float get_shadow_exp(vec4 pos)
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	return
 		clamp(
-			1 - texture(shadow_texture, r_pos.xy).x * exp(200 * (1 - r_pos.z)),
+			1 - clamp(textureLod(shadow_texture, r_pos.xy, 0).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z)), 0, 1),
 			0, 1);
+	/*return
+		clamp(
+			1 - textureLod(shadow_texture, r_pos.xy, 0).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z)),
+			0, 1);*/
 }
+
+//
+/*vec2 get_sampling_point_cont2(int i)
+{
+	i *= 23;
+	return reflect(
+		sampling_pattern[(i * 7 + 173547) % 256], 
+		sampling_pattern[(i * 19 + 472541) % 256]);
+}*/
 
 float get_shadow_soft_exp(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	vec3 l_pos = (light_modelview_transform * pos).xyz;
-	vec4 avg_depth;
-	float count = 80;
+	vec4 avg_depth = vec4(0);
+	const int avg_depth_gcount = 2;
+	vec4 avg_depth_count = vec4(0);
 	float phi = light_size;
+	float c2 = 1;
+	float c2corr = 0.1;
+	int stepcount = 0;
 
-	for(int i = 0; i < 20; i ++)
+	// Loop for finding a good size of kernel for the depthmap filtering
+	while(abs(c2 - c2corr) > 0.00001 && stepcount < 5)
 	{
-		avg_depth += log(textureGather(shadow_texture, r_pos.xy + get_sampling_point(i) * 0.01));
-	}
-
-	avg_depth = (avg_depth + 20 * EXP_SCALE_FACTOR) / EXP_SCALE_FACTOR;
-
-	float occ_depth = dot(avg_depth, vec4(1/count)) * 2 - 1;
-	float occ_surf_dist = length(reproject(light_projection_inv_transform, get_clip_coordinates(r_pos.xy, occ_depth)).xyz - l_pos);
-
-	float c2 = tan(phi) * occ_surf_dist;
-	vec3 rr_pos = reproject(light_projection_transform, vec4(l_pos + vec3(0, c2, 0), 1)).xyz * 0.5 + 0.5;
-	c2 = length(rr_pos - r_pos) * textureSize(shadow_texture, 0).x;
-	c2 = clamp(c2, 1, 1000);
-	float level = log2(c2);
-
-	level = light_expmap_level;
-
-	float v1;
-	int nsamples = light_expmap_nsamples;
-
-	for(int i = 0; i < nsamples; i++)
-	{
-		float samplev1 = 1.01;
-		float sampleLevel = level;
-		float samplingRange = light_expmap_range;
-		float scale = 1;
-
-		samplev1 = textureLod(shadow_texture, r_pos.xy + get_sampling_point(i) * samplingRange, floor(sampleLevel--)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
-		samplingRange *= light_expmap_range_k;
-
-		while(samplev1 > 1 && sampleLevel >= 0)
+		stepcount++;
+		c2 = c2corr;
+		for(int i = 0; i < avg_depth_gcount; i ++)
 		{
-			float newsamplev1 = textureLod(shadow_texture, r_pos.xy + get_sampling_point(i) * samplingRange, floor(sampleLevel--)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
-			scale = 1/newsamplev1;
-
-			samplev1 *= scale;
-			samplingRange *= light_expmap_range_k;
-
-			if(samplev1 > 1)
-				samplev1 = newsamplev1;
+			vec4 smp = 
+				clamp(
+					log(
+						textureGather(
+							shadow_texture, r_pos.xy + get_sampling_point(i) * c2)) / EXP_SCALE_FACTOR + 1 + .0001,
+					0, 1);
+			
+			avg_depth += (smp) * vec4(lessThan(smp, vec4(r_pos.z)));
+			avg_depth_count += vec4(dot(vec4(lessThan(smp, vec4(r_pos.z))), vec4(1)));
 		}
+	
+		// Find an ocludder's distance in light coordinate frame
+		vec3 o_pos = 
+			reproject(
+				inverse(light_projection_transform), 
+				get_clip_coordinates(r_pos.xy, 2 * dot(avg_depth, 1./avg_depth_count) - 1)
+			).xyz;
+		// Compute a distance (for now just by means of z difference)
+		float o_dist = clamp(o_pos.z - l_pos.z, 0, 1000);
+		//
+		vec3 rr_pos = 
+			reproject(
+				light_projection_transform, 
+				vec4(l_pos.xyz + vec3(0, tan(phi) * o_dist, 0), 1)).xyz * 0.5 + 0.5;
+		// Get a c2's constant correction
+		c2corr = pow(length(rr_pos.xy - r_pos.xy), 1);
+	}
+	
+	float v1 = 
+		textureLod(
+			shadow_texture, r_pos.xy, 0).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));	
+	for(int i = 0; i < light_expmap_nsamples; i++)
+	{
+		float f =  			
+			textureLod(
+				shadow_texture, 
+				r_pos.xy + get_sampling_point(i) * clamp(c2corr, 0., 0.01), 0).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
+				
+		//v1 += pow(f, 1);
+		v1 += clamp(f, 0, 1) > 0.99621 ? 1: 0.10421;
+		//v1 *= clamp(f, 0, 1) > 0.621 ? 1: 0.8921;
+	}
+	v1 /= light_expmap_nsamples;
+	return clamp(1 - v1, 0, 1);
+}
 
-		v1 += clamp(samplev1, 0, 1.0f);
+float get_shadow_soft_exp2(vec4 pos)
+{
+	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
+	vec3 l_pos = (light_modelview_transform * pos).xyz;
+	float avg_depth = 0;
+	const int avg_depth_count = 8;
+	float phi = light_size;
+	float c2 = 1;
+	float c2corr = 0.1;
+	int stepcount = 0;
+	vec3 ro_pos = vec3(0, 0, 1);
+
+	// Loop for finding a good size of kernel for the depthmap filtering
+	//while(abs(c2 - c2corr) > 0.00001 && stepcount < 5)
+	stepcount++;
+	c2 = c2corr;
+	for(int i = 0; i < avg_depth_count; i ++)
+	{
+		vec2 rtest_pos = i == 0 ? r_pos.xy: r_pos.xy + get_sampling_point(i) * c2;
+		float smp = 
+			clamp(
+				log(
+					texture(
+						shadow_texture, test_pos)) / EXP_SCALE_FACTOR + 1 + .0001,
+				0, 1);
+		
+		if(smp < r_pos.z && length(rtest_pos - r_pos.xy) < length(ro_pos.xy - r_pos.xy))
+		{
+			ro_pos = vec3(rtest_pos, smp);
+		}
 	}
 
-	return 1 - pow(v1/nsamples + 0.0051f, 4);
+	// Find an ocludder's distance in light coordinate frame
+	vec4 o1_pos = 
+		reproject(
+			inverse(light_projection_transform), 2 * vec4(ro_pos, 1) - 1
+		) - l_pos;
+	vec4 o2_pos =
+		reproject(
+			inverse(light_projection_transform), 2 * vec4(r_pos.xy, ro_pos.z, 1) - 1
+		) - l_pos;
+	// Compute a distance (for now just by means of z difference)
+	float result = length(o1_pos - o2_pos)/(tan(phi) * length(o2_pos));	
+	return clamp(1 - result, 0, 1);
 }
 
 float get_shadow(vec4 pos)
@@ -228,7 +295,7 @@ float get_shadow(vec4 pos)
 		case 1:
 			return get_shadow_pcf4x4(pos);
 		case 2:
-			return get_shadow_soft_pcf4x4(pos);
+			return get_shadow_soft_exp2(pos);
 		default:
 			return 0;
 	}
@@ -284,5 +351,6 @@ void main ()
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
 	//color_luma = vec4(p_nd.xyz * 0.5 + 0.5, sqrt(dot(p_nd.rgb* 0.5 + 0.5, vec3(0.299, 0.587, 0.114))));
+	//color_luma = vec4(shadow, 0, 0, 1);
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

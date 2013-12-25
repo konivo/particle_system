@@ -78,10 +78,7 @@ in VertexData
 	vec2 param;
 };
 
-out Fragdata
-{
-	vec4 color_luma;
-};
+out vec4 color_luma;
 
 //
 vec4 get_normal_depth (vec2 param)
@@ -92,146 +89,10 @@ vec4 get_normal_depth (vec2 param)
 	return result;
 }
 
-float get_shadow_no_filter(vec4 pos)
+float get_shadow(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	return r_pos.z > texture(shadow_texture, r_pos.xy).x ? 1: 0;
-}
-
-float get_shadow_pcf4x4(vec4 pos)
-{
-	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-
-	vec4 acc;
-	for(int i = -1; i <= 1; i += 2)
-		for(int j = -1; j <= 1; j += 2)
-		{
-			vec4 depths = textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j));
-			acc += vec4(greaterThan(r_pos.zzzz - 0.0001, depths));
-		}
-
-	return dot(acc, vec4(1/16.0));
-}
-
-float get_shadow_exp(vec4 pos)
-{
-	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	return
-		clamp(
-			1 - texture(shadow_texture, r_pos.xy).x * exp(200 * (1 - r_pos.z)),
-			0, 1);
-}
-
-float get_shadow_soft_pcf4x4(vec4 pos)
-{
-	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	vec3 l_pos = (light_modelview_transform * pos).xyz;
-	vec4 avg_depth;
-	float count = 36;
-	float phi = 0.5;
-
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-16, 16));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, -12));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(8, -8));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-4, 4));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(0, 0));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(16, -16));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, 12));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-8, 8));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(4, -4));
-
-	float occ_depth = dot(avg_depth, vec4(1/count)) * 2 - 1;
-	float occ_surf_dist = length(reproject(light_projection_inv_transform, get_clip_coordinates(r_pos.xy, occ_depth)).xyz - l_pos);
-
-	float c2 = tan(phi) * occ_surf_dist;
-	vec3 rr_pos = reproject(light_projection_transform, vec4(l_pos + vec3(0, c2, 0), 1)).xyz * 0.5 + 0.5;
-	c2 = length(rr_pos - r_pos) * 1024;
-	c2 = clamp(c2, 1, 64);
-	int b = int(c2 - 1)/2;
-
-	count = 0;
-	vec4 acc;
-	for(int i = -b; i < b + 1; i += 2)
-		for(int j = -b; j < b + 1; j += 2)
-		{
-			vec4 depths = textureGatherOffset(shadow_texture, r_pos.xy, ivec2(i, j));
-			count += 4;
-			acc += vec4(greaterThan(r_pos.zzzz - 0.0001, depths));
-		}
-
-	return dot(acc, vec4(1/count));
-}
-
-float get_shadow_soft_exp(vec4 pos)
-{
-	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	vec3 l_pos = (light_modelview_transform * pos).xyz;
-	vec4 avg_depth;
-	float count = 80;
-	float phi = light_size;
-
-	for(int i = 0; i < 20; i ++)
-	{
-		avg_depth += log(textureGather(shadow_texture, r_pos.xy + get_sampling_point(i) * 0.01));
-	}
-
-	avg_depth = (avg_depth + 20 * EXP_SCALE_FACTOR) / EXP_SCALE_FACTOR;
-
-	float occ_depth = dot(avg_depth, vec4(1/count)) * 2 - 1;
-	float occ_surf_dist = length(reproject(light_projection_inv_transform, get_clip_coordinates(r_pos.xy, occ_depth)).xyz - l_pos);
-
-	float c2 = tan(phi) * occ_surf_dist;
-	vec3 rr_pos = reproject(light_projection_transform, vec4(l_pos + vec3(0, c2, 0), 1)).xyz * 0.5 + 0.5;
-	c2 = length(rr_pos - r_pos) * textureSize(shadow_texture, 0).x;
-	c2 = clamp(c2, 1, 1000);
-	float level = log2(c2);
-
-	level = light_expmap_level;
-
-	float v1;
-	int nsamples = light_expmap_nsamples;
-
-	for(int i = 0; i < nsamples; i++)
-	{
-		float samplev1 = 1.01;
-		float sampleLevel = level;
-		float samplingRange = light_expmap_range;
-		float scale = 1;
-
-		samplev1 = textureLod(shadow_texture, r_pos.xy + get_sampling_point(i) * samplingRange, floor(sampleLevel--)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
-		samplingRange *= light_expmap_range_k;
-
-		while(samplev1 > 1 && sampleLevel >= 0)
-		{
-			float newsamplev1 = textureLod(shadow_texture, r_pos.xy + get_sampling_point(i) * samplingRange, floor(sampleLevel--)).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z));
-			scale = 1/newsamplev1;
-
-			samplev1 *= scale;
-			samplingRange *= light_expmap_range_k;
-
-			if(samplev1 > 1)
-				samplev1 = newsamplev1;
-		}
-
-		v1 += clamp(samplev1, 0, 1.0f);
-	}
-
-	return 1 - pow(v1/nsamples + 0.0051f, 4);
-}
-
-float get_shadow(vec4 pos)
-{
-	switch(shadow_implementation)
-	{
-		case 0:
-			return get_shadow_no_filter(pos);
-		case 1:
-			return get_shadow_pcf4x4(pos);
-		case 2:
-			return get_shadow_soft_exp(pos);
-		default:
-			return 0;
-	}
 }
 
 vec4 get_material(vec4 pos, vec4 normaldepth)
@@ -281,6 +142,5 @@ void main ()
 	vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
-	//color_luma = vec4(p_nd.xyz * 0.5 + 0.5, sqrt(dot(p_nd.rgb* 0.5 + 0.5, vec3(0.299, 0.587, 0.114))));
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

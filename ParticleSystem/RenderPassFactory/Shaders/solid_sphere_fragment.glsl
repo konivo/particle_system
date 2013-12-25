@@ -48,11 +48,8 @@ in CameraData
 } Camera;
 
 
-out Fragdata
-{
-	vec4 uv_colorindex_none;
-	vec4 normal_depth;
-};
+out vec4 uv_colorindex_none;
+out vec4 normal_depth;
 
 //returns value t, where given ray intersects sphere. Only positive return values are valid
 //so it computes intersection only when ray starts outside spehere and aims toward  it

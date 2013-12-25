@@ -36,6 +36,12 @@ vec2 get_sampling_point(int i)
 }
 
 //
+vec2 get_sampling_point_cont(int i)
+{
+	return sampling_pattern[(i * 7) % 256];
+}
+
+//
 vec4 get_clip_coordinates (vec2 param, float imagedepth)
 {
 	return vec4((param * 2) - 1, imagedepth, 1);

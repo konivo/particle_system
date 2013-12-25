@@ -167,13 +167,13 @@ float get_shadow_exp(vec4 pos)
 }
 
 //
-/*vec2 get_sampling_point_cont2(int i)
+vec2 get_sampling_point_cont2(int i)
 {
-	i *= 23;
+	i *= 55;
 	return reflect(
 		sampling_pattern[(i * 7 + 173547) % 256], 
 		sampling_pattern[(i * 19 + 472541) % 256]);
-}*/
+}
 
 float get_shadow_soft_exp(vec4 pos)
 {
@@ -243,47 +243,114 @@ float get_shadow_soft_exp(vec4 pos)
 float get_shadow_soft_exp2(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	vec3 l_pos = (light_modelview_transform * pos).xyz;
-	float avg_depth = 0;
-	const int avg_depth_count = 8;
+	vec4 l_pos = light_modelview_transform * pos;
+	const int avg_depth_gcount = 8;
+	vec4 avg_depth = vec4(0);
+	vec4 avg_depth_count = vec4(0);
 	float phi = light_size;
 	float c2 = 1;
-	float c2corr = 0.1;
+	float c2corr = 0.0151;
 	int stepcount = 0;
-	vec3 ro_pos = vec3(0, 0, 1);
 
 	// Loop for finding a good size of kernel for the depthmap filtering
-	//while(abs(c2 - c2corr) > 0.00001 && stepcount < 5)
-	stepcount++;
-	c2 = c2corr;
-	for(int i = 0; i < avg_depth_count; i ++)
+	while(abs(c2 - c2corr) > 0.0001 && stepcount < 5)
 	{
-		vec2 rtest_pos = i == 0 ? r_pos.xy: r_pos.xy + get_sampling_point(i) * c2;
+		avg_depth = vec4(0);
+		avg_depth_count = vec4(0);
+		
+		stepcount++;
+		c2 = c2corr;
+		for(int i = 0; i < avg_depth_gcount; i ++)
+		{
+			vec2 smp_pos = i == 0 ? r_pos.xy: r_pos.xy + get_sampling_point(i) * c2;
+			vec4 smp = 
+				clamp(
+					log(
+						textureGather(shadow_texture, smp_pos)) / EXP_SCALE_FACTOR + 1 + .0001,
+					0, 1);
+			
+			avg_depth += (smp) * vec4(lessThan(smp, vec4(r_pos.z)));
+			avg_depth_count += vec4(dot(vec4(lessThan(smp, vec4(r_pos.z))), vec4(1)));
+		}
+	
+		// Find an ocludder's distance in light coordinate frame
+		vec3 o_pos = 
+			reproject(
+				inverse(light_projection_transform), 
+				get_clip_coordinates(r_pos.xy, 2 * dot(avg_depth, 1./avg_depth_count) - 1)
+			).xyz;
+		// Compute a distance (for now just by means of z difference)
+		float o_dist = clamp(o_pos.z - l_pos.z, 0, 1000);
+		//
+		vec3 rr_pos = 
+			reproject(
+				light_projection_transform, 
+				vec4(o_pos.xyz + vec3(0, tan(phi) * o_dist, 0), 1)).xyz * 0.5 + 0.5;
+		// Get a c2's constant correction
+		c2corr = pow(length(rr_pos.xy - r_pos.xy), 1);
+	}
+	c2 = 1.0 * c2corr;
+	
+	vec3 ro_pos = vec3(0, 0, 1);
+	float result = 0.0;
+	float occ_count = 1;
+
+	for(int i = 0; i < light_expmap_nsamples; i ++)
+	{
+		vec2 rtest_pos = i == 0 ? r_pos.xy: (r_pos.xy + get_sampling_point(i) * c2);
 		float smp = 
 			clamp(
 				log(
-					texture(
-						shadow_texture, test_pos)) / EXP_SCALE_FACTOR + 1 + .0001,
+					textureLod(
+						shadow_texture, rtest_pos, 0)) / EXP_SCALE_FACTOR + 1 + .001,
 				0, 1);
 		
-		if(smp < r_pos.z && length(rtest_pos - r_pos.xy) < length(ro_pos.xy - r_pos.xy))
+		if(smp < r_pos.z)
 		{
 			ro_pos = vec3(rtest_pos, smp);
+			
+			// Find an ocludder's distance in light coordinate frame
+			vec4 o1_pos = 
+				reproject(
+					inverse(light_projection_transform), 2 * vec4(ro_pos, 1) - 1
+				) - l_pos;
+			vec4 o2_pos =
+				reproject(
+					inverse(light_projection_transform), 2 * vec4(r_pos.xy, ro_pos.z, 1) - 1
+				) - l_pos;
+			
+			// Compute a distance (for now just by means of z difference)
+			float tan2 = length(o1_pos - o2_pos)/(tan(phi) * length(o2_pos));
+			
+			if(tan2 < 1.)
+			{
+				//result += clamp(1-tan2, 0, 10);			
+				//result += clamp(1/tan2, 0.0, 1.);
+				result += 1;
+				//result += 70/(length(o1_pos));
+				//occ_count++;
+			}
+			else
+			{
+				//result += clamp(1-tan2, 0, 10);			
+				//result += clamp(1/tan2, 0.0, 1.);
+				result += 1/tan2;
+				//result += 70/(length(o1_pos));
+				//occ_count++;
+			}
+			
+			//occ_count++;
 		}
+		
+		occ_count++;
 	}
-
-	// Find an ocludder's distance in light coordinate frame
-	vec4 o1_pos = 
-		reproject(
-			inverse(light_projection_transform), 2 * vec4(ro_pos, 1) - 1
-		) - l_pos;
-	vec4 o2_pos =
-		reproject(
-			inverse(light_projection_transform), 2 * vec4(r_pos.xy, ro_pos.z, 1) - 1
-		) - l_pos;
-	// Compute a distance (for now just by means of z difference)
-	float result = length(o1_pos - o2_pos)/(tan(phi) * length(o2_pos));	
-	return clamp(1 - result, 0, 1);
+	
+	//return clamp(1/pow(result, 1/occ_count), 0, 1);
+	//return clamp(1/pow(result, 1/occ_count), 0, 1);
+	//return clamp(1/result, 0, 1);
+	return clamp(pow(1.048 * clamp(result, 0, occ_count ) /occ_count, 1), 0, 1);
+	//return clamp(1 - (0.5 * result + 0.5), 0, 1);
+	//return clamp(1 - pow(result, 1/occ_count), 0, 1);
 }
 
 float get_shadow(vec4 pos)

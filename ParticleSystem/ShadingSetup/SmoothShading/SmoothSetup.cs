@@ -94,6 +94,8 @@ namespace opentk.ShadingSetup
 						MinFilter = TextureMinFilter.LinearMipmapLinear,
 						MagFilter = TextureMagFilter.Linear,
 					}};
+					
+				//m_Texture = opentk.Resources.Textures.FromVectors("", 100, 1, MathHelper2.RandomVectorSet(100, new Vector2d(1)));
 		  }
 
 		  if( m_Texture.Width != TextureResolution)

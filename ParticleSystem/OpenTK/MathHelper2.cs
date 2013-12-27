@@ -70,14 +70,15 @@ namespace OpenTK
 		public static Vector2d[] RandomVectorSet (int w, Vector2d magnitude)
 		{
 			var result = new Vector2d[w];
-
-			var magnitudeDelta = Vector2d.Multiply(magnitude, 1.0 / w);
+			var r0 = Vector2d.Multiply(magnitude, 1 / Math.Sqrt(w + 1));
 			for (int i = 0; i < w; i++)
 			{
-				var highnoise = MathHelper2.RandomVector(magnitudeDelta);
-				var basedir = MathHelper2.RandomVector(magnitude);
-				//var rand = highnoise + Vector2d.Multiply(basedir, magnitude * i / (w * basedir.Length));
-				result[i] = basedir;
+				var t = m_Rnd1.Value.NextDouble();
+				var basedir = MathHelper2.RandomVector2(1);
+				basedir.Normalize ();
+				var size = Vector2d.Multiply(r0, Math.Sqrt (i + 1) * t + Math.Sqrt (i) * (1 - t));
+				result[i] = Vector2d.Multiply (size, basedir);
+				//result[i] = MathHelper2.RandomVector(magnitude);
 			}
 
 			//var str = string.Join(Environment.NewLine, result);

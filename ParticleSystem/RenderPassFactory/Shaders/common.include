@@ -32,13 +32,13 @@ void init_sampling()
 //
 vec2 get_sampling_point(int i)
 {
-	return reflect(sampling_pattern[(i * 7 + SAMPLING_PATTERN_RANDOMIZATION_OFFSET) % 256], SAMPLING_RANDOMIZATION_VECTOR);
+	return reflect(sampling_pattern[(i * 97 + SAMPLING_PATTERN_RANDOMIZATION_OFFSET) % 256], SAMPLING_RANDOMIZATION_VECTOR);
 }
 
 //
 vec2 get_sampling_point_cont(int i)
 {
-	return sampling_pattern[(i * 7) % 256];
+	return sampling_pattern[(i * 97) % 256];
 }
 
 //

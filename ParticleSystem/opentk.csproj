@@ -131,6 +131,7 @@
     <Compile Include="System3\GenerationSchemes.cs" />
     <Compile Include="System3\IGenerationSchemeConverter.cs" />
     <Compile Include="System3\MetaInformation.cs" />
+    <Compile Include="Resources\Textures.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

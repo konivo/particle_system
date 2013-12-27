@@ -166,15 +166,6 @@ float get_shadow_exp(vec4 pos)
 			0, 1);*/
 }
 
-//
-vec2 get_sampling_point_cont2(int i)
-{
-	i *= 55;
-	return reflect(
-		sampling_pattern[(i * 7 + 173547) % 256], 
-		sampling_pattern[(i * 19 + 472541) % 256]);
-}
-
 float get_shadow_soft_exp(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
@@ -244,25 +235,29 @@ float get_shadow_soft_exp2(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	vec4 l_pos = light_modelview_transform * pos;
-	const int avg_depth_gcount = 8;
-	vec4 avg_depth = vec4(0);
-	vec4 avg_depth_count = vec4(0);
+
 	float phi = light_size;
-	float c2 = 1;
-	float c2corr = 0.0151;
-	int stepcount = 0;
+	// kernel's size to be estimated in texture coordinates <0, 1>
+	float c2 = 0.5;
+	// initial estimation
+	const float o_CorrectionLimit = 0.001;
+	const int o_CorrectionsCount = 5;
+	// 
+	const int o_SampleCount = 8;
+	// depths of occluders found during a kernel size estimation
+	vec4 o_DepthAvg = vec4(0);
+	vec4 o_DepthAvgCount = vec4(0);
+	// depth of an occluder for estimation of kernel size
+	float o_Depth = 1;
 
 	// Loop for finding a good size of kernel for the depthmap filtering
-	while(abs(c2 - c2corr) > 0.0001 && stepcount < 5)
+	for(int citer = 0; citer < o_CorrectionsCount; citer++)
 	{
-		avg_depth = vec4(0);
-		avg_depth_count = vec4(0);
-		
-		stepcount++;
-		c2 = c2corr;
-		for(int i = 0; i < avg_depth_gcount; i ++)
+		/*
+		// Variant of occluder depth estimation with a computation of average depth of occluders
+		for(int i = 0; i < o_SampleCount; i ++)
 		{
-			vec2 smp_pos = i == 0 ? r_pos.xy: r_pos.xy + get_sampling_point(i) * c2;
+			vec2 smp_pos = r_pos.xy + get_sampling_point(i) * i * c2 /avg_depth_gcount;
 			vec4 smp = 
 				clamp(
 					log(
@@ -271,13 +266,27 @@ float get_shadow_soft_exp2(vec4 pos)
 			
 			avg_depth += (smp) * vec4(lessThan(smp, vec4(r_pos.z)));
 			avg_depth_count += vec4(dot(vec4(lessThan(smp, vec4(r_pos.z))), vec4(1)));
+		}		
+		o_depth = dot(avg_depth, 1./avg_depth_count);*/
+		
+		// Variant of occluder depth estimation with a computation of minimal depth of occluders
+		for(int i = 0; i < o_SampleCount; i ++)
+		{
+			vec2 smp_pos = r_pos.xy + get_sampling_point(i + citer * o_SampleCount) * i * c2 /avg_depth_gcount;
+			vec4 smp = 
+				clamp(
+					log(
+						textureGather(shadow_texture, smp_pos)) / EXP_SCALE_FACTOR + 1 + .0001,
+					0, 1);
+			
+			o_Depth = min(o_Depth, min(smp.x, min(smp.y, min(smp.z, min(smp.w, r_pos.z)))));
 		}
 	
 		// Find an ocludder's distance in light coordinate frame
 		vec3 o_pos = 
 			reproject(
 				inverse(light_projection_transform), 
-				get_clip_coordinates(r_pos.xy, 2 * dot(avg_depth, 1./avg_depth_count) - 1)
+				get_clip_coordinates(r_pos.xy, 2 * o_Depth - 1)
 			).xyz;
 		// Compute a distance (for now just by means of z difference)
 		float o_dist = clamp(o_pos.z - l_pos.z, 0, 1000);
@@ -286,23 +295,33 @@ float get_shadow_soft_exp2(vec4 pos)
 			reproject(
 				light_projection_transform, 
 				vec4(o_pos.xyz + vec3(0, tan(phi) * o_dist, 0), 1)).xyz * 0.5 + 0.5;
-		// Get a c2's constant correction
-		c2corr = pow(length(rr_pos.xy - r_pos.xy), 1);
+				
+		// Get a c2's correction		
+		float c2corr = length(rr_pos.xy - r_pos.xy);
+		if(abs(c2 - c2corr) < o_CorrectionLimit)
+			break;
+		
+		c2 = c2corr;
 	}
-	c2 = 1.0 * c2corr;
+	// last correction before processing: it widens the area to be processed
+	c2 *= 1.05;
 	
 	vec3 ro_pos = vec3(0, 0, 1);
 	float result = 0.0;
 	float occ_count = 1;
 
-	for(int i = 0; i < light_expmap_nsamples; i ++)
+	for(int i = 0; i < light_expmap_nsamples; i++)
 	{
-		vec2 rtest_pos = i == 0 ? r_pos.xy: (r_pos.xy + get_sampling_point(i) * c2);
+		//vec2 rtest_pos = i == 0 ? r_pos.xy: (r_pos.xy + get_sampling_point(i) * c2);
+		// We need randomly distributed but evenly distributed points thus we do not use
+		// the sampling point directly
+		vec2 rtest_pos = r_pos.xy + get_sampling_point(i) * i * c2/light_expmap_nsamples;
+		// Extract a value from depth map
 		float smp = 
 			clamp(
 				log(
 					textureLod(
-						shadow_texture, rtest_pos, 0)) / EXP_SCALE_FACTOR + 1 + .001,
+						shadow_texture, rtest_pos, 0)) / EXP_SCALE_FACTOR + 1 + .0001,
 				0, 1);
 		
 		if(smp < r_pos.z)
@@ -319,38 +338,22 @@ float get_shadow_soft_exp2(vec4 pos)
 					inverse(light_projection_transform), 2 * vec4(r_pos.xy, ro_pos.z, 1) - 1
 				) - l_pos;
 			
-			// Compute a distance (for now just by means of z difference)
-			float tan2 = length(o1_pos - o2_pos)/(tan(phi) * length(o2_pos));
-			
+			// Determine whether the occluder is in the light's cone. If so the tan2 is less
+			// than one. Then count it as a one shadowing sample
+			float tan2 = length(o1_pos - o2_pos)/(tan(phi) * length(o2_pos));			
 			if(tan2 < 1.)
 			{
-				//result += clamp(1-tan2, 0, 10);			
-				//result += clamp(1/tan2, 0.0, 1.);
 				result += 1;
-				//result += 70/(length(o1_pos));
-				//occ_count++;
 			}
 			else
 			{
-				//result += clamp(1-tan2, 0, 10);			
-				//result += clamp(1/tan2, 0.0, 1.);
+				//this seems to give more pleasant results, but it is a hack
 				result += 1/tan2;
-				//result += 70/(length(o1_pos));
-				//occ_count++;
 			}
-			
-			//occ_count++;
 		}
-		
-		occ_count++;
 	}
 	
-	//return clamp(1/pow(result, 1/occ_count), 0, 1);
-	//return clamp(1/pow(result, 1/occ_count), 0, 1);
-	//return clamp(1/result, 0, 1);
-	return clamp(pow(1.048 * clamp(result, 0, occ_count ) /occ_count, 1), 0, 1);
-	//return clamp(1 - (0.5 * result + 0.5), 0, 1);
-	//return clamp(1 - pow(result, 1/occ_count), 0, 1);
+	return clamp(pow(1.0 * clamp(result, 0, light_expmap_nsamples ) /light_expmap_nsamples, 1), 0, 1);
 }
 
 float get_shadow(vec4 pos)

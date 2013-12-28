@@ -27,10 +27,8 @@ namespace opentk.ShadingSetup
 			(() =>
 			{
 				switch (SunLightImpl.ImplementationType) {
-				case LightImplementationType.ExponentialShadowMap:
+				case ShadowImplementationType.Filter16x16:
 					return 2;
-				case LightImplementationType.ShadowMap:
-					return 1;
 				default:
 				break;
 				}

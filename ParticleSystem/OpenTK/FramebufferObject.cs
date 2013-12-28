@@ -103,12 +103,9 @@ namespace OpenTK
 				else
 				{
 					//one time initialization
-					var program = state.GetSingleState<Program> ();
-					
+					var program = state.GetActivateSingle<Program> ();					
 					if (program == null)
 						return;
-
-					program.EnsureLinked ();
 					
 					//
 					GL.GenFramebuffers (1, out Handle);

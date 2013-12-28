@@ -6,15 +6,32 @@ using opentk.PropertyGridCustom;
 
 namespace opentk.Scene
 {
-	public enum LightImplementationType
+	/// <summary>
+	/// Shadow implementation type.
+	/// </summary>
+	public enum ShadowImplementationType
 	{
-		ExponentialShadowMap, ShadowMap
+		NoFilter,
+		Filter2x2,
+		Filter4x4,
+		Filter8x8,
+		Filter16x16,
+		Soft1,
+		Soft2
 	}
-
+	/// <summary>
+	/// Shadowmap type.
+	/// </summary>
+	public enum ShadowmapType
+	{
+		Default,
+		Exponential,
+		//Variance
+	}
 	/// <summary>
 	///
 	/// </summary>
-	public class LightImplementationParameters
+	public class ShadowImplementationParameters
 	{
 		[Category("Light properties")]
 		[TypeConverter(typeof(ParametersConverter<Light>))]
@@ -43,12 +60,17 @@ namespace opentk.Scene
 			get; private set;
 		}
 
-		public LightImplementationType ImplementationType
+		public ShadowImplementationType ImplementationType
+		{
+			get; set;
+		}
+		
+		public ShadowmapType ShadowmapType
 		{
 			get; set;
 		}
 
-		public LightImplementationParameters (Light light)
+		public ShadowImplementationParameters (Light light)
 		{
 			Light = light;
 

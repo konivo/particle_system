@@ -61,10 +61,9 @@ namespace OpenTK
 				GLHelper.PrintError ();
 				
 				//one time initialization
-				var program = state.GetSingleState<Program> ();				
+				var program = state.GetActivateSingle<Program> ();				
 				if (program == null)
-					return;				
-				program.EnsureLinked ();
+					return;
 				
 				//
 				int bindingIndex = 0;

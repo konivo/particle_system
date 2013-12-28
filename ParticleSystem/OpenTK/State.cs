@@ -15,18 +15,77 @@ namespace OpenTK
 	/// </summary>
 	public class State : IDisposable, IEnumerable<StatePart>
 	{
+		private class ActivatorListMember
+		{
+			public StatePart State;
+			public StateActivator Activator;
+			public int ActivationCount;
+		}
+		//
 		private readonly Dictionary<Type, ISet<StatePart>> m_StateSet = new Dictionary<Type, ISet<StatePart>> ();
-
-		private Lazy<List<StateActivator>> m_Activators;
-
-		public T GetSingleState<T> () where T : StatePart
+		//
+		private Lazy<List<ActivatorListMember>> m_Activators;
+		/// <summary>
+		/// Gets the activation count.
+		/// </summary>
+		/// <value>The activation count.</value>
+		public int ActivationCount
+		{
+			get;
+			private set;
+		}
+		/// <summary>
+		/// Gets the single.
+		/// </summary>
+		/// <returns>The single.</returns>
+		/// <typeparam name="T">The 1st type parameter.</typeparam>
+		public T GetSingle<T> () where T : StatePart
 		{
 			return GetSet (typeof(T)).OfType<T> ().FirstOrDefault ();
 		}
-
-		public IEnumerable<T> GetStates<T> () where T : StatePart
+		/// <summary>
+		/// Gets all states of the given type
+		/// </summary>
+		/// <returns>The all.</returns>
+		/// <typeparam name="T">The 1st type parameter.</typeparam>
+		public IEnumerable<T> GetAll<T> () where T : StatePart
 		{
 			return GetSet (typeof(T)).OfType<T> ();
+		}
+		/// <summary>
+		/// Gets the state of the given type and activates it.
+		/// </summary>
+		/// <returns>The activate single.</returns>
+		/// <typeparam name="T">The 1st type parameter.</typeparam>
+		public T GetActivateSingle<T> () where T : StatePart
+		{
+			var result = m_Activators.Value.FirstOrDefault(m => m.State is T);
+			if(result != null)
+			{
+				if(result.ActivationCount != ActivationCount)
+					result.Activator.Activate ();
+					
+				result.ActivationCount = ActivationCount;
+				return (T)result.State;
+			}
+			return default(T);
+		}
+		/// <summary>
+		/// Gets all the states of the given type and activates them.
+		/// </summary>
+		/// <returns>The activate all.</returns>
+		/// <typeparam name="T">The 1st type parameter.</typeparam>
+		public IEnumerable<T> GetActivateAll<T> () where T : StatePart
+		{
+			var result = m_Activators.Value.Where(m => m.State is T);
+			foreach(var m in result)
+			{
+				if(m.ActivationCount != ActivationCount)
+					m.Activator.Activate ();
+					
+				m.ActivationCount = ActivationCount;
+				yield return (T)m.State;
+			}
 		}
 
 		private ISet<StatePart> GetSet (Type t)
@@ -43,11 +102,11 @@ namespace OpenTK
 
 		private State ()
 		{
-			m_Activators = new Lazy<List<StateActivator>> (() =>
+			m_Activators = new Lazy<List<ActivatorListMember>> (() =>
 			{
 				var acts = from i in m_StateSet.Values
 					from j in i
-					select j.GetActivator (this);
+					select new ActivatorListMember{ State = j, Activator = j.GetActivator (this)};
 				
 				return acts.ToList ();
 			}, true);
@@ -73,8 +132,15 @@ namespace OpenTK
 
 		public void Activate ()
 		{
+			ActivationCount++;
+			
 			foreach (var item in m_Activators.Value)
-				item.Activate ();
+			{
+				if(item.ActivationCount != ActivationCount)
+					item.Activator.Activate ();
+					
+				item.ActivationCount = ActivationCount;
+			}
 		}
 
 		#region IDisposable implementation
@@ -82,7 +148,7 @@ namespace OpenTK
 		{
 			foreach (var item in m_Activators.Value)
 			{
-				item.Dispose ();
+				item.Activator.Dispose ();
 			}
 		}
 		#endregion

@@ -139,48 +139,43 @@ namespace OpenTK
 		{
 			return new Tuple<Action, Action> (() =>
 			{
-				var program = state.GetSingleState<Program> ();
+				var program = state.GetActivateSingle<Program> ();
+				if(program == null)
+					return;
 				
-				if (program != null)
+				foreach(var subroutines in m_StageSubroutines.Values)
 				{
-					//TODO: this is the responsibility of another state part .. so it should be done in a different way
-					//or use ProgramUniform
-					GL.UseProgram(program.Handle);
-
-					foreach(var subroutines in m_StageSubroutines.Values)
+					subroutines.Reset();
+				}
+				
+				foreach(var dict in m_BaseUniforms.Concat(new [] {this}))
+				{
+					foreach (var item in dict.m_Values)
 					{
-						subroutines.Reset();
-					}
-
-					foreach(var dict in m_BaseUniforms.Concat(new [] {this}))
-					{
-						foreach (var item in dict.m_Values)
+						string name = GetValueName (item.Key, item.Value);
+						var stage = GetStageName(item.Key);
+						int uloc;
+						
+						if(stage == null &&
+						   (uloc = GL.GetUniformLocation (program.Handle, name)) >= 0)
 						{
-							string name = GetValueName (item.Key, item.Value);
-							var stage = GetStageName(item.Key);
-							int uloc;
-
-							if(stage == null &&
-							   (uloc = GL.GetUniformLocation (program.Handle, name)) >= 0)
-							{
-								SetValue (program.Handle, uloc, null, name, item.Value);
-							}
-							else if(
-							   stage != null &&
-							   (uloc = GLExtensions.GetSubroutineUniformLocation(program.Handle, stage.Value, name)) >= 0)
-							{
-								SetValue(program.Handle, uloc, stage, name, item.Value);
-							}
+							SetValue (program.Handle, uloc, null, name, item.Value);
+						}
+						else if(
+							stage != null &&
+							(uloc = GLExtensions.GetSubroutineUniformLocation(program.Handle, stage.Value, name)) >= 0)
+						{
+							SetValue(program.Handle, uloc, stage, name, item.Value);
 						}
 					}
-
-					foreach(var subroutines in m_StageSubroutines)
-					{
-						var sublist = subroutines.Value.GetList();
-
-						if(sublist.Length > 0)
-							GLExtensions.UniformSubroutinesuiv(subroutines.Key, sublist);
-					}
+				}
+				
+				foreach(var subroutines in m_StageSubroutines)
+				{
+					var sublist = subroutines.Value.GetList();
+					
+					if(sublist.Length > 0)
+						GLExtensions.UniformSubroutinesuiv(subroutines.Key, sublist);
 				}
 			}, null);
 		}

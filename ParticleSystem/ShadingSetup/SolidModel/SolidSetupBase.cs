@@ -35,8 +35,8 @@ namespace opentk.ShadingSetup
 		protected Light m_SunLight;
 
 		[Category("Sunlight properties")]
-		[TypeConverter(typeof(ParametersConverter<LightImplementationParameters>))]
-		public LightImplementationParameters SunLightImpl
+		[TypeConverter(typeof(ParametersConverter<ShadowImplementationParameters>))]
+		public ShadowImplementationParameters SunLightImpl
 		{
 			get; set;
 		}
@@ -244,8 +244,8 @@ namespace opentk.ShadingSetup
 				Type = LightType.Directional
 			};
 
-			SunLightImpl = new LightImplementationParameters(m_SunLight);
-			SunLightImpl.ImplementationType = LightImplementationType.ExponentialShadowMap;
+			SunLightImpl = new ShadowImplementationParameters(m_SunLight);
+			SunLightImpl.ImplementationType = ShadowImplementationType.Soft2;
 
 			//
 			ShadowTextureSize = 2048;
@@ -288,32 +288,27 @@ namespace opentk.ShadingSetup
 		protected virtual void PassSetup(ParticleSystemBase p)
 		{
 			//
-			m_Uniforms = new UniformState(p.Uniforms);
-			m_Uniforms.SetMvp ("light", SunLightImpl.LightMvp);
-			m_Uniforms.Set("shadow_implementation", ValueProvider.Create
-			(() =>
+			m_Uniforms = new UniformState(p.Uniforms)
 			{
-				switch (SunLightImpl.ImplementationType) {
-				case LightImplementationType.ExponentialShadowMap:
-					return 2;
-				case LightImplementationType.ShadowMap:
-					return 1;
-				default:
-				break;
-				}
-				return 0;
-			}));
-			m_Uniforms.Set("material_color_source", ValueProvider.Create(() => MaterialType));
+				{SunLightImpl.LightMvp, "light"},
+				{"u_GetShadow", ShaderType.FragmentShader, () => "GetShadow" + SunLightImpl.ImplementationType.ToString () },
+				//{"u_ShadowmapGet", () => "ShadowmapGet" + SunLightImpl.ShadowmapType.ToString () },
+				//{"u_ShadowmapGetFiltered", () => "ShadowmapGetFiltered" + SunLightImpl.ShadowmapType.ToString () },
+				{"material_color_source", ValueProvider.Create(() => MaterialType)},
 
-			m_Uniforms.Set("light_size", ValueProvider.Create(() => LightSize ));
-			m_Uniforms.Set("light_expmap_level", ValueProvider.Create(() => ExpMapLevel ));
-			m_Uniforms.Set("light_expmap_range", ValueProvider.Create(() => ExpMapRange ));
-			m_Uniforms.Set("light_expmap_range_k", ValueProvider.Create(() => ExpMapRangeK ));
-			m_Uniforms.Set("light_expmap_nsamples", ValueProvider.Create(() => ExpMapNsamples ));
+				{"light_size", ValueProvider.Create(() => LightSize )},
+		
+				{"light_expmap_level", ValueProvider.Create(() => ExpMapLevel )},
+				{"light_expmap_range", ValueProvider.Create(() => ExpMapRange )},
+				{"light_expmap_range_k", ValueProvider.Create(() => ExpMapRangeK )},
+				{"light_expmap_nsamples", ValueProvider.Create(() => ExpMapNsamples )},
 
-			//
-			m_Uniforms.Set ("sampling_pattern", MathHelper2.RandomVectorSet (256, new Vector2 (1, 1)));
-			m_Uniforms.Set ("sampling_pattern_len", 256);
+	//
+				{"sampling_pattern", MathHelper2.RandomVectorSet (256, new Vector2 (1, 1))},
+				{"sampling_pattern_len", 256},
+			};
+			
+			//m_Uniforms.SetMvp("light", SunLightImpl.LightMvp);
 		}
 
 

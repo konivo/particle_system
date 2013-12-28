@@ -92,7 +92,6 @@
     <Compile Include="RenderPassFactory\AocParameters.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Ssao.cs" />
     <Compile Include="Scene\Light.cs" />
-    <Compile Include="Scene\LightImplementationParameters.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.SolidSphere.cs" />
     <Compile Include="Scene\ProjectionType.cs" />
     <Compile Include="Scene\ModelViewProjectionParameters.cs" />
@@ -132,6 +131,7 @@
     <Compile Include="System3\IGenerationSchemeConverter.cs" />
     <Compile Include="System3\MetaInformation.cs" />
     <Compile Include="Resources\Textures.cs" />
+    <Compile Include="Scene\ShadowImplementationParameters.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -264,7 +264,6 @@
     </MonoDevelop>
   </ProjectExtensions>
   <ItemGroup>
-    <None Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
     <None Include="shaders\System3_Simscheme_ParticlesWithTrails_compute.glsl" />
     <None Include="shaders\System3_Simscheme_PWTSub_compute.glsl" />
     <None Include="shaders\System4_lighting_fragment.glsl" />
@@ -272,5 +271,6 @@
     <None Include="shaders\System5_lighting_fragment.glsl" />
     <None Include="shaders\System5_raymarch_compute.glsl" />
     <None Include="shaders\ShadingSetup_SolidModel_solid3_fragment.glsl" />
+    <None Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
   </ItemGroup>
 </Project>

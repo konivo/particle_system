@@ -74,20 +74,6 @@ namespace opentk.ShadingSetup
 		{
 			base.PassSetup(p);
 
-			var mode = ValueProvider.Create
-			(() =>
-			{
-				switch (SunLightImpl.ImplementationType) {
-				case LightImplementationType.ExponentialShadowMap:
-					return 2;
-				case LightImplementationType.ShadowMap:
-					return 1;
-				default:
-				break;
-				}
-				return 0;
-			});
-
 			//
 			var particle_scale_factor = ValueProvider.Create (() => p.ParticleScaleFactor);
 			var particle_count = ValueProvider.Create (() => p.PARTICLES_COUNT);
@@ -113,14 +99,16 @@ namespace opentk.ShadingSetup
 				 p.DimensionBuffer,
 				 particle_count,
 				 particle_scale_factor,
-				 mode,
+				 ValueProvider.Create ( () => "FragDepth" + SunLightImpl.ShadowmapType.ToString ()),
 				 SunLightImpl.LightMvp
 			);
 
-			var mvpUniforms = new UniformState();
-			p.CameraMvp.SetUniforms("", mvpUniforms);
-			mvpUniforms.Set ("viewport_size", ValueProvider.Create(() => new Vector2(SolidModeTextureSize, SolidModeTextureSize)));
-			mvpUniforms.Set ("K", ValueProvider.Create(() => new Vector4(0.0f, 0.0f, 0.0f, 20 * NormalBlurAvoidance)));
+			var mvpUniforms = new UniformState
+			{
+				{"viewport_size", ValueProvider.Create(() => new Vector2(SolidModeTextureSize, SolidModeTextureSize))},
+				{"K", ValueProvider.Create(() => new Vector4(0.0f, 0.0f, 0.0f, 20 * NormalBlurAvoidance))},
+				{p.CameraMvp}
+			};
 
 			var normalDepthBlur =  RenderPassFactory.CreateFullscreenQuad
 			(

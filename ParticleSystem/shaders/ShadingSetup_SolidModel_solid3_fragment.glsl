@@ -1,4 +1,4 @@
-#version 400
+#version 440
 #pragma include <RenderPassFactory.Shaders.common.include>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -9,6 +9,8 @@ struct Light
 	vec3 pos;
 	vec3 dir;
 };
+
+subroutine float GetShadow(vec4 pos);
 
 ////////////////////////////////////////////////////////////////////////////////
 //uniforms//
@@ -60,14 +62,7 @@ uniform int light_expmap_nsamples;
 
 //soft shadow settings
 uniform bool enable_soft_shadow = true;
-/*
-0 - no filtering
-1 - pcf 4x4
-2 - exp shadow map
-3 - soft shadow with pcf
-4 - soft shadow with exp
-*/
-uniform int shadow_implementation;
+subroutine uniform GetShadow u_GetShadow;
 
 ////////////////////////////////////////////////////////////////////////////////
 //common constants//
@@ -96,16 +91,20 @@ vec4 get_normal_depth (vec2 param)
 	return result;
 }
 
-float get_shadow_no_filter(vec4 pos)
+/////////////////////
+subroutine(GetShadow)
+float GetShadowNoFilter(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	return r_pos.z - 0.01 > texture(shadow_texture, r_pos.xy).x ? 1: 0;
+	return r_pos.z - 0.0001 > texture(shadow_texture, r_pos.xy).x ? 1: 0;
 }
 
-float get_shadow_pcf4x4(vec4 pos)
+/////////////////////
+subroutine(GetShadow)
+float GetShadowFilter4x4(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	vec4 comp = r_pos.zzzz - 0.01;
+	vec4 comp = r_pos.zzzz - 0.001;
 	vec4 acc = vec4(0);
 	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, -1), 0) ));
 	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, -1), 0) ));
@@ -115,58 +114,9 @@ float get_shadow_pcf4x4(vec4 pos)
 	return dot(acc, vec4(1/16.0));
 }
 
-float get_shadow_soft_pcf4x4(vec4 pos)
-{
-	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	vec3 l_pos = (light_modelview_transform * pos).xyz;
-	vec4 avg_depth;
-	float count = 36;
-	float phi = 0.5;
-
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-16, 16));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, -12));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(8, -8));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-4, 4));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(0, 0));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(16, -16));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-12, 12));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-8, 8));
-	avg_depth += textureGatherOffset(shadow_texture, r_pos.xy, ivec2(4, -4));
-
-	float occ_depth = dot(avg_depth, vec4(1/count)) * 2 - 1;
-	float occ_surf_dist = length(reproject(light_projection_inv_transform, get_clip_coordinates(r_pos.xy, occ_depth)).xyz - l_pos);
-
-	float c2 = tan(phi) * occ_surf_dist;
-	vec3 rr_pos = reproject(light_projection_transform, vec4(l_pos + vec3(0, c2, 0), 1)).xyz * 0.5 + 0.5;
-	c2 = length(rr_pos - r_pos) * 1024;
-	c2 = clamp(c2, 1, 64);
-	int b = int(c2 - 1)/2;
-
-	vec4 comp = r_pos.zzzz - 0.01;
-	vec4 acc = vec4(0);
-	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, -1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, -1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(-1, 1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(shadow_texture, r_pos.xy, ivec2(1, 1)) ));
-	count = 4;
-
-	return dot(acc, vec4(1/16.0));
-}
-
-float get_shadow_exp(vec4 pos)
-{
-	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	return
-		clamp(
-			1 - clamp(textureLod(shadow_texture, r_pos.xy, 0).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z)), 0, 1),
-			0, 1);
-	/*return
-		clamp(
-			1 - textureLod(shadow_texture, r_pos.xy, 0).x * exp(EXP_SCALE_FACTOR * (1 - r_pos.z)),
-			0, 1);*/
-}
-
-float get_shadow_soft_exp(vec4 pos)
+/////////////////////
+subroutine(GetShadow)
+float GetShadowSoft1(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	vec3 l_pos = (light_modelview_transform * pos).xyz;
@@ -231,7 +181,9 @@ float get_shadow_soft_exp(vec4 pos)
 	return clamp(1 - v1, 0, 1);
 }
 
-float get_shadow_soft_exp2(vec4 pos)
+/////////////////////
+subroutine(GetShadow)
+float GetShadowSoft2(vec4 pos)
 {
 	vec3 r_pos = (reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
 	vec4 l_pos = light_modelview_transform * pos;
@@ -272,7 +224,7 @@ float get_shadow_soft_exp2(vec4 pos)
 		// Variant of occluder depth estimation with a computation of minimal depth of occluders
 		for(int i = 0; i < o_SampleCount; i ++)
 		{
-			vec2 smp_pos = r_pos.xy + get_sampling_point(i + citer * o_SampleCount) * i * c2 /avg_depth_gcount;
+			vec2 smp_pos = r_pos.xy + get_sampling_point(i + citer * o_SampleCount) * i * c2 /o_SampleCount;
 			vec4 smp = 
 				clamp(
 					log(
@@ -356,20 +308,6 @@ float get_shadow_soft_exp2(vec4 pos)
 	return clamp(pow(1.0 * clamp(result, 0, light_expmap_nsamples ) /light_expmap_nsamples, 1), 0, 1);
 }
 
-float get_shadow(vec4 pos)
-{
-	switch(shadow_implementation)
-	{
-		case 0:
-			return get_shadow_no_filter(pos);
-		case 1:
-			return get_shadow_pcf4x4(pos);
-		case 2:
-			return get_shadow_soft_exp2(pos);
-		default:
-			return 0;
-	}
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 //material implementation//
@@ -411,7 +349,7 @@ void main ()
 
 	float aoc = texture(aoc_texture, param).x;
 	vec3 material = get_material(p_pos, p_nd).xyz;
-	float shadow = get_shadow(p_pos);
+	float shadow = u_GetShadow(p_pos);
 
 	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
 	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
@@ -421,6 +359,8 @@ void main ()
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));
 	//color_luma = vec4(p_nd.xyz * 0.5 + 0.5, sqrt(dot(p_nd.rgb* 0.5 + 0.5, vec3(0.299, 0.587, 0.114))));
+	//color_luma = vec4(pow(texture(shadow_texture, param).x, 1), 0, 0, 1);
+	//color_luma = vec4((reproject(light_modelviewprojection_transform, p_pos).xy + 1) * 0.5, 0, 1);
 	//color_luma = vec4(shadow, 0, 0, 1);
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

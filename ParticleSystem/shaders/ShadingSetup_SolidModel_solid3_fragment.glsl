@@ -190,7 +190,7 @@ float GetShadowSoft2(vec4 pos)
 
 	float phi = light_size;
 	// kernel's size to be estimated in texture coordinates <0, 1>
-	float c2 = 0.5;
+	float c2 = 0.05;
 	// initial estimation
 	const float o_CorrectionLimit = 0.001;
 	const int o_CorrectionsCount = 5;
@@ -256,15 +256,11 @@ float GetShadowSoft2(vec4 pos)
 		c2 = c2corr;
 	}
 	// last correction before processing: it widens the area to be processed
-	c2 *= 1.05;
+	c2 *= 1.0;
 	
-	vec3 ro_pos = vec3(0, 0, 1);
 	float result = 0.0;
-	float occ_count = 1;
-
 	for(int i = 0; i < light_expmap_nsamples; i++)
 	{
-		//vec2 rtest_pos = i == 0 ? r_pos.xy: (r_pos.xy + get_sampling_point(i) * c2);
 		// We need randomly distributed but evenly distributed points thus we do not use
 		// the sampling point directly
 		vec2 rtest_pos = r_pos.xy + get_sampling_point(i) * i * c2/light_expmap_nsamples;
@@ -278,34 +274,11 @@ float GetShadowSoft2(vec4 pos)
 		
 		if(smp < r_pos.z)
 		{
-			ro_pos = vec3(rtest_pos, smp);
-			
-			// Find an ocludder's distance in light coordinate frame
-			vec4 o1_pos = 
-				reproject(
-					inverse(light_projection_transform), 2 * vec4(ro_pos, 1) - 1
-				) - l_pos;
-			vec4 o2_pos =
-				reproject(
-					inverse(light_projection_transform), 2 * vec4(r_pos.xy, ro_pos.z, 1) - 1
-				) - l_pos;
-			
-			// Determine whether the occluder is in the light's cone. If so the tan2 is less
-			// than one. Then count it as a one shadowing sample
-			float tan2 = length(o1_pos - o2_pos)/(tan(phi) * length(o2_pos));			
-			if(tan2 < 1.)
-			{
-				result += 1;
-			}
-			else
-			{
-				//this seems to give more pleasant results, but it is a hack
-				result += 1/tan2;
-			}
+			result += 1;
 		}
 	}
 	
-	return clamp(pow(1.0 * clamp(result, 0, light_expmap_nsamples ) /light_expmap_nsamples, 1), 0, 1);
+	return clamp(result/light_expmap_nsamples, 0, 1);
 }
 
 
@@ -354,7 +327,7 @@ void main ()
 	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
 	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
 
-	vec3 diffuse = material * max(dot(light.dir, p_nd.xyz) * (1 - shadow), 0);
+	vec3 diffuse = material * max(/*dot(light.dir, p_nd.xyz) */ (1 - shadow), 0);
 	vec3 color = (diffuse  + ambient * ambientmat) * (1 - aoc);
 
 	color_luma = vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114))));

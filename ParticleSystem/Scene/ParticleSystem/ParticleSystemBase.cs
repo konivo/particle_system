@@ -34,53 +34,52 @@ namespace opentk.Scene.ParticleSystem
 		private BufferObject<Vector4> m_ColorBuffer;
 		//
 		private int m_PublishCounter;
-
-		//
+		[Browsable(false)]
 		public ModelViewProjectionParameters CameraMvp
 		{
 			get; private set;
 		}
-
+		[Browsable(false)]
 		public BufferObject<Vector4> PositionBuffer
 		{
 			get{ return m_PositionBuffer;}
 		}
-		//
+		[Browsable(false)]
 		public BufferObject<Vector4> DimensionBuffer
 		{
 			get{ return m_DimensionBuffer;}
 		}
-		//
+		[Browsable(false)]
 		public BufferObject<Vector4> ColorBuffer
 		{
 			get{ return m_ColorBuffer;}
 		}
-		//
+		[Browsable(false)]
 		public BufferObject<Matrix4> RotationBuffer
 		{
 			get{ return m_RotationBuffer;}
 		}
-		//
+		[Browsable(false)]
 		public BufferObject<Matrix4> RotationLocalBuffer
 		{
 			get{ return m_RotationLocalBuffer;}
 		}
-		//
+		[Browsable(false)]
 		public ArrayObject ParticleStateArrayObject
 		{
 			get; private set;
 		}
-		//
+		[Browsable(false)]
 		public UniformState Uniforms
 		{
 			get; private set;
 		}
-		//
+		[Browsable(false)]
 		public MatrixStack TransformationStack
 		{
 			get; private set;
 		}
-		//
+		[Browsable(false)]
 		public MatrixStack ProjectionStack
 		{
 			get; private set;
@@ -120,7 +119,7 @@ namespace opentk.Scene.ParticleSystem
 		{
 			get; private set;
 		}
-
+		[Browsable(false)]
 		public Vector2 Viewport
 		{
 			get; private set;

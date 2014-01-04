@@ -36,7 +36,7 @@ namespace OpenTK
 
 			public void Insert (int index, Matrix4 item)
 			{
-				m_Parent.Stack.Insert (index, new MatrixStack (item));
+				m_Parent.Stack.Insert (index, ValueProvider.Create(item));
 			}
 
 			public void RemoveAt (int index)
@@ -47,14 +47,14 @@ namespace OpenTK
 			public Matrix4 this[int index]
 			{
 				get { return m_Parent.Stack[index].Value; }
-				set { m_Parent.Stack[index] = new MatrixStack (value); }
+				set { m_Parent.Stack[index] = ValueProvider.Create(value); }
 			}
 			#endregion
 
 			#region ICollection[Matrix4] implementation
 			public void Add (Matrix4 item)
 			{
-				m_Parent.Stack.Add(new MatrixStack(item));
+				m_Parent.Stack.Add(ValueProvider.Create(item));
 			}
 
 			public void Clear ()
@@ -121,21 +121,14 @@ namespace OpenTK
 
 			protected override void SetItem (int index, IValueProvider<Matrix4> item)
 			{
-				if(item == null || index < 0 || index > this.Count)
+				if(item == null || index < 0 || index >= this.Count)
 					throw new ArgumentException();
 
-				if(index < Count)
-				{
-					this[index].PropertyChanged -= m_Parent.ChildValueChangedHandler;
-					base.SetItem (index, item);
-
-					item.PropertyChanged += m_Parent.ChildValueChangedHandler;
-					m_Parent.RaiseChanged ();
-				}
-				else
-				{
-					InsertItem(index, item);
-				}
+				this[index].PropertyChanged -= m_Parent.ChildValueChangedHandler;
+				base.SetItem (index, item);
+				
+				item.PropertyChanged += m_Parent.ChildValueChangedHandler;
+				m_Parent.RaiseChanged ();
 			}
 
 			protected override void ClearItems ()
@@ -164,28 +157,32 @@ namespace OpenTK
 			}
 		}
 
-		private MatrixStack m_BaseStack;
 		private Matrix4 m_Value;
-		private Matrix4 m_LocalStack;
 		private volatile bool m_Refreshed;
-
-		public MatrixStack (MatrixStack basestack) : this()
+		
+		public MatrixStack (int initialSize) : this()
 		{
-			m_BaseStack = basestack;
-			m_BaseStack.PropertyChanged += ChildValueChangedHandler;
+			for(int i = 0; i < initialSize; i++)
+			{
+				ValueStack.Add (Matrix4.Identity);
+			}
 		}
 
-		public MatrixStack (Matrix4 mat) : this()
+		public MatrixStack (IValueProvider<Matrix4> basestack) : this()
 		{
-			m_LocalStack = mat;
-			m_Value = mat;
+			Stack.Add (basestack);
 		}
 
 		public MatrixStack ()
 		{
-			m_LocalStack = Matrix4.Identity;
 			Stack = new MStack (this);
 			ValueStack = new MMStack (this);
+		}
+		
+		public IValueProvider<Matrix4> this[int index]
+		{
+			get{ return Stack[index]; }
+			set{ Stack[index] = value; }
 		}
 
 		public IList<Matrix4> ValueStack
@@ -241,7 +238,7 @@ namespace OpenTK
 			{
 				if (!m_Refreshed)
 				{
-					var bmat = m_BaseStack == null ? m_LocalStack : m_BaseStack.Value;
+					var bmat = Matrix4.Identity;
 					bmat = Stack.Aggregate (bmat, (res, x) => x.Value * res);
 					m_Value = bmat;
 

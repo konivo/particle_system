@@ -117,22 +117,24 @@ namespace opentk.Scene.ParticleSystem
 
 			//
 			PublishSize = 100000;
-			TransformationStack = new MatrixStack();
-			ProjectionStack = new MatrixStack();
+			ModelScaleFactor = 1;
+			
+			TransformationStack = new MatrixStack(2);
+			ProjectionStack = new MatrixStack(1);
 			CameraMvp = new ModelViewProjectionParameters("", TransformationStack, ProjectionStack);
 
 			//
-			ModelScaleFactor = 1;
 			m_Manip = new OrbitManipulator (ProjectionStack);
 			m_Grid = new Grid (CameraMvp);
-			TransformationStack.Push (m_Manip.RT);
-			TransformationStack.Push( Matrix4.Scale(ModelScaleFactor));
+			TransformationStack[0] = m_Manip.RT;
+			TransformationStack.ValueStack[1] = Matrix4.Scale(ModelScaleFactor);
 
 			//
-			Uniforms = new UniformState("");
-			var particle_scale_factor = ValueProvider.Create (() => this.ParticleScaleFactor);
-			Uniforms.Set ("particle_scale_factor", particle_scale_factor);
-			Uniforms.SetMvp ("", CameraMvp);
+			Uniforms = new UniformState
+			{
+				{"particle_scale_factor", () => this.ParticleScaleFactor},
+				{CameraMvp}
+			};
 
 			//
 			Shading = GlobalContext.Container.GetExportedValues<IShadingSetup>().FirstOrDefault();

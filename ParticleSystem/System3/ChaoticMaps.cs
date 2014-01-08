@@ -61,6 +61,12 @@ namespace opentk.System3
 			private set;
 		}
 
+		public float[] bias_state
+		{
+			get;
+			private set;
+		}
+		
 		public float[] prev_state
 		{
 			get;
@@ -121,6 +127,7 @@ namespace opentk.System3
 			a = new float[ParamCount];
 			prev_state = target_state = MathHelper2.RandomVectorSet(ParamCount , Vector2d.One).Select(x => (float)x.X).ToArray();
 			mask_state = Enumerable.Range(0, ParamCount).Select(x => 5f).ToArray();
+			bias_state = Enumerable.Range(0, ParamCount).Select(x => 0f).ToArray();
 		}
 
 		private void SearchForParams()
@@ -148,7 +155,7 @@ namespace opentk.System3
 				//
 				a = target_state
 					.Select(
-						(x, i) => mask_state[i] * x)
+						(x, i) => mask_state[i] * x + bias_state[i])
 					.ToArray();
 
 				newL = LyapunovExponent(SearchLoopIterCount, SearchDt, SearchOrbitSeedExtent, 10, SearchOrbitDistanceLimit);
@@ -226,7 +233,7 @@ namespace opentk.System3
 				if(t <= 1)
 				{
 					for (int i = 0; i < a.Length; i++) {
-						a[i] = (prev_state[i] * (1 - t) + target_state[i] * t) * mask_state[i];
+						a[i] = (prev_state[i] * (1 - t) + target_state[i] * t) * mask_state[i] + bias_state[i];
 					}
 				}
 			}
@@ -1281,6 +1288,113 @@ namespace opentk.System3
 		}
 	}
 
-
+	/// <summary>
+	/// Swirl2 D map.
+	/// </summary>
+	public class Swirl2DMap : ChaoticMap
+	{
+		private int m_CenterCount = 30;
+		private int m_CenterParamCount = 5;
+		float m_MaxAcc = 100;
+		float m_MaxAccBias = 1500;
+		float m_MaxDist = 50;
+		float m_Attenuation = 0.1f;
+		float m_AttenuationBias = 1.7f;
+		
+		public float MaxAcc
+		{
+			get{ return m_MaxAcc;}
+			set{ m_MaxAcc = value; UpdateMask(); }
+		}
+		
+		public float Attenuation
+		{
+			get{ return m_Attenuation;}
+			set{ m_Attenuation = value; UpdateMask(); }
+		}
+		
+		public float AttenuationBias
+		{
+			get{ return m_AttenuationBias;}
+			set{ m_AttenuationBias = value; UpdateMask(); }
+		}
+		
+		public float MaxDist
+		{
+			get{ return m_MaxDist;}
+			set{ m_MaxDist = value; UpdateMask(); }
+		}
+		
+		public float MaxAccBias
+		{
+			get{ return m_MaxAccBias;}
+			set{ m_MaxAccBias = value; UpdateMask(); }
+		}
+		
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return m_CenterCount * m_CenterParamCount;
+			}
+		}
+		#endregion
+		
+		public Swirl2DMap () : base("Swirl2DMap")
+		{
+			Map = Implementation;
+			UpdateMask();			
+		}
+		
+		private void UpdateMask()
+		{
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i+= m_CenterParamCount)
+			{
+				mask_state[i] = mask_state[i + 1] = mask_state[i + 2] = MaxDist;
+				mask_state[i + 3] = Attenuation;
+				mask_state[i + 4] = MaxAcc;
+				
+				bias_state[i + 3] = AttenuationBias;
+				bias_state[i + 4] = MaxAccBias;
+			}
+		}
+		
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			output = Vector4.Zero;
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i+= m_CenterParamCount)
+			{
+				var center = new Vector4{ X = a[i], Y = a[i + 1], Z = a[i + 2]};
+				Spiral(a[i + 3], a[i + 4], ref center, ref input, ref output);
+			}
+			
+			output /= m_CenterCount * 3;
+		}
+		
+		private void Spiral(float k, float acc, ref Vector4 center, ref Vector4 input, ref Vector4 output)
+		{
+			var tmp = input - center;
+			var dist = tmp.Length;
+			
+			for(int i = 0; i < 3; i++)
+			{
+				if(float.IsNaN(tmp.X) || float.IsNaN(tmp.Y))
+					break;
+				
+				var d = new Vector4(
+					tmp.Y, 
+					-tmp.X, 
+					0, 
+					0);
+				d.Normalize();
+				
+				d *= 1f/(float)Math.Max(Math.Pow(tmp.Xyz.Length, k), 0.1);
+				output += acc * d;
+				tmp = new Vector4(tmp.Z, tmp.X, tmp.Y,0);
+				output = new Vector4(output .Z, output .X, output .Y,0);
+			}
+		}
+	}
 }
 

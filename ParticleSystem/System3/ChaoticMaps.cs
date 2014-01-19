@@ -1294,10 +1294,12 @@ namespace opentk.System3
 	public class Swirl2DMap : ChaoticMap
 	{
 		private int m_CenterCount = 30;
-		private int m_CenterParamCount = 5;
+		private int m_CenterParamCount = 6;
 		float m_MaxAcc = 100;
 		float m_MaxAccBias = 1500;
-		float m_MaxDist = 50;
+		float m_MaxDistX = 50;
+		float m_MaxDistY = 50;
+		float m_MaxDistZ = 50;
 		float m_Attenuation = 0.1f;
 		float m_AttenuationBias = 1.7f;
 		
@@ -1319,10 +1321,22 @@ namespace opentk.System3
 			set{ m_AttenuationBias = value; UpdateMask(); }
 		}
 		
-		public float MaxDist
+		public float MaxDistX
 		{
-			get{ return m_MaxDist;}
-			set{ m_MaxDist = value; UpdateMask(); }
+			get{ return m_MaxDistX;}
+			set{ m_MaxDistX = value; UpdateMask(); }
+		}
+		
+		public float MaxDistY
+		{
+			get{ return m_MaxDistY;}
+			set{ m_MaxDistY = value; UpdateMask(); }
+		}
+		
+		public float MaxDistZ
+		{
+			get{ return m_MaxDistZ;}
+			set{ m_MaxDistZ = value; UpdateMask(); }
 		}
 		
 		public float MaxAccBias
@@ -1351,9 +1365,13 @@ namespace opentk.System3
 		{
 			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i+= m_CenterParamCount)
 			{
-				mask_state[i] = mask_state[i + 1] = mask_state[i + 2] = MaxDist;
+				mask_state[i] = MaxDistX;
+				mask_state[i + 1] = MaxDistY;
+				mask_state[i + 2] = MaxDistZ;
+				
 				mask_state[i + 3] = Attenuation;
 				mask_state[i + 4] = MaxAcc;
+				mask_state[i + 5] = 1;
 				
 				bias_state[i + 3] = AttenuationBias;
 				bias_state[i + 4] = MaxAccBias;
@@ -1366,7 +1384,7 @@ namespace opentk.System3
 			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i+= m_CenterParamCount)
 			{
 				var center = new Vector4{ X = a[i], Y = a[i + 1], Z = a[i + 2]};
-				Spiral(a[i + 3], a[i + 4], ref center, ref input, ref output);
+				Spiral(a[i + 3], a[i + 4] * a[i + 5], ref center, ref input, ref output);
 			}
 			
 			output /= m_CenterCount * 3;
@@ -1375,25 +1393,135 @@ namespace opentk.System3
 		private void Spiral(float k, float acc, ref Vector4 center, ref Vector4 input, ref Vector4 output)
 		{
 			var tmp = input - center;
-			var dist = tmp.Length;
+			var dist = tmp.Xy.Length;
 			
-			for(int i = 0; i < 3; i++)
+			var d = new Vector4(
+				tmp.Y, 
+				-tmp.X, 
+				0, 
+				0);
+			d.Normalize();
+			
+			d *= 1f/(float)Math.Max(Math.Pow(dist, k), 0.1);
+			output += acc * d;
+		}
+	}
+	
+	/// <summary>
+	/// Swirl2 D map.
+	/// </summary>
+	public class Swirl3DMap : ChaoticMap
+	{
+		private int m_CenterCount = 20;
+		private int m_CenterParamCount = 9;
+		float m_MaxAcc = 100;
+		float m_MaxAccBias = 1500;
+		float m_MaxDistX = 50;
+		float m_MaxDistY = 50;
+		float m_MaxDistZ = 50;
+		float m_Attenuation = 0.1f;
+		float m_AttenuationBias = 1.7f;
+		
+		public float MaxAcc
+		{
+			get{ return m_MaxAcc;}
+			set{ m_MaxAcc = value; UpdateMask(); }
+		}
+		
+		public float Attenuation
+		{
+			get{ return m_Attenuation;}
+			set{ m_Attenuation = value; UpdateMask(); }
+		}
+		
+		public float AttenuationBias
+		{
+			get{ return m_AttenuationBias;}
+			set{ m_AttenuationBias = value; UpdateMask(); }
+		}
+		
+		public float MaxDistX
+		{
+			get{ return m_MaxDistX;}
+			set{ m_MaxDistX = value; UpdateMask(); }
+		}
+		
+		public float MaxDistY
+		{
+			get{ return m_MaxDistY;}
+			set{ m_MaxDistY = value; UpdateMask(); }
+		}
+		
+		public float MaxDistZ
+		{
+			get{ return m_MaxDistZ;}
+			set{ m_MaxDistZ = value; UpdateMask(); }
+		}
+		
+		public float MaxAccBias
+		{
+			get{ return m_MaxAccBias;}
+			set{ m_MaxAccBias = value; UpdateMask(); }
+		}
+		
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
 			{
-				if(float.IsNaN(tmp.X) || float.IsNaN(tmp.Y))
-					break;
-				
-				var d = new Vector4(
-					tmp.Y, 
-					-tmp.X, 
-					0, 
-					0);
-				d.Normalize();
-				
-				d *= 1f/(float)Math.Max(Math.Pow(tmp.Xyz.Length, k), 0.1);
-				output += acc * d;
-				tmp = new Vector4(tmp.Z, tmp.X, tmp.Y,0);
-				output = new Vector4(output .Z, output .X, output .Y,0);
+				return m_CenterCount * m_CenterParamCount;
 			}
+		}
+		#endregion
+		
+		public Swirl3DMap () : base("Swirl3DMap")
+		{
+			Map = Implementation;
+			UpdateMask();			
+		}
+		
+		private void UpdateMask()
+		{
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i += m_CenterParamCount)
+			{
+				mask_state[i] = MaxDistX;
+				mask_state[i + 1] = MaxDistY;
+				mask_state[i + 2] = MaxDistZ;
+				
+				mask_state[i + 3] = 1;
+				mask_state[i + 4] = 1;
+				mask_state[i + 5] = 1;
+				
+				mask_state[i + 6] = Attenuation;
+				mask_state[i + 7] = MaxAcc;
+				mask_state[i + 8] = 1;
+				
+				bias_state[i + 6] = AttenuationBias;
+				bias_state[i + 7] = MaxAccBias;
+			}
+		}
+		
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			output = Vector4.Zero;
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i += m_CenterParamCount)
+			{
+				var center = new Vector3 { X = a[i], Y = a[i + 1], Z = a[i + 2] };
+				var n = new Vector3 { X = a[i + 3], Y = a[i + 4], Z = a[i + 5] };
+				Spiral(a[i + 6], a[i + 7] * a[i + 8], ref center, ref n, ref input, ref output);
+			}
+			
+			output /= m_CenterCount * 3;
+		}
+		
+		private void Spiral(float k, float acc, ref Vector3 center, ref Vector3 n, ref Vector4 input, ref Vector4 output)
+		{
+			var tmp = input.Xyz - center;
+			var dist = tmp.Xy.Length;
+						
+			var d = Vector3.Cross (tmp, n);
+			d *= 1/d.Length * acc/(float)Math.Max(Math.Pow(dist, k), 0.1);
+			output += new Vector4(d);
 		}
 	}
 }

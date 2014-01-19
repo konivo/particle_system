@@ -27,7 +27,7 @@ void main ()
 		//hard dot
 		case 1:
 			float dist = length(cparam) * 1.1f;
-			color = vec4(fcolor * pow(1.1f - dist, smooth_shape_sharpness),  particle_brightness * 0.001f);
+			color = vec4(0.5 * (normalize(fcolor) + 1) * pow(1.1f - dist, smooth_shape_sharpness),  particle_brightness * 0.001f);
 			break;
 
 		//texture
@@ -36,7 +36,7 @@ void main ()
 		break;
 
 		default:
-			color = vec4(fcolor, 0.01);
+			color = vec4((fcolor * 2 - 1), 0.01);
 			break;
 	}
 

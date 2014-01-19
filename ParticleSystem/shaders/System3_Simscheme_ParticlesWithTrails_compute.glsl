@@ -33,7 +33,7 @@ const int c_ChunkSize_y = 1;
 const ivec2 u_ChunkSize = {c_ChunkSize_x, c_ChunkSize_y};
 
 //SpiralBMap map
-const int c_CenterCount = 30, c_CenterParamCount = 5;
+const int c_CenterCount = 30, c_CenterParamCount = 6;
 
 ////////////////////////////////////////////////////////////////////////////////
 //buffer//
@@ -135,28 +135,21 @@ vec4 SpiralBMap(vec4 vin)
 }
 
 ///////////////
-vec4 Swirl2DMapInternal(float k, float acc, vec4 center, vec4 vin, vec4 vout)
+vec4 Swirl2DMapInternal(float k, float acc, vec4 center, vec4 vin)
 {
 	vec4 tmp = vin - center;
-	float dist = length(tmp);
+	float dist = length(tmp.xy);
 
-	for(int i = 0; i < 1; i++)
-	{
-		vec4 d = 
-			normalize(vec4(
-				tmp.y,
-				-tmp.x,
-				0,
-				0
-			));
+	vec4 d = 
+		normalize(vec4(
+			tmp.y,
+			-tmp.x,
+			0,
+			0
+		));
 
-		d *= 1f/max(pow(length(tmp.xyz), k), 0.1f);
-		vout += acc * d;
-		tmp = vec4(tmp.zxy,0);
-		//vout = vec4(vout.zxy, 0);
-	}
-	
-	return vout;
+	d *= 1f/max(pow(dist, k), 0.1f);
+	return acc * d;
 }
 
 subroutine(Map)
@@ -166,7 +159,7 @@ vec4 Swirl2DMap(vec4 vin)
 	for(int i = 0; i < c_CenterCount * c_CenterParamCount; i+= c_CenterParamCount)
 	{
 		vec4 center = vec4(a[i], a[i + 1], a[i + 2], 0);
-		o = Swirl2DMapInternal(a[i + 3], a[i + 4], center, vin, o);
+		o += Swirl2DMapInternal(a[i + 3], a[i + 4] * a[i + 5], center, vin);
 	}
 
 	o /= c_CenterCount * 3;

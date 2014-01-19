@@ -63,11 +63,11 @@ namespace opentk.System3
 		protected override Vector3 NewPosition (System3 system, int bundleFirstItem, int i)
 		{
 			var pcount = system.PARTICLES_COUNT;
-			var amount = Math.Max (AmountX + AmountY + AmountZ, float.Epsilon);
+			var amount = Math.Max (AmountX * AmountY * AmountZ, float.Epsilon);
 			var gridCount = (int)Math.Floor (Math.Pow (pcount / amount, 1 / 3.0));
 
-			var gcx = (int)(gridCount * AmountY * gridCount * AmountZ);
-			var gcy = (int)(gridCount * AmountZ);
+			var gcx = (int)Math.Max(gridCount * AmountY * gridCount * AmountZ, 1);
+			var gcy = (int)Math.Max(gridCount * AmountZ, 1);
 			
 			int ix = i / gcx;
 			int iy = (i - gcx * ix) / gcy;

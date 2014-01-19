@@ -90,13 +90,18 @@ namespace opentk.System3
 		{
 			var result = new System3 
 			{
-				PARTICLES_COUNT = 60000, VIEWPORT_WIDTH = 324, NEAR = 1, FAR = 10240, DT = 0.0051,
-				Fov = 0.9, PublishMethod = PublishMethod.AllAtOnce,
+				PARTICLES_COUNT = 60000, 
+				VIEWPORT_WIDTH = 324, 
+				NEAR = 1, 
+				FAR = 10240, 
+				DT = 1,
+				Fov = 0.9, 
+				PublishMethod = PublishMethod.Never,
 				ParticleScaleFactor = 600, 
-				SimulationScheme = new ParticlesWithTrails(),
+				SimulationScheme = new ParticlesWithTrailsGpuSimulationScheme(),
 				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
-				ChaoticMap = new DomainMorphMap(), 
-				ParticleGenerator = new SphereGenerator{ SphereInnerSize = 70, SphereOuterSize = 75 } 
+				ParticleGenerator = new SphereGenerator{ SphereInnerSize = 70, SphereOuterSize = 75 },
+				ChaoticMap = new Swirl2DMap(),				
 			};
 			return result;
 		}

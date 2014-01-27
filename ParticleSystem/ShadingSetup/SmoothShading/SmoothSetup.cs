@@ -53,7 +53,8 @@ namespace opentk.ShadingSetup
 		public SmoothSetup ()
 		{
 			ParticleShape = ParticleShapeType.SmoothDot;
-			ParticleBrightness = 44;
+			ParticleBrightness = 144;
+			SmoothShapeSharpness = 2;
 		}
 
 		//

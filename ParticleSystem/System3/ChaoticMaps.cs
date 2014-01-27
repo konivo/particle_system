@@ -1395,6 +1395,9 @@ namespace opentk.System3
 			var tmp = input - center;
 			var dist = tmp.Xy.Length;
 			
+			if(dist < 0.1)
+				return;
+			
 			var d = new Vector4(
 				tmp.Y, 
 				-tmp.X, 
@@ -1404,6 +1407,28 @@ namespace opentk.System3
 			
 			d *= 1f/(float)Math.Max(Math.Pow(dist, k), 0.1);
 			output += acc * d;
+		}
+		
+		public override void UpdateMap (DateTime simtime, long step)
+		{
+			for (int i = 0; i < a.Length; i++) {
+				a[i] = target_state[i] * mask_state[i] + bias_state[i];
+			}
+			
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i += m_CenterParamCount)
+			{
+				var input = new Vector4 { X = a[i], Y = a[i + 1], Z = a[i + 2], W = 0 };
+				var output = Vector4.Zero;
+				Map(ref input, ref output);
+				
+				a[i] += output.X;
+				a[i + 1] += output.Y;
+				a[i + 2] += output.Z;
+			}
+			
+			for (int i = 0; i < a.Length; i++) {
+				target_state[i] = (a[i] - bias_state[i])/mask_state[i];
+			}
 		}
 	}
 	
@@ -1523,6 +1548,28 @@ namespace opentk.System3
 			d *= 1/d.Length * acc/(float)Math.Max(Math.Pow(dist, k), 0.1);
 			output += new Vector4(d);
 		}
+		
+		public override void UpdateMap (DateTime simtime, long step)
+		{
+			for (int i = 0; i < a.Length; i++) {
+				a[i] = target_state[i] * mask_state[i] + bias_state[i];
+			}
+			
+			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i += m_CenterParamCount)
+			{
+				var input = new Vector4 { X = a[i], Y = a[i + 1], Z = a[i + 2], W = 0 };
+				var output = Vector4.Zero;
+				Map(ref input, ref output);
+				
+				a[i] = output.X;
+				a[i + 1] = output.Y;
+				a[i + 2] = output.Z;
+			}
+			
+			for (int i = 0; i < a.Length; i++) {
+				target_state[i] = (a[i] - bias_state[i])/mask_state[i];
+			}
+		}		
 	}
 }
 

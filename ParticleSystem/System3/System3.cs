@@ -90,7 +90,7 @@ namespace opentk.System3
 		{
 			var result = new System3 
 			{
-				PARTICLES_COUNT = 60000, 
+				PARTICLES_COUNT = 260000, 
 				VIEWPORT_WIDTH = 324, 
 				NEAR = 1, 
 				FAR = 10240, 
@@ -100,8 +100,8 @@ namespace opentk.System3
 				ParticleScaleFactor = 600, 
 				SimulationScheme = new ParticlesWithTrailsGpuSimulationScheme(),
 				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
-				ParticleGenerator = new SphereGenerator{ SphereInnerSize = 70, SphereOuterSize = 75 },
-				ChaoticMap = new Swirl2DMap(),				
+				ParticleGenerator = new GridGenerator { AmountX = 1, AmountY = 1, AmountZ = 0.001f, StepX = 0.1f, StepY = 0.1f },
+				ChaoticMap = new Swirl2DMap()
 			};
 			return result;
 		}

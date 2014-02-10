@@ -18,6 +18,7 @@ subroutine float GetShadow(vec4 pos);
  * model-view matrices 
  */
 uniform mat4 projection_transform;
+uniform mat4 modelviewprojection_transform;
 uniform mat4 modelviewprojection_inv_transform;
 uniform float particle_brightness;
 uniform float smooth_shape_sharpness;
@@ -269,7 +270,7 @@ float GetShadowSoft2(vec4 pos)
 			clamp(
 				log(
 					textureLod(
-						shadow_texture, rtest_pos, 0)) / EXP_SCALE_FACTOR + 1 + .0001,
+						shadow_texture, rtest_pos, 0)) / EXP_SCALE_FACTOR + 1 + .00021,
 				0, 1);
 		
 		if(smp < r_pos.z)
@@ -278,7 +279,92 @@ float GetShadowSoft2(vec4 pos)
 		}
 	}
 	
-	return clamp(result/light_expmap_nsamples, 0, 1);
+	float result2 = 0.0;
+	vec3 ldir = normalize(light.dir);
+	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
+	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
+	
+	for(int i = 1; i < light_expmap_nsamples; i++)
+	{
+		vec2 offset = get_sampling_point(i*1 + 113) * tan(phi);/// 500;
+		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
+		vec3 nldir = normalize(rdir);
+		
+		for(float j = 1; j < 20; j++)
+		{
+			vec4 ppp = vec4(nldir * (j * .015 * i + .2) + pos.xyz, 1);
+			vec2 p_param = reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
+					
+			//vec2 p_param = param + offset;
+			vec4 p_nd = get_normal_depth(p_param);
+			vec4 p_clip = get_clip_coordinates(p_param, p_nd.w);
+			vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
+			
+			vec4 d = p_pos - pos;
+			//vec4 d = vec4(p_nd.xyz, 0);
+			float s = dot(normalize(d.xyz), ldir);
+			
+			
+			
+			//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
+			//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
+			/*if(s > cos(phi))
+			{
+				result2 += 10./j;//(4*i + 1)/ light_expmap_nsamples/ length(d + 0.1);
+			}
+			else */
+			if(length(ppp - p_pos) < 0.1)
+			{
+				result2 += 1;//10.0/(j + 1);
+				break;
+			}
+			//else 
+				//result2 += (1 - dot(get_normal_depth(param).xyz, ldir));
+			//else
+				//result2 += 1 - s;
+				//result2 += 1 - sign(s) * (pow(abs(s), 1.125)) + cos(phi) - 1;
+		}
+	}
+	//result2 /= 15;
+	/*
+	for(int i = 1; i < light_expmap_nsamples; i++)
+	{
+		vec2 offset = get_sampling_point(i*1 + 113) * tan(phi);/// 500;
+		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
+		vec3 nldir = normalize(rdir);
+		
+		vec2 p_param = reproject(modelviewprojection_transform, vec4(nldir * 1*i/ light_expmap_nsamples + pos.xyz, 1)).xy * 0.5 + 0.5;
+				
+				
+		//vec2 p_param = param + offset;
+		vec4 p_nd = get_normal_depth(p_param);
+		vec4 p_clip = get_clip_coordinates(p_param, p_nd.w);
+		vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
+		
+		vec4 d = p_pos - pos;
+		//vec4 d = vec4(p_nd.xyz, 0);
+		float s = dot(normalize(d.xyz), ldir);
+		
+		
+		
+		//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
+		//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
+		if(s > cos(phi))
+		{
+			result2 += 10./i;//(4*i + 1)/ light_expmap_nsamples/ length(d + 0.1);
+		}
+		//else if(p_nd.w < get_normal_depth(param).w)
+			//result2 += 1.0/(i + 1);
+		else 
+			result2 += (1 - dot(get_normal_depth(param).xyz, ldir));
+		//else
+			//result2 += 1 - s;
+			//result2 += 1 - sign(s) * (pow(abs(s), 1.125)) + cos(phi) - 1;
+	}*/
+	
+	
+	//return result/ light_expmap_nsamples;
+	return clamp(max(result, result2)/light_expmap_nsamples, 0, 1);
 }
 
 

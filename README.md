@@ -30,5 +30,6 @@ I have some plans to play more, and there are few things I have come across and 
 * see prusinkiewicz's site (http://algorithmicbotany.org/)
 * (http://www.digitalpoiesis.org/index.html)
 * Reconstruction of zero-level sets from particles
+* Diffusion-Limited aggregation (http://www.andylomas.com/)
 
 

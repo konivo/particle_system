@@ -1,21 +1,21 @@
-#version 410
+#version 440
+////////////////////////////////////////////////////////////////////////////////
+//types//
+
+subroutine void SetFragmentDepth();
+subroutine void SetOutputs();
+
 ////////////////////////////////////////////////////////////////////////////////
 //uniforms//
 uniform mat4 modelview_transform;
 uniform mat4 projection_transform;
 uniform mat4 modelviewprojection_transform;
-/*
-0 - normal
-1 - shadow
-2 - shadow, exponential map
-*/
-uniform int mode;
+subroutine uniform SetFragmentDepth u_SetFragmentDepth;
+subroutine uniform SetOutputs u_SetOutputs;
 
 ////////////////////////////////////////////////////////////////////////////////
 //common constants//
-
 const float EXP_SCALE_FACTOR = 50;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //inputs and outputs//
@@ -37,24 +37,43 @@ in SpriteData
 out vec4 uv_colorindex_none;
 out vec4 normal_depth;
 
+////////////////////////////////////////////////////////////////////////////////
+//subroutines//
+
+///////////////
+subroutine(SetFragmentDepth)
+void FragDepthDefault()
+{
+	gl_FragDepth = gl_FragCoord.z;
+}
+
+///////////////
+subroutine(SetFragmentDepth)
+void FragDepthExponential()
+{
+	gl_FragDepth =  exp(gl_FragCoord.z * EXP_SCALE_FACTOR - EXP_SCALE_FACTOR);
+}
+
+///////////////
+subroutine(SetOutputs)
+void SetOutputsDefault()
+{
+	normal_depth.w = gl_FragCoord.z;
+	normal_depth.xyz = normalize(Sprite.normal) * 0.5f + 0.5f;
+	uv_colorindex_none = vec4(Sprite.color, 0);
+}
+
+///////////////
+subroutine(SetOutputs)
+void SetOutputsNone()
+{ }
 
 ////////////////////////////////////////////////////////////////////////////////
 //kernel//
 void main ()
 {
-	//
-	switch(mode)
-	{
-		case 0:
-		case 1:
-			gl_FragDepth = normal_depth.w = gl_FragCoord.z;
-			normal_depth.xyz = normalize(Sprite.normal) * 0.5f + 0.5f;
-			uv_colorindex_none = vec4(Sprite.color, 0);
-			break;
-		case 2:
-			gl_FragDepth = exp(gl_FragCoord.z * EXP_SCALE_FACTOR - EXP_SCALE_FACTOR);
-			break;
-		default:
-			break;
-	}
+	u_SetOutputs();
+	
+	// Setup the outputs
+	u_SetFragmentDepth();
 }

@@ -22,18 +22,6 @@ namespace opentk.ShadingSetup
 		{
 			base.PassSetup(p);
 
-			//
-			var mode = ValueProvider.Create
-			(() =>
-			{
-				switch (SunLightImpl.ImplementationType) {
-				case ShadowImplementationType.Filter16x16:
-					return 2;
-				default:
-				break;
-				}
-				return 0;
-			});
 			var particle_scale_factor = ValueProvider.Create (() => p.ParticleScaleFactor);
 			var particle_count = ValueProvider.Create (() => p.PARTICLES_COUNT);
 
@@ -62,7 +50,7 @@ namespace opentk.ShadingSetup
 				 p.RotationBuffer,
 				 particle_count,
 				 particle_scale_factor,
-				 mode,
+				 ValueProvider.Create ( () => "FragDepth" + SunLightImpl.ShadowmapType.ToString ()),
 				 SunLightImpl.LightMvp
 			);
 

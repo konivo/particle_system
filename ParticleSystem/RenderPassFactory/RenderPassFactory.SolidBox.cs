@@ -24,7 +24,8 @@ namespace opentk
 			 IValueProvider<Vector2> viewport,
 			 IValueProvider<int> particles_count,
 			 IValueProvider<float> particle_scale_factor,
-			 IValueProvider<int> mode,
+			 IValueProvider<string> fragdepthroutine,
+			 IValueProvider<string> outputroutine,
 			 ModelViewProjectionParameters mvp,
 			 UniformState subroutineMapping,
 			 IEnumerable<Shader> subroutines
@@ -33,7 +34,8 @@ namespace opentk
 			var uniform_state = subroutineMapping != null? new UniformState (subroutineMapping): new UniformState();
 			uniform_state.Set ("viewport_size", viewport);
 			uniform_state.Set ("particle_scale_factor", particle_scale_factor);
-			uniform_state.Set ("mode", mode);
+			uniform_state.Set ("u_SetFragmentDepth", ShaderType.FragmentShader, fragdepthroutine);
+			uniform_state.Set ("u_SetOutputs", ShaderType.FragmentShader, outputroutine);
 			mvp.SetUniforms("", uniform_state);
 
 			var array_state =
@@ -101,7 +103,8 @@ namespace opentk
 		)
 		{
 			var viewport = ValueProvider.Create (() => new Vector2 (depth_texture.Width, depth_texture.Height));
-			var mode = ValueProvider.Create (() => 0);
+			var fragdepthroutine = ValueProvider.Create (() => "FragDepthDefault");
+			var outputroutine = ValueProvider.Create (() => "SetOutputsDefault");
 
 			return CreateSolidBox
 			(
@@ -112,7 +115,7 @@ namespace opentk
 				 ),
 				 sprite_pos_buffer, sprite_color_buffer, sprite_dimensions_buffer, sprite_rotation_local_buffer, sprite_rotation_buffer,
 				 viewport,
-				 particles_count, particle_scale_factor, mode,
+				 particles_count, particle_scale_factor, fragdepthroutine, outputroutine,
 				 mvp,
 				 null,
 				 null
@@ -131,12 +134,13 @@ namespace opentk
 			 BufferObject<Matrix4> sprite_rotation_local_buffer,
 			 BufferObject<Matrix4> sprite_rotation_buffer,
 			 IValueProvider<int> particles_count,
-			 IValueProvider<float> particle_scale_factor,
-			 IValueProvider<int> mode,
+				IValueProvider<float> particle_scale_factor,
+				IValueProvider<string> fragdepthroutine,
 			 ModelViewProjectionParameters mvp
 		)
 		{
 			var viewport = ValueProvider.Create (() => new Vector2 (depth_texture.Width, depth_texture.Height));
+			var outputroutine = ValueProvider.Create (() => "SetOutputsNone");
 			return CreateSolidBox
 			(
 				 new FramebufferBindingSet(
@@ -144,7 +148,7 @@ namespace opentk
 				 ),
 				 sprite_pos_buffer, sprite_color_buffer, sprite_dimensions_buffer, sprite_rotation_local_buffer, sprite_rotation_buffer,
 				 viewport,
-				 particles_count, particle_scale_factor, mode,
+				 particles_count, particle_scale_factor, fragdepthroutine, outputroutine,
 				 mvp,
 				 null,
 				 null

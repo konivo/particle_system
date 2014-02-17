@@ -270,7 +270,7 @@ float GetShadowSoft2(vec4 pos)
 			clamp(
 				log(
 					textureLod(
-						shadow_texture, rtest_pos, 0)) / EXP_SCALE_FACTOR + 1 + .00021,
+						shadow_texture, rtest_pos, 0)) / EXP_SCALE_FACTOR + 1 + .00041,
 				0, 1);
 		
 		if(smp < r_pos.z)
@@ -283,20 +283,28 @@ float GetShadowSoft2(vec4 pos)
 	vec3 ldir = normalize(light.dir);
 	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
 	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
+	float est = 3;
+	float step = .91;
 	
-	for(int i = 1; i < light_expmap_nsamples; i++)
+	bool estFound = false;
+	
+	for(int i = 0; i < 1*light_expmap_nsamples; i++)
 	{
 		vec2 offset = get_sampling_point(i*1 + 113) * tan(phi);/// 500;
 		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
 		vec3 nldir = normalize(rdir);
 		
-		for(float j = 1; j < 20; j++)
-		{
-			vec4 ppp = vec4(nldir * (j * .015 * i + .2) + pos.xyz, 1);
+		//est = max(est, 0.3);
+		//step = max(.91, step);
+		float estbias = i % 2;
+		
+		for(float j = 0; j < 5; j++)
+		{			
+			vec4 ppp = vec4(nldir * (j * step * i  + est + estbias) + pos.xyz, 1);
 			vec2 p_param = reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
-					
+			
 			//vec2 p_param = param + offset;
-			vec4 p_nd = get_normal_depth(p_param);
+			vec4 p_nd = get_normal_depth(clamp(p_param, 0, 1));
 			vec4 p_clip = get_clip_coordinates(p_param, p_nd.w);
 			vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
 			
@@ -304,67 +312,67 @@ float GetShadowSoft2(vec4 pos)
 			//vec4 d = vec4(p_nd.xyz, 0);
 			float s = dot(normalize(d.xyz), ldir);
 			
-			
-			
-			//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
-			//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
-			/*if(s > cos(phi))
+			if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
 			{
-				result2 += 10./j;//(4*i + 1)/ light_expmap_nsamples/ length(d + 0.1);
+				est = (j * step * i + est + estbias) ;
+				step = 0.1 * est / ((i + 1) * 1);
+				est *= 0.9;
+				estbias = 0;
+				
+				if(estFound)
+				{
+					result2 += 1;
+					break;
+				}
+				else
+				{
+					j = 0;
+					estFound = true;
+				}
 			}
-			else */
-			if(length(ppp - p_pos) < 0.1)
+			else if(estFound)
 			{
-				result2 += 1;//10.0/(j + 1);
-				break;
+				vec4 ppp = vec4(nldir * (-j * step * i  + est + estbias) + pos.xyz, 1);
+				vec2 p_param = reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
+				
+				//vec2 p_param = param + offset;
+				vec4 p_nd = get_normal_depth(clamp(p_param, 0, 1));
+				vec4 p_clip = get_clip_coordinates(p_param, p_nd.w);
+				vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
+				
+				vec4 d = p_pos - pos;
+				//vec4 d = vec4(p_nd.xyz, 0);
+				float s = dot(normalize(d.xyz), ldir);
+				
+				if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
+				{
+					est = (-j * step * i + est + estbias) ;
+					step = 0.1 * est / ((i + 1) * 1);
+					est *= 0.9;
+					estbias = 0;
+					
+					if(estFound)
+					{
+						result2 += 1;
+						break;
+					}
+					else
+					{
+						j = 0;
+						estFound = true;
+					}
+				}
 			}
-			//else 
-				//result2 += (1 - dot(get_normal_depth(param).xyz, ldir));
-			//else
-				//result2 += 1 - s;
-				//result2 += 1 - sign(s) * (pow(abs(s), 1.125)) + cos(phi) - 1;
+			
+			if(estFound && j == 4)
+			{
+				estFound = false;
+			}
 		}
 	}
-	//result2 /= 15;
-	/*
-	for(int i = 1; i < light_expmap_nsamples; i++)
-	{
-		vec2 offset = get_sampling_point(i*1 + 113) * tan(phi);/// 500;
-		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
-		vec3 nldir = normalize(rdir);
-		
-		vec2 p_param = reproject(modelviewprojection_transform, vec4(nldir * 1*i/ light_expmap_nsamples + pos.xyz, 1)).xy * 0.5 + 0.5;
-				
-				
-		//vec2 p_param = param + offset;
-		vec4 p_nd = get_normal_depth(p_param);
-		vec4 p_clip = get_clip_coordinates(p_param, p_nd.w);
-		vec4 p_pos = reproject(modelviewprojection_inv_transform, p_clip);
-		
-		vec4 d = p_pos - pos;
-		//vec4 d = vec4(p_nd.xyz, 0);
-		float s = dot(normalize(d.xyz), ldir);
-		
-		
-		
-		//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
-		//if(abs(pow(1 - s * s, 0.5)) < sin(phi))
-		if(s > cos(phi))
-		{
-			result2 += 10./i;//(4*i + 1)/ light_expmap_nsamples/ length(d + 0.1);
-		}
-		//else if(p_nd.w < get_normal_depth(param).w)
-			//result2 += 1.0/(i + 1);
-		else 
-			result2 += (1 - dot(get_normal_depth(param).xyz, ldir));
-		//else
-			//result2 += 1 - s;
-			//result2 += 1 - sign(s) * (pow(abs(s), 1.125)) + cos(phi) - 1;
-	}*/
-	
 	
 	//return result/ light_expmap_nsamples;
-	return clamp(max(result, result2)/light_expmap_nsamples, 0, 1);
+	return clamp(max(result2, result)/light_expmap_nsamples, 0, 1);
 }
 
 

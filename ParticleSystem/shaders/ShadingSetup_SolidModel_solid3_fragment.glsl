@@ -283,8 +283,8 @@ float GetShadowSoft2(vec4 pos)
 	vec3 ldir = normalize(light.dir);
 	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
 	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
-	float est = 3;
-	float step = .91;
+	float est = 1;
+	float step = .9491;
 	
 	bool estFound = false;
 	
@@ -298,7 +298,7 @@ float GetShadowSoft2(vec4 pos)
 		//step = max(.91, step);
 		float estbias = i % 2;
 		
-		for(float j = 0; j < 5; j++)
+		for(float j = 0; j < 10; j++)
 		{			
 			vec4 ppp = vec4(nldir * (j * step * i  + est + estbias) + pos.xyz, 1);
 			vec2 p_param = reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
@@ -364,7 +364,7 @@ float GetShadowSoft2(vec4 pos)
 				}
 			}
 			
-			if(estFound && j == 4)
+			if(estFound && j == 49)
 			{
 				estFound = false;
 			}
@@ -429,5 +429,6 @@ void main ()
 	//color_luma = vec4(pow(texture(shadow_texture, param).x, 1), 0, 0, 1);
 	//color_luma = vec4((reproject(light_modelviewprojection_transform, p_pos).xy + 1) * 0.5, 0, 1);
 	//color_luma = vec4(shadow, 0, 0, 1);
+	//color_luma = vec4(aoc, 0, 0, 1);
 	gl_FragDepth = texture(normaldepth_texture, param).w;
 }

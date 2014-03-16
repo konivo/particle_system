@@ -209,7 +209,7 @@ namespace opentk.ShadingSetup
 			PassName = passName;
 			PassNamespace = passNamespace ?? string.Empty;
 		}
-
+		[Obsolete("remove this constructor")]
 		public SeparateProgramPass (string passName, string passNamespace, Action<GameWindow> beforeStateAction, Action<GameWindow> beforeRender, Action<GameWindow> render, params StatePart[] stateParts)
 		:this(passName, passNamespace, beforeStateAction, beforeRender, render)
 		{
@@ -221,15 +221,40 @@ namespace opentk.ShadingSetup
 		public SeparateProgramPass (string passName, Action<GameWindow> beforeStateAction, Action<GameWindow> beforeRender, Action<GameWindow> render, IEnumerable<Shader> shaders, params StatePart[] stateParts)
 		:this(passName, string.Empty, beforeStateAction, beforeRender, render)
 		{
-			//create program from resources filtered by namespace and name
 			var program = new Program (PassName, shaders.ToArray ());
 			m_State = new State (null, stateParts.Concat (new[] { program }).ToArray ());
 		}
+		
+		public SeparateProgramPass (string passName, Action<GameWindow> beforeStateAction, Action<GameWindow> beforeRender, Action<GameWindow> render, Program program, params StatePart[] stateParts)
+			:this(passName, string.Empty, beforeStateAction, beforeRender, render)
+		{
+			m_State = new State (null, stateParts.Concat (new[] { program }).ToArray ());
+		}
+		
+		public SeparateProgramPass (string passName, Action<GameWindow> beforeStateAction, Action<GameWindow> beforeRender, Action<GameWindow> render, State state)
+			:this(passName, string.Empty, beforeStateAction, beforeRender, render)
+		{
+			m_State = state;
+		}
 
-		public SeparateProgramPass (string passName, Action<GameWindow> render, params StatePart[] stateParts)
-		: this(passName, new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().DeclaringType.Namespace.Split('.').Last(), null, null, render, stateParts)
-		{	}
-
+		public SeparateProgramPass (string passName, Action<GameWindow> render, IEnumerable<Shader> shaders, params StatePart[] stateParts)
+		: this(passName, new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().DeclaringType.Namespace.Split('.').Last(), null, null, render)
+		{	
+			var program = new Program (PassName, shaders.ToArray ());
+			m_State = new State (null, stateParts.Concat (new[] { program }).ToArray ());
+		}
+		
+		public SeparateProgramPass (string passName, Action<GameWindow> render, Program program, params StatePart[] stateParts)
+			: this(passName, new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().DeclaringType.Namespace.Split('.').Last(), null, null, render)
+		{	
+			m_State = new State (null, stateParts.Concat (new[] { program }).ToArray ());
+		}
+		
+		public SeparateProgramPass (string passName, Action<GameWindow> render, State state)
+			: this(passName, new System.Diagnostics.StackTrace().GetFrame(1).GetMethod().DeclaringType.Namespace.Split('.').Last(), null, null, render)
+		{	
+			m_State = state;
+		}
 	}
 
 	/// <summary>

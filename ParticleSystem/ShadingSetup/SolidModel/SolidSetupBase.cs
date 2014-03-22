@@ -120,41 +120,50 @@ namespace opentk.ShadingSetup
 						MagFilter = TextureMagFilter.Nearest,
 				}};
 
-			AOC_Texture =
-				new DataTexture<float> {
-					Name = "AOC_Texture",
-					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Nearest,
-				}};
+			AOC_Texture = new Texture 
+			{
+				Name = "AOC_Texture",
+				InternalFormat = PixelInternalFormat.R8,
+				Target = TextureTarget.Texture2D,
+				Width = AocParameters.TextureSize,
+				Height = AocParameters.TextureSize,
+				Params = new TextureBase.Parameters
+				{
+					GenerateMipmap = true,
+					MinFilter = TextureMinFilter.LinearMipmapLinear,
+					MagFilter = TextureMagFilter.Nearest,
+				}
+			};
 
-			AOC_Texture_Blurred_H =
-				new DataTexture<float> {
-					Name = "AOC_Texture_H",
-					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Nearest,
-				}};
+			AOC_Texture_Blurred_H = new Texture 
+			{
+				Name = "AOC_Texture_HBLUR",
+				InternalFormat = PixelInternalFormat.R8,
+				Target = TextureTarget.Texture2D,
+				Width = AocParameters.TextureSize,
+				Height = AocParameters.TextureSize,
+				Params = new TextureBase.Parameters
+				{
+					GenerateMipmap = true,
+					MinFilter = TextureMinFilter.LinearMipmapLinear,
+					MagFilter = TextureMagFilter.Nearest,
+				}
+			};
 
-			AOC_Texture_Blurred_HV =
-				new DataTexture<float> {
-					Name = "AOC_Texture_HV",
-					InternalFormat = PixelInternalFormat.R16,
-					Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize],
-					Params = new TextureBase.Parameters
-					{
-						GenerateMipmap = true,
-						MinFilter = TextureMinFilter.LinearMipmapLinear,
-						MagFilter = TextureMagFilter.Linear,
-				}};
+			AOC_Texture_Blurred_HV = new Texture 
+			{
+				Name = "AOC_Texture_HVBLUR",
+				InternalFormat = PixelInternalFormat.R8,
+				Target = TextureTarget.Texture2D,
+				Width = AocParameters.TextureSize,
+				Height = AocParameters.TextureSize,
+				Params = new TextureBase.Parameters
+				{
+					GenerateMipmap = true,
+					MinFilter = TextureMinFilter.LinearMipmapLinear,
+					MagFilter = TextureMagFilter.Nearest,
+				}
+			};
 
 			NormalDepth_Texture =
 				new DataTexture<Vector4> {
@@ -279,9 +288,17 @@ namespace opentk.ShadingSetup
 			if(AOC_Texture != null &&
 			   AOC_Texture.Width != AocParameters.TextureSize)
 			{
-				((DataTexture<float>)AOC_Texture).Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize];
-				((DataTexture<float>)AOC_Texture_Blurred_H).Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize];
-				((DataTexture<float>)AOC_Texture_Blurred_HV).Data2D = new float[AocParameters.TextureSize, AocParameters.TextureSize];
+				var aoc_tex = (Texture)AOC_Texture;
+				var aoc_h = (Texture)AOC_Texture_Blurred_H;
+				var aoc_hv = (Texture)AOC_Texture_Blurred_HV;
+				using(aoc_tex.BulkChange())
+				using(aoc_h.BulkChange())
+				using(aoc_hv.BulkChange())
+				{
+					aoc_hv.Width = aoc_hv.Height = 
+					aoc_h.Width = aoc_h.Height = 
+					aoc_tex.Width = aoc_tex.Height = AocParameters.TextureSize;
+				}
 			}
 		}
 

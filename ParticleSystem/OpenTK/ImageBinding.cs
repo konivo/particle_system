@@ -71,8 +71,8 @@ namespace OpenTK
 
 				//texture array binding
 				foreach (var bgroup in textureBindings) 
-				{					
-					GLExtensions.BindImageTexture (unitCounter, bgroup.texture.Handle, 0, true, 0, ImageAccess.ReadWrite, ImageFormat.RGBA32F);
+				{
+					GLExtensions.BindImageTexture (unitCounter, bgroup.texture.Handle, 0, true, 0, ImageAccess.ReadWrite, (ImageFormat) bgroup.texture.InternalFormat );
 					GLHelper.PrintError ();
 					
 					foreach(var binding in bgroup.bindings)

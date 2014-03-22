@@ -1,6 +1,6 @@
 #define T_IMAGE image2D
 #define T_PIXEL vec4
-#define LAYOUT layout(rgba32f)
+#define T_LAYOUT r8
 
 #version 440
 layout(local_size_x=8, local_size_y=8) in;
@@ -12,13 +12,13 @@ layout(local_size_x=8, local_size_y=8) in;
 //uniforms//
 // 32 is the maximal filter width .. 
 uniform int u_FilterWidth;
-layout(rgba32f) uniform image2D u_Source;
-layout(rgba32f) uniform image2D u_Target;
+layout(T_LAYOUT) uniform T_IMAGE u_Source;
+layout(T_LAYOUT) uniform T_IMAGE u_Target;
 
 ////////////////////////////////////////////////////////////////////////////////
 //local storage//
-shared vec4[gl_WorkGroupSize.y + 16][gl_WorkGroupSize.x + 16] localResult;
-shared vec4[gl_WorkGroupSize.y + 16][gl_WorkGroupSize.x] sumResult;
+shared T_PIXEL[gl_WorkGroupSize.y + 16][gl_WorkGroupSize.x + 16] localResult;
+shared T_PIXEL[gl_WorkGroupSize.y + 16][gl_WorkGroupSize.x] sumResult;
 
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
@@ -29,9 +29,9 @@ shared vec4[gl_WorkGroupSize.y + 16][gl_WorkGroupSize.x] sumResult;
  * blur in x (horizontal)
  * take nine samples, with the distance blurSize between them
 */ 
-vec4 FilterAt(int fw, ivec2 center, ivec2 step)
+T_PIXEL FilterAt(int fw, ivec2 center, ivec2 step)
 {
-	vec4 sum = vec4(0);
+	T_PIXEL sum = T_PIXEL(0);
 	
 	for(int i = -fw; i <= fw; i++)
 	{
@@ -66,7 +66,7 @@ void main ()
 	
 	barrier();
 	
-	vec4 result = FilterAt(fw, ivec2(lcenter.x, lcenter.y + fw), ivec2(0, 1));
+	T_PIXEL result = FilterAt(fw, ivec2(lcenter.x, lcenter.y + fw), ivec2(0, 1));
 	
 	imageStore(u_Target, fcenter, result);
 }

@@ -144,8 +144,23 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
-	public class TextureBase : IDisposable, IHandle
+	public abstract class TextureBase : IDisposable, IHandle
 	{
+		private class Change: IDisposable
+		{
+			public TextureBase m_Texture;
+			
+			#region IDisposable implementation
+			public void Dispose ()
+			{
+				m_Texture.m_IsPerformingChanges = false;
+				
+				if(m_Texture.IsCreated)
+					m_Texture.Initialize(m_Texture.Handle);
+			}
+			#endregion
+		}
+	
 		/// <summary>
 		///
 		/// </summary>
@@ -175,15 +190,19 @@ namespace OpenTK
 		private int m_Count;
 		private TextureTarget m_Target;
 		private Parameters m_Params;
+		private volatile bool m_IsPerformingChanges;
 
-		public string Name;
+		public string Name
+		{
+			get;
+			set;
+		}
 
 		public virtual TextureTarget Target
 		{
 			get { return m_Target; }
 			set { m_Target = value; }
 		}
-
 
 		public PixelInternalFormat InternalFormat;
 
@@ -192,7 +211,6 @@ namespace OpenTK
 			get { return m_Width; }
 			set { m_Width = value; }
 		}
-
 
 		public virtual int Height
 		{
@@ -222,6 +240,11 @@ namespace OpenTK
 		{
 			get{ return m_Handle.IsValueCreated; }
 		}
+		
+		public bool IsBulkChange
+		{
+			get{ return m_IsPerformingChanges; }
+		}
 
 		public int Handle
 		{
@@ -236,9 +259,18 @@ namespace OpenTK
 			{
 				int result;
 				result = GL.GenTexture ();
-				Initialize (result);
+				
+				if(!m_IsPerformingChanges)
+					Initialize (result);
+					
 				return result;
 			});
+		}
+		
+		public IDisposable BulkChange()
+		{
+			m_IsPerformingChanges = true;
+			return new Change{ m_Texture = this};
 		}
 
 		protected virtual void Initialize (int handle)
@@ -388,10 +420,25 @@ namespace OpenTK
 				Type = PixelType.Float;
 				Format = Format ?? PixelFormat.Red;
 			}
+			else if (typeof(T) ==  typeof(int))
+			{
+				Type = PixelType.Int;
+				Format = Format ?? PixelFormat.RedInteger;
+			}
+			else if (typeof(T) ==  typeof(short))
+			{
+				Type = PixelType.Short;
+				Format = Format ?? PixelFormat.RedInteger;
+			}
+			else if (typeof(T) ==  typeof(sbyte))
+			{
+				Type = PixelType.Byte;
+				Format = Format ?? PixelFormat.RedInteger;
+			}
 			else throw new NotSupportedException ();
 
 			Publish (handle, true);
-			Console.WriteLine ("Texture {3}: {0}, {1}, {2}", typeof(T), -1, m_Data2D.Length, Name);
+			Console.WriteLine ("Texture {4}: {0}+{1}, {2}, {3}", typeof(T), InternalFormat, -1, m_Data2D.Length, Name);
 		}
 
 		private void Publish (int handle, bool initializeParams)
@@ -432,6 +479,124 @@ namespace OpenTK
 			GL.TexSubImage2D (Target, 0, l, b, r - l, t - b, Format.Value, Type, m_Data2D);
 			
 			GLHelper.PrintError ();
+		}
+	}
+	
+	/// <summary>
+	///
+	/// </summary>
+	public sealed class Texture : TextureBase
+	{		
+		public override TextureTarget Target
+		{
+			get
+			{
+				return base.Target;
+			}
+			set
+			{
+				if (base.Target == value)
+					return;
+					
+				base.Target = value;
+				if(IsCreated && !IsBulkChange)
+					Initialize (Handle);
+			}
+		}
+		
+		public override int Count
+		{
+			get
+			{
+				return base.Count;
+			}
+			set
+			{
+				throw new NotSupportedException();
+			}
+		}
+		
+		public override int Depth
+		{
+			get
+			{
+				return base.Depth;
+			}
+			set
+			{
+				if (base.Depth == value)
+					return;
+				
+				base.Depth = value;
+				if(IsCreated && !IsBulkChange)
+					Initialize (Handle);
+			}
+		}
+		
+		public override int Height
+		{
+			get
+			{
+				return base.Height;
+			}
+			set
+			{
+				if (base.Height == value)
+					return;
+				
+				base.Height = value;
+				if(IsCreated && !IsBulkChange)
+					Initialize (Handle);
+			}
+		}
+		
+		public override int Width
+		{
+			get
+			{
+				return base.Width;
+			}
+			set
+			{
+				if (base.Width == value)
+					return;
+				
+				base.Width = value;
+				if(IsCreated && !IsBulkChange)
+					Initialize (Handle);
+			}
+		}
+		
+		public Texture ()
+		{		}
+		
+		protected override void Initialize (int handle)
+		{			
+			GLHelper.PrintError ();
+			GL.ActiveTexture (TextureUnit.Texture31);
+			GL.BindTexture (Target, handle);
+			Params.SetParameters(Target);
+			
+			var format = PixelFormat.Rgba;
+			var type = PixelType.Int;
+			var size = 0;
+
+			switch (Target) {
+			case TextureTarget.Texture1D:
+				GL.TexImage1D (Target, 0, InternalFormat, Math.Max(1, Width), /* border */0, format, type, (IntPtr)0);
+				size = Math.Max (1, Width);
+				break;
+			case TextureTarget.Texture2D:
+				GL.TexImage2D (Target, 0, InternalFormat, Math.Max(1, Width), Math.Max (1, Height), /* border */0, format, type, (IntPtr)0);
+				size = Math.Max (1, Width) * Math.Max (1, Height);
+				break;
+			case TextureTarget.Texture3D:
+				GL.TexImage3D (Target, 0, InternalFormat, Math.Max(1, Width), Math.Max (1, Height), Math.Max (1, Depth), /* border */0, format, type, (IntPtr)0);
+				size = Math.Max (1, Width) * Math.Max (1, Height) * Math.Max (1, Depth);
+				break;
+			}
+			GLHelper.PrintError ();			
+			Console.WriteLine ("Texture {3}: {0}, {1}, {2}", InternalFormat, -1, size, Name);
 		}
 	}
 

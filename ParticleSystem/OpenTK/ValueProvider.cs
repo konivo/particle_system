@@ -50,7 +50,26 @@ namespace OpenTK
 		{
 			return Create(() => val);
 		}
-
+		
+		public static IValueProvider<T> Combine<T> (IValueProvider<T> input, Func<Func<T>, Action<Action>, IValueProvider<T>> combineFunc)
+		{
+			return combineFunc(() => input.Value, act => input.PropertyChanged += (sender, e) => act());
+		}
+		
+		public static IValueProvider<T> Combine<T> (IValueProvider<T> input1, Func<T, T> combineFunc)
+		{
+			return Combine(input1, 
+		    (i1, invalidator) => Create(() => combineFunc(i1()), invalidator));
+		}
+		
+		public static IValueProvider<T> Combine<T> (IValueProvider<T> input1, IValueProvider<T> input2, Func<T, T, T> combineFunc)
+		{
+			return Combine(input1, 
+			(i1, invalidator) => 
+			{
+				return Create(() => combineFunc(i1(), input2.Value), act => { input2.PropertyChanged += (sender, e) => act(); invalidator(act);});
+			});
+		}
 	}
 	
 	

@@ -20,6 +20,19 @@ namespace OpenTK
 		public TextureBase Texture;
 		public IValueProvider<TextureBase> DynamicTexture;
 	}
+	
+	[Flags]
+	public enum PixelInternalFormatKind
+	{
+		Float = 0x1, 
+		Integer = 0x2, 
+		UnsignedInteger = 0x6,
+		
+		SNorm = 0x11,
+		Norm = 0x21,
+		
+		BaseCathegory = 0x7
+	}
 
 	/// <summary>
 	///
@@ -204,7 +217,19 @@ namespace OpenTK
 			set { m_Target = value; }
 		}
 
-		public PixelInternalFormat InternalFormat;
+		public PixelInternalFormat InternalFormat
+		{
+			get;
+			set;
+		}
+		
+		public PixelInternalFormatKind InternalFormatKind
+		{
+			get
+			{
+				return GetInternalFormatKind();
+			}
+		}
 
 		public virtual int Width
 		{
@@ -275,6 +300,22 @@ namespace OpenTK
 
 		protected virtual void Initialize (int handle)
 		{	}
+		
+		private PixelInternalFormatKind GetInternalFormatKind()
+		{
+			var stringFormat = InternalFormat.ToString ();
+			
+			if(stringFormat.EndsWith("f"))
+				return PixelInternalFormatKind.Float;
+			else if(stringFormat.EndsWith("ui"))
+				return PixelInternalFormatKind.UnsignedInteger;
+			else if(stringFormat.EndsWith("i"))
+				return PixelInternalFormatKind.Integer;
+			else if(stringFormat.EndsWith("snorm"))
+				return PixelInternalFormatKind.SNorm;
+			else
+				return PixelInternalFormatKind.Norm;
+		}
 
 		#region IDisposable implementation
 		public void Dispose ()

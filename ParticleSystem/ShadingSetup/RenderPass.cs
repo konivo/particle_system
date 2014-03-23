@@ -83,7 +83,6 @@ namespace opentk.ShadingSetup
 
 			return shaders;
 		}
-				
 		/// <summary>
 		/// returns set of shaders each of which contains in its resource identifier both name1 and name2
 		/// </summary>
@@ -96,32 +95,57 @@ namespace opentk.ShadingSetup
 		/// <returns>
 		/// A <see cref="IEnumerable<Shader>"/>
 		/// </returns>
-		public static IEnumerable<Shader> GetShaders (string name1, string name2)
+		public static IEnumerable<Shader> GetShaders (params string[] name)
 		{
 			var dir = new System.IO.DirectoryInfo("shaders");
-		
+			
 			var files = 
 				dir.Exists?
 					from file in dir.GetFiles("*.glsl", System.IO.SearchOption.AllDirectories)
-					where file.Name.Contains(name1) && file.Name.Contains (name2)
+					where name.All(n => file.Name.Contains(n))
 					select file:
 					new System.IO.FileInfo[0];
-				
+			
 			var fileProviders = 
 				files
-				.Select(f => new { value = GetFileTextProvider(f), type = Shader.GetShaderTypeFromName(f.Name) } );
-				
+					.Select(f => new { value = GetFileTextProvider(f), type = Shader.GetShaderTypeFromName(f.Name) } );
+			
 			var resProviders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
-				where res.Contains ("glsl") && res.Contains (name1) && res.Contains (name2)
-				select new { value = ValueProvider.Create(ResourcesHelper.GetText (res, System.Text.Encoding.UTF8)), type = Shader.GetShaderTypeFromName(res) };
-		
+				where res.Contains ("glsl") && name.All(n => res.Contains(n))
+			select new { value = ValueProvider.Create(ResourcesHelper.GetText (res, System.Text.Encoding.UTF8)), type = Shader.GetShaderTypeFromName(res) };
+			
 			var shaders = fileProviders.Concat(resProviders)
 				.GroupBy(p => p.type, p => p.value)
-				.Select(p => Shader.GetShader(string.Format("{0}+{1}+{2}", name1, name2, p.Key.ToString()[0]), p.Key, p.ToArray()))
-				.ToArray();			
-
+					.Select(p => Shader.GetShader(string.Format("{0}.{1}", string.Join(".", name), p.Key.ToString()[0]), p.Key, p.ToArray()))
+					.ToArray();			
+			
 			return shaders;
 		}
+//		public static IValueProvider<string>[] GetShaderCodeProvider (params string[] name)
+//		{
+//			var dir = new System.IO.DirectoryInfo("shaders");
+//			
+//			var files = 
+//				dir.Exists?
+//					from file in dir.GetFiles("*.glsl", System.IO.SearchOption.AllDirectories)
+//					where name.All(n => file.Name.Contains(n))
+//					select file:
+//					new System.IO.FileInfo[0];
+//			
+//			var fileProviders = 
+//				files
+//					.Select(f => new { value = GetFileTextProvider(f), type = Shader.GetShaderTypeFromName(f.Name) } );
+//			
+//			var resProviders = from res in System.Reflection.Assembly.GetExecutingAssembly ().GetManifestResourceNames ()
+//				where res.Contains ("glsl") && name.All(n => res.Contains(n))
+//			select new { value = ValueProvider.Create(ResourcesHelper.GetText (res, System.Text.Encoding.UTF8)), type = Shader.GetShaderTypeFromName(res) };
+//			
+//			var shaders = fileProviders.Concat(resProviders)
+//				.Select(p => p.value)
+//				.ToArray ();
+//			
+//			return shaders;
+//		}
 		
 		private static IValueProvider<string> GetFileTextProvider(System.IO.FileInfo f)
 		{

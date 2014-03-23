@@ -133,6 +133,8 @@
     <Compile Include="Scene\ShadowImplementationParameters.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Blur.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.cs" />
+    <Compile Include="OpenTK\Extensions\ValueProviderExtensions.cs" />
+    <Compile Include="OpenTK\Extensions\ShaderExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -1,7 +1,3 @@
-#define T_IMAGE image2D
-#define T_PIXEL vec4
-#define T_LAYOUT r8
-
 #version 440
 layout(local_size_x=8, local_size_y=8) in;
 
@@ -45,7 +41,7 @@ T_PIXEL FilterAt(int fw, ivec2 center, ivec2 step)
 //kernel//
 void main ()
 {
-	int fw = clamp(u_FilterWidth, 0, 1);
+	int fw = clamp(u_FilterWidth, 0, 8);
 	ivec2 fcenter = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 lcenter = ivec2(gl_LocalInvocationID.xy);
 	ivec2 lsize = ivec2(gl_WorkGroupSize.xy);

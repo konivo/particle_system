@@ -32,6 +32,7 @@ namespace opentk
 		{		
 			string scode =
 @"
+{0}version 440
 {0}define {1}
 {0}define T_LAYOUT {2}
 
@@ -49,12 +50,14 @@ namespace opentk
 	{0}define T_IMAGE uiimage2D
 	{0}define T_PIXEL uvec4
 {0}endif
+layout(local_size_x = 1, local_size_y = 64) in;
+{0}line 1
 ";
 			scode = string.Format (scode, "#", "PixelInternalFormatKind_" + (filterparam.Source.InternalFormatKind & PixelInternalFormatKind.BaseCathegory), filterparam.Source.InternalFormat);
 			
 			return new SeparateProgramPass(
 				"blur",
-				window => { GLExtensions.DispatchCompute ((int)Math.Ceiling(filterparam.Source.Width/8.0), (int)Math.Ceiling(filterparam.Source.Height/8.0), 1); },
+				window => { GLExtensions.DispatchCompute ((int)Math.Ceiling(filterparam.Source.Width/1.0), (int)Math.Ceiling(filterparam.Source.Height/64.0), 1); },
 				new Program ("blur")
 				{
 				  RenderPass.GetShaders ("blur", "filters", "compute").PrependText(scode),

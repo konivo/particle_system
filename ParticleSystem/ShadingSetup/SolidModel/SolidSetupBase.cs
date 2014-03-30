@@ -123,7 +123,7 @@ namespace opentk.ShadingSetup
 			AOC_Texture = new Texture 
 			{
 				Name = "AOC_Texture",
-				InternalFormat = PixelInternalFormat.R8,
+				InternalFormat = PixelInternalFormat.R16f,
 				Target = TextureTarget.Texture2D,
 				Width = AocParameters.TextureSize,
 				Height = AocParameters.TextureSize,
@@ -138,7 +138,7 @@ namespace opentk.ShadingSetup
 			AOC_Texture_Blurred_H = new Texture 
 			{
 				Name = "AOC_Texture_HBLUR",
-				InternalFormat = PixelInternalFormat.R8,
+				InternalFormat = PixelInternalFormat.R16f,
 				Target = TextureTarget.Texture2D,
 				Width = AocParameters.TextureSize,
 				Height = AocParameters.TextureSize,
@@ -153,7 +153,7 @@ namespace opentk.ShadingSetup
 			AOC_Texture_Blurred_HV = new Texture 
 			{
 				Name = "AOC_Texture_HVBLUR",
-				InternalFormat = PixelInternalFormat.R8,
+				InternalFormat = PixelInternalFormat.R16f,
 				Target = TextureTarget.Texture2D,
 				Width = AocParameters.TextureSize,
 				Height = AocParameters.TextureSize,

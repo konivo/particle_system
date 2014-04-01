@@ -90,14 +90,14 @@ namespace opentk.System3
 		{
 			var result = new System3 
 			{
-				PARTICLES_COUNT = 260000, 
+				PARTICLES_COUNT = 2600, 
 				VIEWPORT_WIDTH = 324, 
 				NEAR = 1, 
 				FAR = 10240, 
 				DT = 1,
 				Fov = 0.9, 
 				PublishMethod = PublishMethod.Never,
-				ParticleScaleFactor = 600, 
+				ParticleScaleFactor = 22000, 
 				SimulationScheme = new ParticlesWithTrailsGpuSimulationScheme(),
 				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
 				ParticleGenerator = new GridGenerator { AmountX = 1, AmountY = 1, AmountZ = 0.001f, StepX = 0.1f, StepY = 0.1f },

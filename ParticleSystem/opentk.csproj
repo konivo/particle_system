@@ -135,6 +135,7 @@
     <Compile Include="RenderPassFactory\RenderPassFactory.cs" />
     <Compile Include="OpenTK\Extensions\ValueProviderExtensions.cs" />
     <Compile Include="OpenTK\Extensions\ShaderExtensions.cs" />
+    <Compile Include="RenderPassFactory\RenderPassFactory.Ssao2.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -276,5 +277,6 @@
     <None Include="shaders\ShadingSetup_SolidModel_solid3_fragment.glsl" />
     <None Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
     <None Include="shaders\filters.blur.compute.glsl" />
+    <None Include="shaders\effects.ssao.compute.glsl" />
   </ItemGroup>
 </Project>

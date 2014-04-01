@@ -54,7 +54,7 @@ namespace opentk.ShadingSetup
 				 SunLightImpl.LightMvp
 			);
 
-			var aocPassSolid = RenderPassFactory.CreateAoc
+			/*var aocPassSolid = RenderPassFactory.CreateAoc
 			(
 				 NormalDepth_Texture,
 				 AOC_Texture,
@@ -63,13 +63,15 @@ namespace opentk.ShadingSetup
 				 p.CameraMvp.Projection,
 				 p.CameraMvp.ProjectionInv,
 				 AocParameters
-			);
+			);*/
+			var aocPassSolid = RenderPassFactory.CreatePass(SsaoEffect);
 
-			var aocBlur = RenderPassFactory.CreateBilateralFilter
+			/*var aocBlur = RenderPassFactory.CreateBilateralFilter
 			(
 				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV,
 				 ValueProvider.Create(() => 20 * new Vector4(AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, 0))
-			);
+			);*/
+			var aocBlur = RenderPassFactory.CreatePass(new BlurFilter { Source = AOC_Texture, Target = AOC_Texture_Blurred_HV, Width = 8 });
 
 			//
 			var thirdPassSolid = RenderPassFactory.CreateFullscreenQuad

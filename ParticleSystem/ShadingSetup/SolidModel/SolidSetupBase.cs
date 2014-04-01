@@ -31,7 +31,7 @@ namespace opentk.ShadingSetup
 		protected TextureBase Shadow_Texture;
 		protected ColorRamp m_ColorRamp;
 
-		protected AocParameters m_AocParameters;
+		protected SsaoEffect m_SsaoEffect;
 		protected Light m_SunLight;
 
 		[Category("Sunlight properties")]
@@ -42,12 +42,12 @@ namespace opentk.ShadingSetup
 		}
 
 		[Category("Aoc properties")]
-		[TypeConverter(typeof(ParametersConverter<AocParameters>))]
+		[TypeConverter(typeof(ParametersConverter<SsaoEffect>))]
 		[DescriptionAttribute("Expand to see the parameters of the ssao.")]
-		public AocParameters AocParameters
+		public SsaoEffect SsaoEffect
 		{
-			get { return m_AocParameters; }
-			set { m_AocParameters = value; }
+			get { return m_SsaoEffect; }
+			set { m_SsaoEffect = value; }
 		}
 
 		public bool EnableSoftShadow
@@ -123,14 +123,14 @@ namespace opentk.ShadingSetup
 			AOC_Texture = new Texture 
 			{
 				Name = "AOC_Texture",
-				InternalFormat = PixelInternalFormat.R16f,
+				InternalFormat = PixelInternalFormat.R32f,
 				Target = TextureTarget.Texture2D,
-				Width = AocParameters.TextureSize,
-				Height = AocParameters.TextureSize,
+				Width = SsaoEffect.TextureSize,
+				Height = SsaoEffect.TextureSize,
 				Params = new TextureBase.Parameters
 				{
-					GenerateMipmap = true,
-					MinFilter = TextureMinFilter.LinearMipmapLinear,
+					//GenerateMipmap = true,
+					MinFilter = TextureMinFilter.Nearest,
 					MagFilter = TextureMagFilter.Nearest,
 				}
 			};
@@ -138,14 +138,14 @@ namespace opentk.ShadingSetup
 			AOC_Texture_Blurred_H = new Texture 
 			{
 				Name = "AOC_Texture_HBLUR",
-				InternalFormat = PixelInternalFormat.R16f,
+				InternalFormat = PixelInternalFormat.R32f,
 				Target = TextureTarget.Texture2D,
-				Width = AocParameters.TextureSize,
-				Height = AocParameters.TextureSize,
+				Width = SsaoEffect.TextureSize,
+				Height = SsaoEffect.TextureSize,
 				Params = new TextureBase.Parameters
 				{
-					GenerateMipmap = true,
-					MinFilter = TextureMinFilter.LinearMipmapLinear,
+					//GenerateMipmap = true,
+					MinFilter = TextureMinFilter.Nearest,
 					MagFilter = TextureMagFilter.Nearest,
 				}
 			};
@@ -155,8 +155,8 @@ namespace opentk.ShadingSetup
 				Name = "AOC_Texture_HVBLUR",
 				InternalFormat = PixelInternalFormat.R16f,
 				Target = TextureTarget.Texture2D,
-				Width = AocParameters.TextureSize,
-				Height = AocParameters.TextureSize,
+				Width = SsaoEffect.TextureSize,
+				Height = SsaoEffect.TextureSize,
 				Params = new TextureBase.Parameters
 				{
 					GenerateMipmap = true,
@@ -232,7 +232,7 @@ namespace opentk.ShadingSetup
 		protected virtual void ParameterSetup()
 		{
 			//
-			AocParameters = new AocParameters
+			SsaoEffect = new SsaoEffect
 			{
 				TextureSize = 1024,
 				OccConstantArea = false,
@@ -257,8 +257,8 @@ namespace opentk.ShadingSetup
 			SunLightImpl.ImplementationType = ShadowImplementationType.Soft2;
 
 			//
-			ShadowTextureSize = 2048;
-			SolidModeTextureSize = 2048;
+			ShadowTextureSize = 1024;
+			SolidModeTextureSize = 1024;
 
 			LightSize = 0.1f;
 			ExpMapLevel = 1;
@@ -286,7 +286,7 @@ namespace opentk.ShadingSetup
 			}
 
 			if(AOC_Texture != null &&
-			   AOC_Texture.Width != AocParameters.TextureSize)
+			   AOC_Texture.Width != SsaoEffect.TextureSize)
 			{
 				var aoc_tex = (Texture)AOC_Texture;
 				var aoc_h = (Texture)AOC_Texture_Blurred_H;
@@ -297,7 +297,7 @@ namespace opentk.ShadingSetup
 				{
 					aoc_hv.Width = aoc_hv.Height = 
 					aoc_h.Width = aoc_h.Height = 
-					aoc_tex.Width = aoc_tex.Height = AocParameters.TextureSize;
+					aoc_tex.Width = aoc_tex.Height = SsaoEffect.TextureSize;
 				}
 			}
 		}

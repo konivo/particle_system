@@ -123,7 +123,7 @@ namespace opentk.ShadingSetup
 			AOC_Texture = new Texture 
 			{
 				Name = "AOC_Texture",
-				InternalFormat = PixelInternalFormat.R32f,
+				InternalFormat = PixelInternalFormat.R16f,
 				Target = TextureTarget.Texture2D,
 				Width = SsaoEffect.TextureSize,
 				Height = SsaoEffect.TextureSize,
@@ -138,7 +138,7 @@ namespace opentk.ShadingSetup
 			AOC_Texture_Blurred_H = new Texture 
 			{
 				Name = "AOC_Texture_HBLUR",
-				InternalFormat = PixelInternalFormat.R32f,
+				InternalFormat = PixelInternalFormat.R16f,
 				Target = TextureTarget.Texture2D,
 				Width = SsaoEffect.TextureSize,
 				Height = SsaoEffect.TextureSize,

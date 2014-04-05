@@ -95,14 +95,26 @@ namespace opentk
 	{
 		public static RenderPass CreatePass (SsaoEffect param)
 		{
+			var workgroupSize = 16;
 			var current_pattern = MathHelper2.RandomVectorSet (256, new Vector2 (1, 1));
+			string scode =
+				@"
+{0}version 440
+{0}define T_LAYOUT_IN {1}
+{0}define T_LAYOUT_OUT {2}
+
+layout(local_size_x = {3}, local_size_y = {4}) in;
+{0}line 1
+";
+			scode = string.Format (scode, "#", param.SourceNormalDepth.InternalFormat, param.Target.InternalFormat, workgroupSize, workgroupSize);
+			var namemodifier = string.Format ("wgsize:{0}x{0},fi:{1},fo:{2}", workgroupSize, param.SourceNormalDepth.InternalFormat, param.Target.InternalFormat);
 			
 			return new SeparateProgramPass(
 				"blur",
-				window => { GLExtensions.DispatchCompute ((int)Math.Ceiling(param.Target.Width/4.0), (int)Math.Ceiling(param.Target.Height/4.0), 1); },
+				window => { GLExtensions.DispatchCompute ((int)Math.Ceiling((float)param.Target.Width/workgroupSize), (int)Math.Ceiling((float)param.Target.Height/workgroupSize), 1); },
 				new Program ("ssao")
 				{
-					RenderPass.GetShaders ("ssao", "effects", "compute"),
+				RenderPass.GetShaders ("ssao", "effects", "compute").PrependText(namemodifier, scode),
 				},
 				new ImageBindingSet
 				{

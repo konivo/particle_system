@@ -1,14 +1,39 @@
-#version 440
-layout(local_size_x = 4, local_size_y = 4) in;
+/*
+ *  Expected declarations in the prepended code
+ */
+//#version 440
+//layout(local_size_x= ... , local_size_y= ...) in;
+//#define T_LAYOUT_IN {2}
+//#define T_LAYOUT_OUT {3}
+//#define T_IMAGE image2D
+//#define T_PIXEL vec4
+//#line 1
 
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
 const int c_WorkGroupSize = int(gl_WorkGroupSize.x * gl_WorkGroupSize.y);
+const int c_OccludersGroupSize = int((gl_WorkGroupSize.x + 2) * (gl_WorkGroupSize.y + 2));
 const int c_MaxLocalOccluders = 2;
-const int c_MaxOccludersCount = c_MaxLocalOccluders * c_WorkGroupSize;
-const int c_MaxSamplesCount = min(64, c_MaxOccludersCount);
+const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
+const int c_MaxSamplesCount = min(128, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
 const float c_TWO_PI = 2 * 3.141592654f;
+/*const int[] c_NeighbourOffsets = 
+{
+	0,
+	-int(gl_WorkGroupSize.x + 1), int(gl_WorkGroupSize.x + 1), 
+	-int(gl_WorkGroupSize.x), int(gl_WorkGroupSize.x), 
+	-int(gl_WorkGroupSize.x - 1), int(gl_WorkGroupSize.x - 1), 
+	-1, +1, 
+};*/
+const int[] c_NeighbourOffsets = 
+{
+	0,
+	-int(gl_WorkGroupSize.x + 3), int(gl_WorkGroupSize.x + 3), 
+	-int(gl_WorkGroupSize.x), int(gl_WorkGroupSize.x), 
+	-int(gl_WorkGroupSize.x + 1), int(gl_WorkGroupSize.x + 1), 
+	-1, +1, 
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 //types//
@@ -39,9 +64,9 @@ uniform vec2[256] u_SamplingPattern;
  * images
  */
 // texture holding depth in projection space and normal in camera space
-layout(rgba32f) restrict readonly /*coherent, volatile, readonly, writeonly*/ uniform image2D u_NormalDepth;
+layout(T_LAYOUT_IN) restrict /*coherent, volatile, readonly, writeonly*/ uniform image2D u_NormalDepth;
 // computed ambient occlusion estimate
-layout(r32f) restrict /*coherent, volatile, restrict, readonly, writeonly*/ uniform image2D u_Target;
+layout(T_LAYOUT_OUT) restrict /*coherent, volatile, restrict, readonly, writeonly*/ uniform image2D u_Target;
 
 /*
  * model-view matrices 
@@ -101,10 +126,10 @@ struct { 	vec2 RANDOMIZATION_VECTOR; 	int RANDOMIZATION_OFFSET; }
 //
 void InitSampling()
 {
-	int indexA = int(gl_WorkGroupID.x) *  173547 + int(gl_WorkGroupID.y) * 364525 + 1013904223;
+	int indexA = int(gl_GlobalInvocationID.x) *  173547 + int(gl_GlobalInvocationID.y) * 364525 + 1013904223;
 	indexA = (indexA >> 4) & 0xFFF;
 
-	int indexB = int(gl_WorkGroupID.x) *  472541 + int(gl_WorkGroupID.y) * 198791 + 2103477191;
+	int indexB = int(gl_GlobalInvocationID.x) *  472541 + int(gl_GlobalInvocationID.y) * 198791 + 2103477191;
 	indexB = (indexB >> 4) & 0xFFF;
 
 	local_Sampling.RANDOMIZATION_VECTOR = vec2( cos(c_TWO_PI * (indexA * indexB)/360), sin(c_TWO_PI * (indexB * indexA)/360));
@@ -120,7 +145,7 @@ vec2 GetSamplingPoint(int i)
 //
 int GetSamplingIndex(int i, int limit)
 {
-	return i * 97 + local_Sampling.RANDOMIZATION_OFFSET % limit;
+	return (i * 97 + local_Sampling.RANDOMIZATION_OFFSET) % limit;
 }
 
 //
@@ -214,15 +239,14 @@ void InitGlobals()
 void ComputeOccluders()
 {
 	int samplesCount = clamp(u_SamplesCount, 1, c_MaxSamplesCount);
-	int occCount = clamp(samplesCount * c_WorkGroupSize, 1, c_MaxOccludersCount);
-	int occLocal = occCount / c_WorkGroupSize;
-	int start = int(gl_LocalInvocationIndex) * occLocal;
+	int occCount = clamp(samplesCount * c_OccludersGroupSize, 1, c_MaxOccludersCount);
+	int occLocal = occCount / c_OccludersGroupSize;
 		
 	// for each sample compute occlussion estimation and add it to result
-	//for(int i = start; i < occCount; i += c_WorkGroupSize)
-	for(int i = start; i < start + occLocal; i++)
+	for(int start = int(gl_LocalInvocationIndex); start < c_OccludersGroupSize; start += c_WorkGroupSize)
+	for(int i = start; i < occCount; i += c_OccludersGroupSize)
 	{
-		vec2 oc_param = local_Target.Param + normalize(GetSamplingPoint(i)) * s_Rf * i / occLocal;
+		vec2 oc_param = local_Target.Param + normalize(GetSamplingPoint(i)) * s_Rf * i / occCount;
 		vec4 o_nd = GetNormalDepth (oc_param);
 		vec4 o_clip = GetClipCoord (oc_param, o_nd.w);
 		vec4 o_pos = Reproject ( modelviewprojection_inv_transform, o_clip);
@@ -241,16 +265,23 @@ void ComputeSsao()
 {
 	float result = 0;
 	int samplesCount = clamp(u_SamplesCount, 1, c_MaxSamplesCount);
-	int occCount = clamp(u_SamplesCount * c_WorkGroupSize, 1, c_MaxOccludersCount);
-	int occLocal = occCount / c_WorkGroupSize;
+	int occCount = clamp(samplesCount * c_OccludersGroupSize, 1, c_MaxOccludersCount);
+	int occLocal = occCount / c_OccludersGroupSize;
 	int step = ComputeStepFromOccludedScreenSize(local_Rf);
-	int i = int(gl_LocalInvocationIndex) * occLocal;
+	int ni = 1;
+	int nii = 1;
+	int locId = int((gl_LocalInvocationID.x + 2) * (gl_LocalInvocationID.y + 1) + gl_LocalInvocationID.x + 1);
+	int i = locId + c_NeighbourOffsets[0];
 	int si = 0;
 	
 	// for each sample compute occlussion estimation and add it to result
-	for(; si < samplesCount; i++, si += step)
+	for(; si < samplesCount; i += c_OccludersGroupSize, si += step)
 	{
-		i = i >= int(gl_LocalInvocationIndex + 1) * occLocal? (i + 1 + 10 * occLocal) % occCount: i% occCount;
+		if(i >= occCount)
+		{
+			ni = (ni + 1) % 8;
+			i = locId + c_NeighbourOffsets[ni + 1] * nii++;
+		}
 		
 		const Occluder o = s_Occluders[i];
 		const Sample p = local_P;

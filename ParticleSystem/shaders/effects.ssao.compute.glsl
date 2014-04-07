@@ -12,8 +12,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
 const int c_WorkGroupSize = int(gl_WorkGroupSize.x * gl_WorkGroupSize.y);
-const int c_OccludersGroupSize = int((gl_WorkGroupSize.x + 2) * (gl_WorkGroupSize.y + 2));
-const int c_MaxLocalOccluders = 2;
+const int c_OccludersRimSize = 1;
+const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
+const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
+const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
+const int c_MaxLocalOccluders = 4;
 const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
 const int c_MaxSamplesCount = min(128, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
@@ -29,10 +32,10 @@ const float c_TWO_PI = 2 * 3.141592654f;
 const int[] c_NeighbourOffsets = 
 {
 	0,
-	-int(gl_WorkGroupSize.x + 3), int(gl_WorkGroupSize.x + 3), 
-	-int(gl_WorkGroupSize.x), int(gl_WorkGroupSize.x), 
-	-int(gl_WorkGroupSize.x + 1), int(gl_WorkGroupSize.x + 1), 
-	-1, +1, 
+	-int(c_OccludersGroupSizeX + 1), int(c_OccludersGroupSizeX + 1),
+	-int(c_OccludersGroupSizeX - 1), int(c_OccludersGroupSizeX - 1), 
+	-1, +1,
+	-int(c_OccludersGroupSizeX), int(c_OccludersGroupSizeX), 
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -244,9 +247,10 @@ void ComputeOccluders()
 		
 	// for each sample compute occlussion estimation and add it to result
 	for(int start = int(gl_LocalInvocationIndex); start < c_OccludersGroupSize; start += c_WorkGroupSize)
-	for(int i = start; i < occCount; i += c_OccludersGroupSize)
+	for(int i = start, ii = 1; i < occCount; i += c_OccludersGroupSize, ii++)
 	{
-		vec2 oc_param = local_Target.Param + normalize(GetSamplingPoint(i)) * s_Rf * i / occCount;
+		vec2 oc_index = vec2(start % c_OccludersGroupSizeX, start / c_OccludersGroupSizeX) + gl_GlobalInvocationID.xy - gl_LocalInvocationID.xy - vec2(c_OccludersRimSize);
+		vec2 oc_param = oc_index/local_Target.Size + normalize(GetSamplingPoint(i)) * s_Rf * ii / occLocal;
 		vec4 o_nd = GetNormalDepth (oc_param);
 		vec4 o_clip = GetClipCoord (oc_param, o_nd.w);
 		vec4 o_pos = Reproject ( modelviewprojection_inv_transform, o_clip);
@@ -270,7 +274,7 @@ void ComputeSsao()
 	int step = ComputeStepFromOccludedScreenSize(local_Rf);
 	int ni = 1;
 	int nii = 1;
-	int locId = int((gl_LocalInvocationID.x + 2) * (gl_LocalInvocationID.y + 1) + gl_LocalInvocationID.x + 1);
+	int locId = int(c_OccludersGroupSizeX * (gl_LocalInvocationID.y + c_OccludersRimSize) + gl_LocalInvocationID.x + c_OccludersRimSize);
 	int i = locId + c_NeighbourOffsets[0];
 	int si = 0;
 	
@@ -280,7 +284,7 @@ void ComputeSsao()
 		if(i >= occCount)
 		{
 			ni = (ni + 1) % 8;
-			i = locId + c_NeighbourOffsets[ni + 1] * nii++;
+			i = locId + c_NeighbourOffsets[ni + 1] * nii;
 		}
 		
 		const Occluder o = s_Occluders[i];

@@ -278,5 +278,6 @@
     <None Include="shaders\RenderPassFactory_solid_sphere_fragment.glsl" />
     <None Include="shaders\filters.blur.compute.glsl" />
     <None Include="shaders\effects.ssao.compute.glsl" />
+    <None Include="shaders\shadingsetup.solid3.compute.glsl" />
   </ItemGroup>
 </Project>

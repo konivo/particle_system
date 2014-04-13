@@ -49,12 +49,12 @@ namespace opentk.ShadingSetup
 			get { return m_SsaoEffect; }
 			set { m_SsaoEffect = value; }
 		}
-
+/*
 		public bool EnableSoftShadow
 		{
 			get; set;
 		}
-
+*/
 		public int ShadowTextureSize
 		{
 			get; set;
@@ -69,7 +69,7 @@ namespace opentk.ShadingSetup
 		{
 			get; set;
 		}
-
+/*
 		public float ExpMapLevel
 		{
 			get; set;
@@ -84,8 +84,8 @@ namespace opentk.ShadingSetup
 		{
 			get; set;
 		}
-
-		public int ExpMapNsamples
+*/
+		public int ShadowSampleCount
 		{
 			get; set;
 		}
@@ -261,10 +261,10 @@ namespace opentk.ShadingSetup
 			SolidModeTextureSize = 1024;
 
 			LightSize = 0.1f;
-			ExpMapLevel = 1;
-			ExpMapNsamples = 15;
-			ExpMapRange = 0.0055f;
-			ExpMapRangeK = 0.85f;
+			//ExpMapLevel = 1;
+			ShadowSampleCount = 15;
+			//ExpMapRange = 0.0055f;
+			//ExpMapRangeK = 0.85f;
 		}
 
 		protected virtual void UpdateTextureResolutions()
@@ -308,20 +308,15 @@ namespace opentk.ShadingSetup
 			m_Uniforms = new UniformState(p.Uniforms)
 			{
 				{SunLightImpl.LightMvp, "light"},
-				{"u_GetShadow", ShaderType.FragmentShader, () => "GetShadow" + SunLightImpl.ImplementationType.ToString () },
+				{"u_GetShadow", (ShaderType)ShaderTypeExt.ComputeShader, () => "GetShadow" + SunLightImpl.ImplementationType.ToString () },
 				//{"u_ShadowmapGet", () => "ShadowmapGet" + SunLightImpl.ShadowmapType.ToString () },
 				//{"u_ShadowmapGetFiltered", () => "ShadowmapGetFiltered" + SunLightImpl.ShadowmapType.ToString () },
-				{"material_color_source", ValueProvider.Create(() => MaterialType)},
+				{"u_MaterialColorSource", ValueProvider.Create(() => MaterialType)},
 
-				{"light_size", ValueProvider.Create(() => LightSize )},
-		
-				{"light_expmap_level", ValueProvider.Create(() => ExpMapLevel )},
-				{"light_expmap_range", ValueProvider.Create(() => ExpMapRange )},
-				{"light_expmap_range_k", ValueProvider.Create(() => ExpMapRangeK )},
-				{"light_expmap_nsamples", ValueProvider.Create(() => ExpMapNsamples )},
+				{"u_LightSize", ValueProvider.Create(() => LightSize )},
+				{"u_ShadowSampleCount", ValueProvider.Create(() => ShadowSampleCount )},
 
-	//
-				{"sampling_pattern", MathHelper2.RandomVectorSet (256, new Vector2 (1, 1))},
+				{"u_SamplingPattern", MathHelper2.RandomVectorSet (256, new Vector2 (1, 1))},
 				{"sampling_pattern_len", 256},
 			};
 			

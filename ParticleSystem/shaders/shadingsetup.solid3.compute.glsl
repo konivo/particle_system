@@ -21,6 +21,13 @@ subroutine float GetShadow(vec4 pos);
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
 const int c_WorkGroupSize = int(gl_WorkGroupSize.x * gl_WorkGroupSize.y);
+const int c_OccludersRimSize = 0;
+const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
+const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
+const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
+const int c_MaxLocalOccluders = 5;
+const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
+const int c_MaxSamplesCount = min(128, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
 const float c_TWO_PI = 2 * 3.141592654f;
 const float c_EXP_SCALE_FACTOR = 50;
@@ -105,6 +112,7 @@ subroutine uniform GetShadow u_GetShadow;
 
 ////////////////////////////////////////////////////////////////////////////////
 //shared storage//
+shared vec4[c_MaxOccludersCount] s_Occluders;
 
 ////////////////////////////////////////////////////////////////////////////////
 //local variables//
@@ -157,40 +165,6 @@ vec4 Reproject (mat4 transform, vec4 vector)
 	return result;
 }
 
-/*
-float GetShadow(
-	sampler2D u_ShadowTexture,	//
-	mat4 light_transform,			//model-view-projection transform
-	vec4 pos									//position in world space
-	)
-{
-	vec3 r_pos = (Reproject(light_transform, pos).xyz + 1) * 0.5;
-	vec4 comp = vec4(r_pos.z);	
-	vec4 acc = vec4(0);
-	
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-1, -1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(1, -1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-1, 1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(1, 1)) ));
-	
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-0, -1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(2, -1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-0, 1)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(2, 1)) ));
-	
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-1, 0)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(1, 2)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-1, 0)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(1, 2)) ));
-	
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(0, 0)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(2, 0)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(0, 2)) ));
-	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(2, 2)) ));
-
-	return dot(acc, vec4(1/16.0));
-}
-*/
 //
 vec4 GetNormalDepth (vec2 param)
 {
@@ -305,142 +279,56 @@ float GetShadowSoft1(vec4 pos)
 subroutine(GetShadow)
 float GetShadowSoft2(vec4 pos)
 {
-	vec3 r_pos = (Reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
-	vec4 l_pos = light_modelview_transform * pos;
-
+	int samplesCount = clamp(u_ShadowSampleCount, 1, c_MaxSamplesCount);
+	int occCount = clamp(samplesCount * c_OccludersGroupSize, 1, c_MaxOccludersCount);
+	int occLocal = occCount / c_OccludersGroupSize;
+	
 	float phi = u_LightSize;
-	// kernel's size to be estimated in texture coordinates <0, 1>
-	float c2 = 0.05;
-	// initial estimation
-	const float o_CorrectionLimit = 0.001;
-	const int o_CorrectionsCount = 5;
-	// 
-	const int o_SampleCount = 8;
-	// depths of occluders found during a kernel size estimation
-	vec4 o_DepthAvg = vec4(0);
-	vec4 o_DepthAvgCount = vec4(0);
-	// depth of an occluder for estimation of kernel size
-	float o_Depth = 1;
-
-	// Loop for finding a good size of kernel for the depthmap filtering
-	for(int citer = 0; citer < o_CorrectionsCount; citer++)
-	{
-		/*
-		// Variant of occluder depth estimation with a computation of average depth of occluders
-		for(int i = 0; i < o_SampleCount; i ++)
-		{
-			vec2 smp_pos = r_pos.xy + GetSamplingPoint(i) * i * c2 /avg_depth_gcount;
-			vec4 smp = 
-				clamp(
-					log(
-						textureGather(u_ShadowTexture, smp_pos)) / c_EXP_SCALE_FACTOR + 1 + .0001,
-					0, 1);
-			
-			avg_depth += (smp) * vec4(lessThan(smp, vec4(r_pos.z)));
-			avg_depth_count += vec4(dot(vec4(lessThan(smp, vec4(r_pos.z))), vec4(1)));
-		}		
-		o_depth = dot(avg_depth, 1./avg_depth_count);*/
-		
-		// Variant of occluder depth estimation with a computation of minimal depth of occluders
-		for(int i = 0; i < o_SampleCount; i ++)
-		{
-			vec2 smp_pos = r_pos.xy + GetSamplingPoint(i + citer * o_SampleCount) * i * c2 /o_SampleCount;
-			vec4 smp = 
-				clamp(
-					log(
-						textureGather(u_ShadowTexture, smp_pos)) / c_EXP_SCALE_FACTOR + 1 + .0001,
-					0, 1);
-			
-			o_Depth = min(o_Depth, min(smp.x, min(smp.y, min(smp.z, min(smp.w, r_pos.z)))));
-		}
-	
-		// Find an ocludder's distance in light coordinate frame
-		vec3 o_pos = 
-			Reproject(
-				inverse(light_projection_transform), 
-				GetClipCoord(r_pos.xy, 2 * o_Depth - 1)
-			).xyz;
-		// Compute a distance (for now just by means of z difference)
-		float o_dist = clamp(o_pos.z - l_pos.z, 0, 1000);
-		//
-		vec3 rr_pos = 
-			Reproject(
-				light_projection_transform, 
-				vec4(o_pos.xyz + vec3(0, tan(phi) * o_dist, 0), 1)).xyz * 0.5 + 0.5;
-				
-		// Get a c2's correction		
-		float c2corr = length(rr_pos.xy - r_pos.xy);
-		if(abs(c2 - c2corr) < o_CorrectionLimit)
-			break;
-		
-		c2 = c2corr;
-	}
-	// last correction before processing: it widens the area to be processed
-	c2 *= 1.0;
-	
-	float result = 0.0;
-	for(int i = 0; i < u_ShadowSampleCount; i++)
-	{
-		// We need randomly distributed but evenly distributed points thus we do not use
-		// the sampling point directly
-		vec2 rtest_pos = r_pos.xy + GetSamplingPoint(i) * i * c2/u_ShadowSampleCount;
-		// Extract a value from depth map
-		float smp = 
-			clamp(
-				log(
-					textureLod(
-						u_ShadowTexture, rtest_pos, 0)) / c_EXP_SCALE_FACTOR + 1 + .00041,
-				0, 1);
-		
-		if(smp < r_pos.z)
-		{
-			result += 1;
-		}
-	}
-	
 	float result2 = 0.0;
-	vec3 ldir = normalize(u_Light.dir);
+	vec3 ldir = normalize(c_DefaultLight.dir);
 	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
 	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
-	float est = 1;
-	float step = .9491;
-	
+	float est = .1;
+	float step = 3;	
 	bool estFound = false;
+	float stepmult = 0;
 	
-	for(int i = 0; i < 1*u_ShadowSampleCount; i++)
+	// finding of occluders
+	for(int i = 0; i < occLocal; i++)
 	{
-		vec2 offset = GetSamplingPoint(i*1 + 113) * tan(phi);/// 500;
+		s_Occluders[i + gl_LocalInvocationIndex * occLocal] = pos - 10*vec4(ldir, 0);
+		vec2 offset = GetSamplingPoint(i*1 + 1132) * tan(phi);
 		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
 		vec3 nldir = normalize(rdir);
 		
 		//est = max(est, 0.3);
 		//step = max(.91, step);
-		float estbias = i % 2;
+		float estbias = 0;//i % 2;
+		//if(!estFound)
+			//stepmult = i;
 		
-		for(float j = 0; j < 10; j++)
+		for(float j = 0; j < 60; j++)
 		{			
-			vec4 ppp = vec4(nldir * (j * step * i  + est + estbias) + pos.xyz, 1);
+			vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
 			vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
 			
-			//vec2 p_param = param + offset;
 			vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
 			vec4 p_clip = GetClipCoord(p_param, p_nd.w);
 			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
 			
 			vec4 d = p_pos - pos;
-			//vec4 d = vec4(p_nd.xyz, 0);
 			float s = dot(normalize(d.xyz), ldir);
 			
 			if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
 			{
-				est = (j * step * i + est + estbias) ;
-				step = 0.1 * est / ((i + 1) * 1);
+				est = (j * step * stepmult + est + estbias) ;
+				step = 0.1 * est / stepmult;
 				est *= 0.9;
 				estbias = 0;
 				
 				if(estFound)
 				{
-					result2 += 1;
+					s_Occluders[i + gl_LocalInvocationIndex * occLocal] = p_pos;
 					break;
 				}
 				else
@@ -449,30 +337,33 @@ float GetShadowSoft2(vec4 pos)
 					estFound = true;
 				}
 			}
-			else if(estFound)
+			else if(!estFound)
 			{
-				vec4 ppp = vec4(nldir * (-j * step * i  + est + estbias) + pos.xyz, 1);
+				step *= 0.91;
+			}
+			// reverse way
+			else if(false && estFound)
+			{
+				vec4 ppp = vec4(nldir * (-j * step * stepmult  + est + estbias) + pos.xyz, 1);
 				vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
 				
-				//vec2 p_param = param + offset;
 				vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
 				vec4 p_clip = GetClipCoord(p_param, p_nd.w);
 				vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
 				
 				vec4 d = p_pos - pos;
-				//vec4 d = vec4(p_nd.xyz, 0);
 				float s = dot(normalize(d.xyz), ldir);
 				
 				if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
 				{
-					est = (-j * step * i + est + estbias) ;
-					step = 0.1 * est / ((i + 1) * 1);
+					est = (-j * step * stepmult + est + estbias) ;
+					step = 0.1 * est / stepmult;
 					est *= 0.9;
 					estbias = 0;
 					
 					if(estFound)
 					{
-						result2 += 1;
+						s_Occluders[i + gl_LocalInvocationIndex * occLocal] = p_pos;
 						break;
 					}
 					else
@@ -482,16 +373,32 @@ float GetShadowSoft2(vec4 pos)
 					}
 				}
 			}
-			
-			if(estFound && j == 49)
-			{
-				estFound = false;
-			}
 		}
 	}
 	
+	barrier();
+	
+	int[] offsets = {0, 1, -1, c_OccludersGroupSizeX, -c_OccludersGroupSizeX};//, 2, -2, 2*c_OccludersGroupSizeX, -2*c_OccludersGroupSizeX};
+	//int istep = clamp(occCount / samplesCount, 1, occCount);
+	int k = samplesCount;
+	for(int i = 0; i < samplesCount; i++)
+	{
+		int index = int(gl_LocalInvocationIndex) * occLocal + i % occLocal + offsets[(i / occLocal)%5] * occLocal * (i / occLocal + 1);
+		
+		vec4 occ = s_Occluders[index % occCount];
+		vec4 d = occ - pos;
+		float s = dot(normalize(d.xyz), ldir);
+		
+		if(s > cos(phi))
+		{
+			result2 += 1;
+		}
+		else if(abs(s) < cos(phi))
+			k--;
+	}
+	
 	//return result/ u_ShadowSampleCount;
-	return clamp(max(result2, result)/u_ShadowSampleCount, 0, 1);
+	return clamp(result2/ k, 0, 1);
 }
 
 

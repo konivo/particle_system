@@ -163,7 +163,7 @@ namespace opentk.ShadingSetup
 layout(local_size_x = {3}, local_size_y = {4}) in;
 {0}line 1
 ";
-			int workgroupSize = 4;
+			int workgroupSize = 8;
 			scode = string.Format (scode, "#", ImageFormat.R32f, BeforeAA_Texture.InternalFormat, workgroupSize, workgroupSize);
 			var namemodifier = string.Format ("wgsize:{0}x{0},fi:{1},fi:{2}", workgroupSize, ImageFormat.R32f, BeforeAA_Texture.InternalFormat);
 			var deferredLigthing = new SeparateProgramPass

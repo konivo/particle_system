@@ -17,7 +17,8 @@ namespace opentk.Scene
 		Filter8x8,
 		Filter16x16,
 		Soft1,
-		Soft2
+		Soft2,
+		Soft2_v0
 	}
 	/// <summary>
 	/// Shadowmap type.

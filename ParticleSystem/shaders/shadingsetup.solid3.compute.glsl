@@ -16,6 +16,12 @@ struct Light
 	vec3 dir;
 };
 
+struct Range
+{
+	float Min;
+	float Max;
+};
+
 subroutine float GetShadow(vec4 pos);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -25,9 +31,9 @@ const int c_OccludersRimSize = 0;
 const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
 const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
 const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
-const int c_MaxLocalOccluders = 5;
+const int c_MaxLocalOccluders = 2;
 const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
-const int c_MaxSamplesCount = min(128, c_MaxOccludersCount);
+const int c_MaxSamplesCount = min(256, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
 const float c_TWO_PI = 2 * 3.141592654f;
 const float c_EXP_SCALE_FACTOR = 50;
@@ -113,6 +119,7 @@ subroutine uniform GetShadow u_GetShadow;
 ////////////////////////////////////////////////////////////////////////////////
 //shared storage//
 shared vec4[c_MaxOccludersCount] s_Occluders;
+shared Range[c_WorkGroupSize] s_OccRanges;
 
 ////////////////////////////////////////////////////////////////////////////////
 //local variables//
@@ -284,47 +291,137 @@ float GetShadowSoft2(vec4 pos)
 	int occLocal = occCount / c_OccludersGroupSize;
 	
 	float phi = u_LightSize;
-	float result2 = 0.0;
 	vec3 ldir = normalize(c_DefaultLight.dir);
 	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
 	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
-	float est = .1;
-	float step = 3;	
+	float est = 10;
+	float step = 1;	
 	bool estFound = false;
-	float stepmult = 0;
+	float stepmult = 1;//gl_LocalInvocationIndex % 13 + 1;
+	float estbias = 0;//gl_LocalInvocationIndex;// % 1;//0 - 5;
 	
+	// range estimate
+	/*Range range = {-100000, 100000};
+	Range rangeInvalid = {100000, -100000};
+	s_OccRanges[gl_LocalInvocationIndex] = rangeInvalid;
+	for(int i = 0; i < 5; i++)
+	{
+		vec2 offset = GetSamplingPoint(i * 3 + 1132) * tan(phi);
+		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
+		vec3 nldir = normalize(rdir);	
+			
+		vec4 p_p1 = Reproject(modelviewprojection_transform, vec4(pos.xyz, 1));
+		vec4 p_p2 = Reproject(modelviewprojection_transform, vec4(nldir * 100 + pos.xyz, 1));
+		ivec2 p_size = textureSize(u_NormalDepthTexture, 0);
+		vec4 p_delta = normalize(p_p2 - p_p1)/max(p_size.x, p_size.y);
+		
+		for(float j = 0; j < 225; j++)
+		{
+			vec4 p_param = p_p1 + p_delta * (j * step * stepmult + est + estbias);
+			vec4 ppp = Reproject(modelviewprojection_inv_transform, p_param);		
+			vec4 p_nd = GetNormalDepth(clamp(p_param.xy * 0.5 + 0.5, 0, 1));
+			vec4 p_clip = GetClipCoord(p_param.xy * 0.5 + 0.5, p_nd.w);
+			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+			
+			if(length(ppp - p_pos) < 0.0191 * length(ppp - pos))
+			{
+				est = (j * step * stepmult + est + estbias);
+				step = 0.01 * est;
+				est *= 0.9;
+				estbias = 0;
+				stepmult = 1;
+				
+				range.Min = max(est, range.Min);
+				range.Max = min(est, range.Max);
+				s_OccRanges[gl_LocalInvocationIndex] = range;
+				break;
+			}
+		}
+	}
+	
+	
+	barrier();
+	for(int i = 0; i < c_WorkGroupSize; i++)
+	{
+		range.Min = min(s_OccRanges[i].Min, range.Min);
+		range.Max = max(s_OccRanges[i].Max, range.Max);
+	}
+	
+	est = range.Min * 0.958;
+	step = 0.0151 * (range.Max * 1.2 - est);
+	stepmult = 1;
+	estbias = 0;
+	*/
 	// finding of occluders
+	/*for(int i = 0; i < occLocal; i++)
+	{
+		s_Occluders[i + gl_LocalInvocationIndex * occLocal] = pos - 10*vec4(ldir, 0);
+		vec2 offset = GetSamplingPoint(i*3 + 1132) * tan(phi);
+		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
+		vec3 nldir = normalize(rdir);
+		
+		vec4 p_p1 = Reproject(modelviewprojection_transform, vec4(pos.xyz, 1));
+		vec4 p_p2 = Reproject(modelviewprojection_transform, vec4(nldir * 100 + pos.xyz, 1));
+		ivec2 p_size = textureSize(u_NormalDepthTexture, 0);
+		vec4 p_delta = normalize(p_p2 - p_p1)/max(p_size.x, p_size.y);
+		
+		for(float j = 0; j < 200; j++)
+		{
+			vec4 p_param = p_p1 + p_delta * (j * step * stepmult + est + estbias);
+			vec4 ppp = Reproject(modelviewprojection_inv_transform, p_param);
+			//vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
+			
+			vec4 p_nd = GetNormalDepth(clamp(p_param.xy * 0.5 + 0.5, 0, 1));
+			vec4 p_clip = GetClipCoord(p_param.xy * 0.5 + 0.5, p_nd.w);
+			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+			
+			if(length(ppp - p_pos) < 0.029312821 * length(ppp - pos))
+			{
+				est = (j * step * stepmult + est + estbias);
+				step = 0.051 * est;
+				est *= 0.9;
+				s_Occluders[i + gl_LocalInvocationIndex * occLocal] = p_pos;
+				break;
+			}
+		}
+	}*/
+	
 	for(int i = 0; i < occLocal; i++)
 	{
 		s_Occluders[i + gl_LocalInvocationIndex * occLocal] = pos - 10*vec4(ldir, 0);
-		vec2 offset = GetSamplingPoint(i*1 + 1132) * tan(phi);
+		vec2 offset = GetSamplingPoint(i*1 + 113) * tan(phi);/// 500;
 		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
 		vec3 nldir = normalize(rdir);
 		
 		//est = max(est, 0.3);
 		//step = max(.91, step);
-		float estbias = 0;//i % 2;
-		//if(!estFound)
-			//stepmult = i;
+		if(!estFound)
+		{
+			estbias = i % 4;
+			stepmult = i + 1;
+		}
 		
-		for(float j = 0; j < 60; j++)
+		for(float j = 1; j < 20; j++)
 		{			
 			vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
 			vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
 			
+			//vec2 p_param = param + offset;
 			vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
 			vec4 p_clip = GetClipCoord(p_param, p_nd.w);
 			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
 			
 			vec4 d = p_pos - pos;
+			//vec4 d = vec4(p_nd.xyz, 0);
 			float s = dot(normalize(d.xyz), ldir);
 			
-			if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
+			if(length(ppp - p_pos) < 0.06361 * length(ppp - pos))
 			{
 				est = (j * step * stepmult + est + estbias) ;
-				step = 0.1 * est / stepmult;
+				step = 0.05 * est;
 				est *= 0.9;
 				estbias = 0;
+				stepmult = 1;
 				
 				if(estFound)
 				{
@@ -333,33 +430,31 @@ float GetShadowSoft2(vec4 pos)
 				}
 				else
 				{
-					j = 0;
+					j = 1;
 					estFound = true;
 				}
 			}
-			else if(!estFound)
-			{
-				step *= 0.91;
-			}
-			// reverse way
-			else if(false && estFound)
+			else if(estFound)
 			{
 				vec4 ppp = vec4(nldir * (-j * step * stepmult  + est + estbias) + pos.xyz, 1);
 				vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
 				
+				//vec2 p_param = param + offset;
 				vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
 				vec4 p_clip = GetClipCoord(p_param, p_nd.w);
 				vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
 				
 				vec4 d = p_pos - pos;
+				//vec4 d = vec4(p_nd.xyz, 0);
 				float s = dot(normalize(d.xyz), ldir);
 				
-				if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
+				if(length(ppp - p_pos) < 0.06 * length(ppp - pos))
 				{
 					est = (-j * step * stepmult + est + estbias) ;
-					step = 0.1 * est / stepmult;
+					step = 0.05 * est;
 					est *= 0.9;
 					estbias = 0;
+					stepmult = 1;
 					
 					if(estFound)
 					{
@@ -368,7 +463,7 @@ float GetShadowSoft2(vec4 pos)
 					}
 					else
 					{
-						j = 0;
+						j = 1;
 						estFound = true;
 					}
 				}
@@ -378,12 +473,19 @@ float GetShadowSoft2(vec4 pos)
 	
 	barrier();
 	
-	int[] offsets = {0, 1, -1, c_OccludersGroupSizeX, -c_OccludersGroupSizeX};//, 2, -2, 2*c_OccludersGroupSizeX, -2*c_OccludersGroupSizeX};
-	//int istep = clamp(occCount / samplesCount, 1, occCount);
-	int k = samplesCount;
-	for(int i = 0; i < samplesCount; i++)
+	int[] offsets = {0, 1, -1, 
+		c_OccludersGroupSizeX, 
+		-c_OccludersGroupSizeX, 
+		c_OccludersGroupSizeX + 1,
+		-c_OccludersGroupSizeX - 1,
+		c_OccludersGroupSizeX - 1,
+		-c_OccludersGroupSizeX + 1};
+
+	int sf = 0;
+	float result3 = 0.0;
+	for(int i = 0; i < occLocal && sf < samplesCount; i++)
 	{
-		int index = int(gl_LocalInvocationIndex) * occLocal + i % occLocal + offsets[(i / occLocal)%5] * occLocal * (i / occLocal + 1);
+		int index = int(gl_LocalInvocationIndex) * occLocal + i;
 		
 		vec4 occ = s_Occluders[index % occCount];
 		vec4 d = occ - pos;
@@ -391,16 +493,171 @@ float GetShadowSoft2(vec4 pos)
 		
 		if(s > cos(phi))
 		{
-			result2 += 1;
+			result3 += 1;
 		}
-		else if(abs(s) < cos(phi))
-			k--;
+		
+		if(abs(s) > cos(phi))
+		{
+			sf++;
+		}
 	}
 	
+	ivec2[] cursors = 
+	{
+		{-1, 0},
+		{0, 1},
+		{1, 0},
+		{0, -1}
+	};
+	int round = 2;
+	int roundCompl = 0;
+	for(int i = 0; i < 20 && sf < samplesCount; i++)
+	{
+		for(int j = 0; j < 4; j++)
+		{
+			ivec2 cursor = cursors[j];
+			
+			for(int k = 0; k < occLocal; k++)
+			{
+				int index = int(gl_LocalInvocationIndex + cursor.x + cursor.y * c_OccludersGroupSizeX) * occLocal + k;
+				
+				vec4 occ = s_Occluders[index % occCount];
+				vec4 d = occ - pos;
+				float s = dot(normalize(d.xyz), ldir);
+				
+				if(s > cos(phi))
+				{
+					result3 += 1.5;
+				}
+				
+				if(abs(s) > cos(phi))
+				{
+					sf++;
+				}
+			}
+		}
+		
+		roundCompl = ++roundCompl % round;		
+		if(roundCompl == 0)
+		{
+			cursors[0] += ivec2(-1, - round - 1);
+			cursors[1] += ivec2(- round - 1, 1);
+			cursors[2] += ivec2(1, round + 1);
+			cursors[3] += ivec2(- round - 1, -1);
+			
+			round += 2;
+		}
+	}
+	result3 /= sf;
+	
 	//return result/ u_ShadowSampleCount;
-	return clamp(result2/ k, 0, 1);
+	//return smoothstep(.0, .9427, result2/ k);
+	return clamp(result3, 0, 1);
+	//return clamp(pow(pow(result2, 2)/ k, .5), 0, 1);
 }
 
+/////////////////////
+subroutine(GetShadow)
+float GetShadowSoft2_v0(vec4 pos)
+{
+	int samplesCount = clamp(u_ShadowSampleCount, 1, c_MaxSamplesCount);	
+	float phi = u_LightSize;
+	float result2 = 0.0;
+	vec3 ldir = normalize(c_DefaultLight.dir);
+	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
+	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
+	float est = 10;	
+	float step = 1;	
+	bool estFound = false;
+	float stepmult = 1;
+	float estbias = 0;
+	
+	for(int i = 0; i < samplesCount; i++)
+	{
+		vec2 offset = GetSamplingPoint(i*1 + 113) * tan(phi);/// 500;
+		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
+		vec3 nldir = normalize(rdir);
+		
+		//est = max(est, 0.3);
+		//step = max(.91, step);
+		float estbias = i % 2;
+		
+		for(float j = 0; j < 10; j++)
+		{			
+			vec4 ppp = vec4(nldir * (j * step * i  + est + estbias) + pos.xyz, 1);
+			vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
+			
+			//vec2 p_param = param + offset;
+			vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
+			vec4 p_clip = GetClipCoord(p_param, p_nd.w);
+			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+			
+			vec4 d = p_pos - pos;
+			//vec4 d = vec4(p_nd.xyz, 0);
+			float s = dot(normalize(d.xyz), ldir);
+			
+			if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
+			{
+				est = (j * step * i + est + estbias) ;
+				step = 0.1 * est / ((i + 1) * 1);
+				est *= 0.9;
+				estbias = 0;
+				
+				if(estFound)
+				{
+					result2 += 1;
+					break;
+				}
+				else
+				{
+					j = 0;
+					estFound = true;
+				}
+			}
+			else if(estFound)
+			{
+				vec4 ppp = vec4(nldir * (-j * step * i  + est + estbias) + pos.xyz, 1);
+				vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
+				
+				//vec2 p_param = param + offset;
+				vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
+				vec4 p_clip = GetClipCoord(p_param, p_nd.w);
+				vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+				
+				vec4 d = p_pos - pos;
+				//vec4 d = vec4(p_nd.xyz, 0);
+				float s = dot(normalize(d.xyz), ldir);
+				
+				if(length(ppp - p_pos) < 0.1 * length(ppp - pos))
+				{
+					est = (-j * step * i + est + estbias) ;
+					step = 0.1 * est / ((i + 1) * 1);
+					est *= 0.9;
+					estbias = 0;
+					
+					if(estFound)
+					{
+						result2 += 1;
+						break;
+					}
+					else
+					{
+						j = 0;
+						estFound = true;
+					}
+				}
+			}
+			
+			if(estFound && j == 49)
+			{
+				estFound = false;
+			}
+		}
+	}
+	
+	//return result/ light_expmap_nsamples;
+	return clamp(max(result2, 0)/samplesCount, 0, 1);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //material implementation//

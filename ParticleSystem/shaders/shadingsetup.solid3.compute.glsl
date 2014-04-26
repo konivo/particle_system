@@ -27,11 +27,11 @@ subroutine float GetShadow(vec4 pos);
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
 const int c_WorkGroupSize = int(gl_WorkGroupSize.x * gl_WorkGroupSize.y);
-const int c_OccludersRimSize = 8;
+const int c_OccludersRimSize = 0;
 const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
 const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
 const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
-const int c_MaxLocalOccluders = 2;
+const int c_MaxLocalOccluders = 1;
 const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
 const int c_MaxSamplesCount = min(256, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
@@ -119,7 +119,9 @@ subroutine uniform GetShadow u_GetShadow;
 ////////////////////////////////////////////////////////////////////////////////
 //shared storage//
 shared vec4[c_MaxOccludersCount] s_Occluders;
-shared Range[c_WorkGroupSize] s_OccRanges;
+//shared vec3[c_MaxOccludersCount] s_OccludersDirs;
+//shared Range[c_OccludersGroupSize] s_OccRanges;
+shared vec4[c_OccludersGroupSize] s_Occludees;
 
 ////////////////////////////////////////////////////////////////////////////////
 //local variables//
@@ -179,6 +181,23 @@ vec4 GetNormalDepth (vec2 param)
 	result = result * 2 - 1;
 
 	return result;
+}
+
+//
+float GetDepth (const int texIndex, const vec2 param)
+{
+	if(texIndex == 0)
+	{
+		vec4 result = texture(u_NormalDepthTexture, param);
+		result = result * 2 - 1;
+		return result.w;
+	}
+	else
+	{
+		vec4 result = texture(u_ShadowTexture, param);
+		result = result * 2 - 1;
+		return result.x;
+	}
 }
 
 void InitGlobals()
@@ -289,22 +308,29 @@ float stepmult = 1;
 float estbias = 0;
 bool estFound = false;
 
-vec4 FindOccluder(vec4 pos, vec4 defaultpos, vec3 nldir, vec3 ldir)
+struct DepthMapInfo
+{
+	int Index;
+	mat4 Mvp;
+	mat4 MvpInv;
+};
+
+vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir, vec3 ldir)
 {
 	vec4 result = defaultpos;
 	
-	for(float j = 0; j < 20; j++)
+	for(float j = 0; j < 10; j++)
 	{			
 		vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
-		vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
-		vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
-		vec4 p_clip = GetClipCoord(p_param, p_nd.w);
-		vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+		vec2 p_param = Reproject(dmi.Mvp, ppp).xy * 0.5 + 0.5;
+		vec4 p_clip = GetClipCoord(p_param, GetDepth(dmi.Index, clamp(p_param, 0, 1)));
+		vec4 p_pos = Reproject(dmi.MvpInv, p_clip);
 		
-		if(length(ppp - p_pos) < 0.06361 * length(ppp - pos))
+		if(length(ppp - p_pos) < 0.1096361 * length(ppp - pos) || 
+				dot(normalize(p_pos - ppp).xyz, nldir) > .9)
 		{
 			est = (j * step * stepmult + est + estbias) ;
-			step = 0.05 * est;
+			step = 0.105 * est;
 			est *= 0.9;
 			estbias = 0;
 			stepmult = 1;
@@ -323,15 +349,15 @@ vec4 FindOccluder(vec4 pos, vec4 defaultpos, vec3 nldir, vec3 ldir)
 		else if(estFound)
 		{
 			vec4 ppp = vec4(nldir * (-j * step * stepmult  + est + estbias) + pos.xyz, 1);
-			vec2 p_param = Reproject(modelviewprojection_transform, ppp).xy * 0.5 + 0.5;
-			vec4 p_nd = GetNormalDepth(clamp(p_param, 0, 1));
-			vec4 p_clip = GetClipCoord(p_param, p_nd.w);
-			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+			vec2 p_param = Reproject(dmi.Mvp, ppp).xy * 0.5 + 0.5;
+			vec4 p_clip = GetClipCoord(p_param, GetDepth(dmi.Index, clamp(p_param, 0, 1)));
+			vec4 p_pos = Reproject(dmi.MvpInv, p_clip);
 			
-			if(length(ppp - p_pos) < 0.06 * length(ppp - pos))
+			if(length(ppp - p_pos) < 0.096 * length(ppp - pos) || 
+				dot(normalize(p_pos - ppp).xyz, nldir) > .9)
 			{
 				est = (-j * step * stepmult + est + estbias) ;
-				step = 0.05 * est;
+				step = 0.105 * est;
 				est *= 0.9;
 				estbias = 0;
 				stepmult = 1;
@@ -353,8 +379,7 @@ vec4 FindOccluder(vec4 pos, vec4 defaultpos, vec3 nldir, vec3 ldir)
 	return result;
 }
 
-subroutine(GetShadow)
-float GetShadowSoft2(vec4 pos)
+void GetShadowSoft2Initialize()
 {
 	int samplesCount = clamp(u_ShadowSampleCount, 1, c_MaxSamplesCount);
 	int occCount = clamp(samplesCount * c_OccludersGroupSize, 1, c_MaxOccludersCount);
@@ -365,6 +390,34 @@ float GetShadowSoft2(vec4 pos)
 	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
 	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
 	
+	for(int start = int(gl_LocalInvocationIndex); start < c_OccludersGroupSize; start += c_WorkGroupSize)
+	{
+		vec2 pos_index = vec2(start % c_OccludersGroupSizeX, start / c_OccludersGroupSizeX) + gl_GlobalInvocationID.xy - gl_LocalInvocationID.xy - vec2(c_OccludersRimSize);
+		vec2 pos_param = pos_index/local_Target.Size;
+		
+		vec4 p_nd = GetNormalDepth(pos_param);
+		vec4 p_clip = GetClipCoord(pos_param, p_nd.w);
+		vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+		s_Occludees[start] = p_pos;
+		
+		for(int i = 0; i < occLocal; i++)
+		{
+			vec2 offset = GetSamplingPoint(i + start + 113) * tan(phi);
+			vec3 nldir = normalize(ldir + ldiro1 * offset.x + ldiro2 * offset.y);
+			
+			s_Occluders[i + start * occLocal] = vec4(p_pos.xyz - 100 * nldir, 0);
+			//s_OccludersDirs[i + start * occLocal] = nldir;
+		}
+	}
+}
+
+void GetShadowSoft2Estimate(const in DepthMapInfo dmi)
+{
+	int samplesCount = clamp(u_ShadowSampleCount, 1, c_MaxSamplesCount);
+	int occCount = clamp(samplesCount * c_OccludersGroupSize, 1, c_MaxOccludersCount);
+	int occLocal = occCount / c_OccludersGroupSize;
+	float phi = u_LightSize;
+	vec3 ldir = normalize(c_DefaultLight.dir);
 	
 	// range estimate
 	/*Range range = {-100000, 100000};
@@ -453,58 +506,65 @@ float GetShadowSoft2(vec4 pos)
 	}*/
 	for(int start = int(gl_LocalInvocationIndex); start < c_OccludersGroupSize; start += c_WorkGroupSize)
 	{
-		estbias = 0;
-		est = .1;
-		step = .1;
-		stepmult = 1;
 		estFound = false;
 		for(int i = 0; i < occLocal; i++)
 		{
-			vec2 pos_index = vec2(start % c_OccludersGroupSizeX, start / c_OccludersGroupSizeX) + gl_GlobalInvocationID.xy - gl_LocalInvocationID.xy - vec2(c_OccludersRimSize);
-			vec2 pos_param = pos_index/local_Target.Size;
+			vec4 p_pos = s_Occludees[start];
+			vec4 defpos = s_Occluders[i + start * occLocal];
+			vec3 nldir = - normalize(defpos - p_pos).xyz;//s_OccludersDirs[i + start * occLocal];
 			
-			vec4 p_nd = GetNormalDepth(pos_param);
-			vec4 p_clip = GetClipCoord(pos_param, p_nd.w);
-			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
-		
-			vec4 defpos = p_pos - 10*vec4(ldir, 0);
-			vec2 offset = GetSamplingPoint(i + start + 113) * tan(phi);
-			vec3 nldir = normalize(ldir + ldiro1 * offset.x + ldiro2 * offset.y);
+			if(defpos.w != 0)
+				continue;
 			
 			if(!estFound)
 			{
 				estbias = i % 12;
-				est = .1;
+				est = 1.951;
 				step = 1;
 				stepmult = i + 1;
 			}
 			
 			s_Occluders[i + start * occLocal] =
-				FindOccluder(p_pos, defpos, nldir, ldir);
+				FindOccluder(dmi, p_pos, defpos, nldir, ldir);
 		}
 	}
-	
-	barrier();
+}
+
+float GetShadowSoft2ComputeResult()
+{
+	int samplesCount = clamp(u_ShadowSampleCount, 1, c_MaxSamplesCount);
+	int occCount = clamp(samplesCount * c_OccludersGroupSize, 1, c_MaxOccludersCount);
+	int occLocal = occCount / c_OccludersGroupSize;
+	float phi = u_LightSize;
+	vec3 ldir = normalize(c_DefaultLight.dir);
 	
 	int locId = int(c_OccludersGroupSizeX * (gl_LocalInvocationID.y + c_OccludersRimSize) + gl_LocalInvocationID.x + c_OccludersRimSize);
 	int sf = 0;
 	float result3 = 0.0;
+	vec4 pos = s_Occludees[locId];
 	for(int i = 0; i < occLocal && sf < samplesCount; i++)
 	{
-		int index = locId * occLocal + i;
-		
+		int index = locId * occLocal + i;		
 		vec4 occ = s_Occluders[index % occCount];
-		vec4 d = occ - pos;
-		float s = dot(normalize(d.xyz), ldir);
 		
-		if(s > cos(phi))
-		{
-			result3 += 1;
-		}
-		
-		if(abs(s) > cos(phi))
+		if(occ.w == 0)
 		{
 			sf++;
+		}
+		else
+		{
+			vec3 d = occ.xyz - pos.xyz;
+			float s = dot(normalize(d), ldir);
+			
+			if(s > cos(phi))
+			{
+				result3 += 1;
+			}
+			
+			if(abs(s) > cos(phi))
+			{
+				sf++;
+			}
 		}
 	}
 	
@@ -522,17 +582,24 @@ float GetShadowSoft2(vec4 pos)
 				int index = int(locId + cursor.x + cursor.y * c_OccludersGroupSizeX) * occLocal + k;
 				
 				vec4 occ = s_Occluders[index % occCount];
-				vec4 d = occ - pos;
-				float s = dot(normalize(d.xyz), ldir);
-				
-				if(s > cos(phi))
-				{
-					result3 += 1.5;
-				}
-				
-				if(abs(s) > cos(phi))
+				if(occ.w == 0)
 				{
 					sf++;
+				}
+				else
+				{
+					vec3 d = occ.xyz - pos.xyz;
+					float s = dot(normalize(d), ldir);
+					
+					if(s > cos(phi))
+					{
+						result3 += 1;
+					}
+					
+					if(abs(s) > cos(phi))
+					{
+						sf++;
+					}
 				}
 			}
 		}
@@ -550,6 +617,25 @@ float GetShadowSoft2(vec4 pos)
 	}
 	
 	return clamp(result3/sf, 0, 1);
+}
+
+subroutine(GetShadow)
+float GetShadowSoft2(vec4 pos)
+{
+	DepthMapInfo[] dmis = 
+	{
+		{ 1, light_modelviewprojection_transform, inverse(light_modelviewprojection_transform) },
+		{ 0, modelviewprojection_transform, modelviewprojection_inv_transform },		
+	};
+	
+	GetShadowSoft2Initialize();	
+	for(int i = 0; i < dmis.length(); i++)
+	{
+		GetShadowSoft2Estimate(dmis[i]);
+	}
+	
+	barrier();
+	return GetShadowSoft2ComputeResult();
 }
 
 /////////////////////

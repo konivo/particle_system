@@ -31,7 +31,7 @@ const int c_OccludersRimSize = 0;
 const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
 const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
 const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
-const int c_MaxLocalOccluders = 1;
+const int c_MaxLocalOccluders = 4;
 const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
 const int c_MaxSamplesCount = min(256, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
@@ -175,6 +175,13 @@ vec4 Reproject (mat4 transform, vec4 vector)
 }
 
 //
+vec4 Reproject (vec4 vector)
+{
+	vector /= vector.w;
+	return vector;
+}
+
+//
 vec4 GetNormalDepth (vec2 param)
 {
 	vec4 result = texture(u_NormalDepthTexture, param);
@@ -197,6 +204,18 @@ float GetDepth (const int texIndex, const vec2 param)
 		vec4 result = texture(u_ShadowTexture, param);
 		result = result * 2 - 1;
 		return result.x;
+	}
+}
+
+ivec2 GetDepthTextureSize (const int texIndex)
+{
+	if(texIndex == 0)
+	{
+		return textureSize(u_NormalDepthTexture, 0);
+	}
+	else
+	{
+		return textureSize(u_ShadowTexture, 0);
 	}
 }
 
@@ -319,7 +338,7 @@ vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir,
 {
 	vec4 result = defaultpos;
 	
-	for(float j = 0; j < 10; j++)
+	for(float j = 0; j < 5; j++)
 	{			
 		vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
 		vec2 p_param = Reproject(dmi.Mvp, ppp).xy * 0.5 + 0.5;
@@ -330,7 +349,7 @@ vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir,
 				dot(normalize(p_pos - ppp).xyz, nldir) > .9)
 		{
 			est = (j * step * stepmult + est + estbias) ;
-			step = 0.105 * est;
+			step = 0.043105 * est;
 			est *= 0.9;
 			estbias = 0;
 			stepmult = 1;
@@ -357,7 +376,7 @@ vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir,
 				dot(normalize(p_pos - ppp).xyz, nldir) > .9)
 			{
 				est = (-j * step * stepmult + est + estbias) ;
-				step = 0.105 * est;
+				step = 0.043105 * est;
 				est *= 0.9;
 				estbias = 0;
 				stepmult = 1;
@@ -372,6 +391,51 @@ vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir,
 					j = 1;
 					estFound = true;
 				}
+			}
+		}
+	}
+	
+	return result;
+}
+
+vec4 FindOccluderProj(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir, vec3 ldir)
+{
+	vec4 result = defaultpos;
+	vec4 p_p1 = modelviewprojection_transform * vec4(pos.xyz, 1);
+	vec4 p_p2 = modelviewprojection_transform * vec4(nldir * 100 + pos.xyz, 1);
+	ivec2 p_size = GetDepthTextureSize(dmi.Index);
+	vec4 p_delta = (p_p2 - p_p1)/(length(p_p2.xy - p_p1.xy) * max(p_size.x, p_size.y));
+	pos = p_p1;
+	vec4 ppp = p_p1 + p_delta * p_p1.w * (est + estbias);
+		
+	for(float j = 0; j < 15; j++)
+	{
+		ppp = ppp + ppp.w * p_delta * step * stepmult;
+		vec4 p_param = ppp / ppp.w;
+		
+		float depth = GetDepth(dmi.Index, p_param.xy * 0.5 + .5);
+		vec4 p_pos = GetClipCoord(p_param.xy * 0.5 + .5, depth);
+		
+		vec4 l1 = Reproject(ppp) - Reproject(p_pos);
+		vec4 l2 = Reproject(ppp) - Reproject(pos);
+		if(length(l1.xyz) < 0.00129312821 * length(l2.xyz))
+		{
+			vec4 estvec = (ppp - pos) / p_p1.w / p_delta ;
+			est = max(estvec.x, estvec.y);
+			step = 1;
+			est *= 0.9;
+			estbias = 0;
+			stepmult = 1;
+			
+			if(estFound)
+			{
+				result = Reproject(dmi.MvpInv * p_pos);
+				break;
+			}
+			else
+			{
+				j = 1;
+				estFound = true;
 			}
 		}
 	}
@@ -419,91 +483,6 @@ void GetShadowSoft2Estimate(const in DepthMapInfo dmi)
 	float phi = u_LightSize;
 	vec3 ldir = normalize(c_DefaultLight.dir);
 	
-	// range estimate
-	/*Range range = {-100000, 100000};
-	Range rangeInvalid = {100000, -100000};
-	s_OccRanges[gl_LocalInvocationIndex] = rangeInvalid;
-	for(int i = 0; i < 5; i++)
-	{
-		vec2 offset = GetSamplingPoint(i * 3 + 1132) * tan(phi);
-		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
-		vec3 nldir = normalize(rdir);	
-			
-		vec4 p_p1 = Reproject(modelviewprojection_transform, vec4(pos.xyz, 1));
-		vec4 p_p2 = Reproject(modelviewprojection_transform, vec4(nldir * 100 + pos.xyz, 1));
-		ivec2 p_size = textureSize(u_NormalDepthTexture, 0);
-		vec4 p_delta = normalize(p_p2 - p_p1)/max(p_size.x, p_size.y);
-		
-		for(float j = 0; j < 225; j++)
-		{
-			vec4 p_param = p_p1 + p_delta * (j * step * stepmult + est + estbias);
-			vec4 ppp = Reproject(modelviewprojection_inv_transform, p_param);		
-			vec4 p_nd = GetNormalDepth(clamp(p_param.xy * 0.5 + 0.5, 0, 1));
-			vec4 p_clip = GetClipCoord(p_param.xy * 0.5 + 0.5, p_nd.w);
-			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
-			
-			if(length(ppp - p_pos) < 0.0191 * length(ppp - pos))
-			{
-				est = (j * step * stepmult + est + estbias);
-				step = 0.01 * est;
-				est *= 0.9;
-				estbias = 0;
-				stepmult = 1;
-				
-				range.Min = max(est, range.Min);
-				range.Max = min(est, range.Max);
-				s_OccRanges[gl_LocalInvocationIndex] = range;
-				break;
-			}
-		}
-	}
-	
-	
-	barrier();
-	for(int i = 0; i < c_WorkGroupSize; i++)
-	{
-		range.Min = min(s_OccRanges[i].Min, range.Min);
-		range.Max = max(s_OccRanges[i].Max, range.Max);
-	}
-	
-	est = range.Min * 0.958;
-	step = 0.0151 * (range.Max * 1.2 - est);
-	stepmult = 1;
-	estbias = 0;
-	*/
-	// finding of occluders
-	/*for(int i = 0; i < occLocal; i++)
-	{
-		s_Occluders[i + gl_LocalInvocationIndex * occLocal] = pos - 10*vec4(ldir, 0);
-		vec2 offset = GetSamplingPoint(i*3 + 1132) * tan(phi);
-		vec3 rdir = ldir + ldiro1 * offset.x + ldiro2 * offset.y;
-		vec3 nldir = normalize(rdir);
-		
-		vec4 p_p1 = Reproject(modelviewprojection_transform, vec4(pos.xyz, 1));
-		vec4 p_p2 = Reproject(modelviewprojection_transform, vec4(nldir * 100 + pos.xyz, 1));
-		ivec2 p_size = textureSize(u_NormalDepthTexture, 0);
-		vec4 p_delta = normalize(p_p2 - p_p1)/max(p_size.x, p_size.y);
-		
-		for(float j = 0; j < 200; j++)
-		{
-			vec4 p_param = p_p1 + p_delta * (j * step * stepmult + est + estbias);
-			vec4 ppp = Reproject(modelviewprojection_inv_transform, p_param);
-			//vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
-			
-			vec4 p_nd = GetNormalDepth(clamp(p_param.xy * 0.5 + 0.5, 0, 1));
-			vec4 p_clip = GetClipCoord(p_param.xy * 0.5 + 0.5, p_nd.w);
-			vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
-			
-			if(length(ppp - p_pos) < 0.029312821 * length(ppp - pos))
-			{
-				est = (j * step * stepmult + est + estbias);
-				step = 0.051 * est;
-				est *= 0.9;
-				s_Occluders[i + gl_LocalInvocationIndex * occLocal] = p_pos;
-				break;
-			}
-		}
-	}*/
 	for(int start = int(gl_LocalInvocationIndex); start < c_OccludersGroupSize; start += c_WorkGroupSize)
 	{
 		estFound = false;
@@ -776,16 +755,10 @@ void main ()
 	vec4 p_clip = GetClipCoord(local_Target.Param, p_nd.w);
 	vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
 
-	if(p_nd.w > 0.99999)
-	{
-		imageStore(u_TargetColorLuma, ivec2(gl_GlobalInvocationID), vec4(0));
-		imageStore(u_TargetDepth, ivec2(gl_GlobalInvocationID), vec4(1));
-		return;
-	}
-	
+	float shadow = u_GetShadow(p_pos);	
 	float aoc = texture(u_SsaoTexture, local_Target.Param).x;
 	vec3 material = GetMaterial(p_pos, p_nd).xyz;
-	float shadow = u_GetShadow(p_pos);
+	
 
 	float luminance = 0.3 * material.r + 0.5 * material.g + 0.2 * material.b;
 	vec3 ambientmat =  0.5 * (material + normalize(vec3(1, 1, 1)) * dot(material, normalize(vec3(1, 1, 1))));
@@ -793,11 +766,20 @@ void main ()
 	vec3 diffuse = material * max(/*dot(light.dir, p_nd.xyz) */ (1 - shadow), 0);
 	vec3 color = (diffuse  + u_LightAmbientColor * ambientmat) * (1 - aoc);
 
-	imageStore(u_TargetColorLuma, ivec2(gl_GlobalInvocationID), vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114)))));
-	//color_luma = vec4(p_nd.xyz * 0.5 + 0.5, sqrt(dot(p_nd.rgb* 0.5 + 0.5, vec3(0.299, 0.587, 0.114))));
-	//color_luma = vec4(pow(texture(u_ShadowTexture, param).x, 1), 0, 0, 1);
-	//color_luma = vec4((Reproject(light_modelviewprojection_transform, p_pos).xy + 1) * 0.5, 0, 1);
-	//color_luma = vec4(shadow, 0, 0, 1);
-	//color_luma = vec4(aoc, 0, 0, 1);
-	imageStore(u_TargetDepth, ivec2(gl_GlobalInvocationID), texture(u_NormalDepthTexture, local_Target.Param).wwww);
+	if(p_nd.w > 0.99999)
+	{
+		imageStore(u_TargetColorLuma, ivec2(gl_GlobalInvocationID), vec4(0));
+		imageStore(u_TargetDepth, ivec2(gl_GlobalInvocationID), vec4(1));
+		return;
+	}
+	else
+	{
+		imageStore(u_TargetColorLuma, ivec2(gl_GlobalInvocationID), vec4(color, sqrt(dot(color.rgb, vec3(0.299, 0.587, 0.114)))));
+		//color_luma = vec4(p_nd.xyz * 0.5 + 0.5, sqrt(dot(p_nd.rgb* 0.5 + 0.5, vec3(0.299, 0.587, 0.114))));
+		//color_luma = vec4(pow(texture(u_ShadowTexture, param).x, 1), 0, 0, 1);
+		//color_luma = vec4((Reproject(light_modelviewprojection_transform, p_pos).xy + 1) * 0.5, 0, 1);
+		//color_luma = vec4(shadow, 0, 0, 1);
+		//color_luma = vec4(aoc, 0, 0, 1);
+		imageStore(u_TargetDepth, ivec2(gl_GlobalInvocationID), texture(u_NormalDepthTexture, local_Target.Param).wwww);
+	}
 }

@@ -31,7 +31,7 @@ const int c_OccludersRimSize = 0;
 const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
 const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
 const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
-const int c_MaxLocalOccluders = 4;
+const int c_MaxLocalOccluders = 2;
 const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
 const int c_MaxSamplesCount = min(256, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
@@ -354,7 +354,7 @@ vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir,
 {
 	vec4 result = defaultpos;
 	
-	for(float j = 0; j < 65; j++)
+	for(float j = 0; j < 5; j++)
 	{			
 		vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
 		vec2 p_param = Reproject(dmi.Mvp, ppp).xy * 0.5 + 0.5;
@@ -659,7 +659,7 @@ float GetShadowSoft2(vec4 pos)
 	};
 	
 	GetShadowSoft2Initialize();	
-	for(int i = 1; i < dmis.length(); i++)
+	for(int i = 0; i < dmis.length(); i++)
 	{
 		GetShadowSoft2Estimate(dmis[i]);
 	}

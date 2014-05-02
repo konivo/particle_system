@@ -9,6 +9,7 @@ using opentk.Scene;
 using opentk.Scene.ParticleSystem;
 using opentk.System3;
 using System.Collections.Generic;
+using OpenTK.Extensions;
 
 namespace opentk.ShadingSetup
 {
@@ -64,6 +65,9 @@ namespace opentk.ShadingSetup
 				 p.CameraMvp.ProjectionInv,
 				 AocParameters
 			);*/
+			SsaoEffect.SourceNormalDepth = NormalDepth_Texture;
+			SsaoEffect.Target = AOC_Texture;
+			SsaoEffect.SourceMvp = p.CameraMvp;
 			var aocPassSolid = RenderPassFactory.CreatePass(SsaoEffect);
 
 			/*var aocBlur = RenderPassFactory.CreateBilateralFilter
@@ -73,33 +77,42 @@ namespace opentk.ShadingSetup
 			);*/
 			var aocBlur = RenderPassFactory.CreatePass(new BlurFilter { Source = AOC_Texture, Target = AOC_Texture_Blurred_HV, Width = 8 });
 
-			//
-			var thirdPassSolid = RenderPassFactory.CreateFullscreenQuad
+			string scode =
+				@"
+{0}version 440
+{0}define T_LAYOUT_OUT_DEPTH {1}
+{0}define T_LAYOUT_OUT_COLORLUMA {2}
+
+layout(local_size_x = {3}, local_size_y = {4}) in;
+{0}line 1
+";
+			int workgroupSize = 16;
+			scode = string.Format (scode, "#", ImageFormat.R32f, BeforeAA_Texture.InternalFormat, workgroupSize, workgroupSize);
+			var namemodifier = string.Format ("wgsize:{0}x{0},fi:{1},fi:{2}", workgroupSize, ImageFormat.R32f, BeforeAA_Texture.InternalFormat);
+			var deferredLigthing = new SeparateProgramPass
 			(
-				 "solid3", "SolidModel",
-				 ValueProvider.Create(() => new Vector2(SolidModeTextureSize, SolidModeTextureSize)),
-				 (window) => { },
-				 (window) =>
-				 {
-					GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-					GL.Disable (EnableCap.DepthTest);
-					GL.Disable (EnableCap.Blend);
-				 },
-				 //pass state
-				 new FramebufferBindingSet{
-				   { FramebufferAttachment.DepthAttachment, Depth_Texture },
-				   { "color_luma", BeforeAA_Texture}
-				 },
-				 p.ParticleStateArrayObject,
-				 m_Uniforms,
-				 new TextureBindingSet
-				 {
-				   { "colorramp_texture", ValueProvider.Create(() => (ColorRamp ?? ColorRamps.RedBlue).Texture)},
-				   { "normaldepth_texture", NormalDepth_Texture },
-				   { "particle_attribute1_texture", m_ParticleAttribute1_Texture },
-				   { "shadow_texture", Shadow_Texture },
-				   { "aoc_texture", AOC_Texture_Blurred_HV }
-				 }
+				"shadingsetup.solidsphere.deferredligthing",
+				window => { GLExtensions.DispatchCompute ((int)Math.Ceiling((float)Depth_Texture.Width/workgroupSize), (int)Math.Ceiling((float)Depth_Texture.Height/workgroupSize), 1); },
+				new Program ("shadingsetup.solidsphere.deferredligthing")
+				{
+					RenderPass.GetShaders ("shadingsetup", "solid3", "compute").PrependText(namemodifier, scode),
+				},
+				new ImageBindingSet
+				{
+					{"u_TargetDepth", () => Depth_Texture },
+					{"u_TargetColorLuma", () => BeforeAA_Texture },
+				},
+				
+				p.ParticleStateArrayObject,
+				m_Uniforms,
+				new TextureBindingSet
+				{
+					{ "u_ColorRampTexture", ValueProvider.Create(() => (ColorRamp ?? ColorRamps.RedBlue).Texture)},
+					{ "u_NormalDepthTexture", NormalDepth_Texture },
+					{ "u_ParticleAttribute1Texture", m_ParticleAttribute1_Texture },
+					{ "u_ShadowTexture", Shadow_Texture },
+					{ "u_SsaoTexture", AOC_Texture_Blurred_HV }
+				}
 			);
 
 			var antialiasPass = RenderPassFactory.CreateFxaa3Filter
@@ -129,7 +142,7 @@ namespace opentk.ShadingSetup
 
 			m_Pass = new CompoundRenderPass
 			(
-			 firstPassSolid, firstPassShadow, aocPassSolid, aocBlur, thirdPassSolid, antialiasPass, finalRender
+					firstPassSolid, firstPassShadow, aocPassSolid, aocBlur, deferredLigthing, antialiasPass, finalRender
 			);
 		}
 

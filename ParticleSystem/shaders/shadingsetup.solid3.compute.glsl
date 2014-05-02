@@ -161,6 +161,22 @@ int GetSamplingIndex(int i, int limit)
 }
 
 //
+vec2 GetSequenceHalton(int i)
+{
+	vec2 result = vec2(0);
+	ivec2 base = ivec2(2, 3);
+	vec2 f = 1 / vec2(base);
+  ivec2 index = ivec2(i, i);
+  while (index.x > 0 || index.y > 0)
+  {
+		result = result + f * (index % base);
+		index = index / base;
+		f = f / base; 
+	}
+  return 2 * result - 1;
+}
+
+//
 vec4 GetClipCoord (vec2 param, float imagedepth)
 {
 	return vec4(2 * param - 1, imagedepth, 1);
@@ -338,7 +354,7 @@ vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir,
 {
 	vec4 result = defaultpos;
 	
-	for(float j = 0; j < 5; j++)
+	for(float j = 0; j < 65; j++)
 	{			
 		vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
 		vec2 p_param = Reproject(dmi.Mvp, ppp).xy * 0.5 + 0.5;
@@ -466,7 +482,7 @@ void GetShadowSoft2Initialize()
 		
 		for(int i = 0; i < occLocal; i++)
 		{
-			vec2 offset = GetSamplingPoint(i + start + 113) * tan(phi);
+			vec2 offset = GetSequenceHalton(i + start * occLocal ) * tan(phi);
 			vec3 nldir = normalize(ldir + ldiro1 * offset.x + ldiro2 * offset.y);
 			
 			s_Occluders[i + start * occLocal] = vec4(p_pos.xyz - 100 * nldir, 0);
@@ -550,11 +566,11 @@ float GetShadowSoft2ComputeResult()
 	ivec2[] cursors = {	{-1, 0}, {0, 1},	{1, 0},	{0, -1}	};
 	int round = 2;
 	int roundCompl = 0;
-	for(int i = 0; i < 20 && sf < samplesCount; i++)
+	for(int i = 0; i < 5 && sf < samplesCount; i++)
 	{
 		for(int j = 0; j < 4; j++)
 		{
-			ivec2 cursor = cursors[j];
+			ivec2 cursor = min(ivec2(c_OccludersGroupSizeX, c_OccludersGroupSizeY), max(ivec2(0), cursors[j]));
 			
 			for(int k = 0; k < occLocal; k++)
 			{
@@ -595,7 +611,42 @@ float GetShadowSoft2ComputeResult()
 		}
 	}
 	
-	return clamp(result3/sf, 0, 1);
+	s_Occludees[locId].x = clamp(result3/sf, 0, 1);
+	
+	barrier();
+	
+	float result = s_Occludees[locId].x;
+	float w = 1;
+	float[] h_cnt = float[10](0);
+	float[] h_val = float[10](0);
+	for(int i = -1; i <= 1; i++)
+	for(int j = -1; j <= 1; j++)
+	{
+		float s = s_Occludees[(locId + i * c_OccludersGroupSizeX + j) % c_OccludersGroupSize].x;
+		h_cnt[int(s * 9)]++;
+		h_val[int(s * 9)] += s;
+		
+		//if(GetSamplingIndex(i, 9) > 99)
+		{
+			w++;
+			result += s;
+		}
+	}
+	
+	/*w = 0;
+	result = 0;
+	for(int i = 0; i < 10; i++)
+	{
+		w += h_cnt[i];
+		if(w > 5)
+		{
+			result = h_val[i];
+			w = h_cnt[i];
+			break;
+		}
+	}*/
+	
+	return clamp(result/w, 0, 1);
 }
 
 subroutine(GetShadow)
@@ -608,7 +659,7 @@ float GetShadowSoft2(vec4 pos)
 	};
 	
 	GetShadowSoft2Initialize();	
-	for(int i = 0; i < dmis.length(); i++)
+	for(int i = 1; i < dmis.length(); i++)
 	{
 		GetShadowSoft2Estimate(dmis[i]);
 	}

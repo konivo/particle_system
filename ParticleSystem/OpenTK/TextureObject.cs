@@ -127,6 +127,11 @@ namespace OpenTK
 		{
 			Bindings.Add(new TextureBinding{ VariableName = variablename, Texture = texture});
 		}
+		
+		public void Add (string variablename, Func<TextureBase> val)
+		{
+			Add(variablename, ValueProvider.Create (val, null));
+		}
 
 		public void Add (TextureBinding binding)
 		{

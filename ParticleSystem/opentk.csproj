@@ -136,6 +136,7 @@
     <Compile Include="OpenTK\Extensions\ValueProviderExtensions.cs" />
     <Compile Include="OpenTK\Extensions\ShaderExtensions.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Ssao2.cs" />
+    <Compile Include="RenderPassFactory\RenderPassFactory.Bilateral.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -181,7 +182,6 @@
     <EmbeddedResource Include="System4\Shaders\raymarch_fragment.glsl" />
     <EmbeddedResource Include="System4\Shaders\lighting_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\blur_fragment.glsl" />
-    <EmbeddedResource Include="RenderPassFactory\Shaders\bilateralfilter_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\fxaa3_fragment.glsl" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\Fxaa3_8.include" />
     <EmbeddedResource Include="RenderPassFactory\Shaders\rendertexture_fragment.glsl" />
@@ -279,5 +279,6 @@
     <None Include="shaders\filters.blur.compute.glsl" />
     <None Include="shaders\effects.ssao.compute.glsl" />
     <None Include="shaders\shadingsetup.solid3.compute.glsl" />
+    <None Include="shaders\filters.bilateral.compute.glsl" />
   </ItemGroup>
 </Project>

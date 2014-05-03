@@ -152,7 +152,7 @@ namespace opentk.ShadingSetup
 				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV,
 				 ValueProvider.Create(() => 20 * new Vector4(AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, 0))
 			);*/
-			var aocBlur = RenderPassFactory.CreatePass(new BlurFilter { Source = AOC_Texture, Target = AOC_Texture_Blurred_HV, Width = 0 });
+			var aocBlur = RenderPassFactory.CreatePass(new BilateralFilter { Source = AOC_Texture, SourceK = AOC_Texture, Target = AOC_Texture_Blurred_HV, Width = 4 });
 			
 			string scode =
 				@"

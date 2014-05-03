@@ -75,7 +75,7 @@ namespace opentk.ShadingSetup
 				 AOC_Texture, AOC_Texture_Blurred_H, AOC_Texture_Blurred_HV,
 				 ValueProvider.Create(() => 20 * new Vector4(AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, AocParameters.BlurEdgeAvoidance, 0))
 			);*/
-			var aocBlur = RenderPassFactory.CreatePass(new BlurFilter { Source = AOC_Texture, Target = AOC_Texture_Blurred_HV, Width = 8 });
+			var aocBlur = RenderPassFactory.CreatePass(new BilateralFilter { Source = AOC_Texture, SourceK = NormalDepth_Texture, Target = AOC_Texture_Blurred_HV, Width = 4 });
 
 			string scode =
 				@"
@@ -91,9 +91,9 @@ layout(local_size_x = {3}, local_size_y = {4}) in;
 			var namemodifier = string.Format ("wgsize:{0}x{0},fi:{1},fi:{2}", workgroupSize, ImageFormat.R32f, BeforeAA_Texture.InternalFormat);
 			var deferredLigthing = new SeparateProgramPass
 			(
-				"shadingsetup.solidsphere.deferredligthing",
+				"shadingsetup.solidbox.deferredligthing",
 				window => { GLExtensions.DispatchCompute ((int)Math.Ceiling((float)Depth_Texture.Width/workgroupSize), (int)Math.Ceiling((float)Depth_Texture.Height/workgroupSize), 1); },
-				new Program ("shadingsetup.solidsphere.deferredligthing")
+				new Program ("shadingsetup.solidbox.deferredligthing")
 				{
 					RenderPass.GetShaders ("shadingsetup", "solid3", "compute").PrependText(namemodifier, scode),
 				},

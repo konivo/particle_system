@@ -7,6 +7,16 @@ namespace opentk
 {
 	public static partial class RenderPassFactory
 	{
+		/// <summary>
+		/// Creates the fullscreen quad.
+		/// </summary>
+		/// <returns>The fullscreen quad.</returns>
+		/// <param name="passName">Pass name.</param>
+		/// <param name="passNamespace">Pass namespace.</param>
+		/// <param name="viewportSize">Viewport size.</param>
+		/// <param name="beforeState">Before state.</param>
+		/// <param name="beforeRender">Before render.</param>
+		/// <param name="stateParts">State parts.</param>
 		public static RenderPass CreateFullscreenQuad (string passName, string passNamespace, IValueProvider<Vector2> viewportSize, Action<GameWindow> beforeState, Action<GameWindow> beforeRender, params StatePart[] stateParts)
 		{
 			var shaders = RenderPass.GetShaders ("fullquad", "RenderPassFactory").Concat (RenderPass.GetShaders (passName, passNamespace));
@@ -20,40 +30,16 @@ namespace opentk
 			
 			return new SeparateProgramPass (passName, beforeState, beforeRender, render, shaders, stateParts);
 		}
-
-		//
-		public static RenderPass CreateBlurFilter
-		(
-			 TextureBase source,
-			 TextureBase interm,
-			 TextureBase result)
-		{
-			return CreateSeparableFilter("blur", "RenderPassFactory", source, interm, result, null);
-		}
-
-		//
-		public static RenderPass CreateBilateralFilter
-		(
-			 TextureBase source,
-			 TextureBase interm,
-			 TextureBase result,
-			 IValueProvider<Vector4> k)
-		{
-			UniformState parameters = new UniformState();
-			parameters.Set ("K", k);
-
-			return CreateSeparableFilter("bilateralfilter", "RenderPassFactory", source, interm, result, parameters);
-		}
-
-		//
-		public static RenderPass CreateFxaa3Filter
-		(
-			 TextureBase source,
-			 TextureBase result)
+		/// <summary>
+		/// Creates the fxaa3 filter.
+		/// </summary>
+		/// <returns>The fxaa3 filter.</returns>
+		/// <param name="source">Source.</param>
+		/// <param name="result">Result.</param>
+		public static RenderPass CreateFxaa3Filter ( TextureBase source, TextureBase result)
 		{
 			return CreateFilter("fxaa3", "RenderPassFactory", source, result);
 		}
-
 		/// <summary>
 		/// creates non-separable filter pass
 		/// </summary>
@@ -83,7 +69,6 @@ namespace opentk
 			new TextureBindingSet {{ "source_texture", source }});
 			return _1stPass;
 		}
-
 		/// <summary>
 		/// create two passes in one compound pass. First pass has set "horizontal" uniform boolean to true,
 		/// the second has it set to false.
@@ -143,7 +128,6 @@ namespace opentk
 
 			return new CompoundRenderPass(_1stPass, _2ndPass);
 		}
-
 		/// <summary>
 		/// given color and depth textures, render them.
 		/// </summary>

@@ -27,11 +27,11 @@ subroutine float GetShadow(vec4 pos);
 ////////////////////////////////////////////////////////////////////////////////
 //constants//
 const int c_WorkGroupSize = int(gl_WorkGroupSize.x * gl_WorkGroupSize.y);
-const int c_OccludersRimSize = 0;
+const int c_OccludersRimSize = 1;
 const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
 const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
 const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
-const int c_MaxLocalOccluders = 2;
+const int c_MaxLocalOccluders = 4;
 const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
 const int c_MaxSamplesCount = min(256, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
@@ -164,7 +164,7 @@ int GetSamplingIndex(int i, int limit)
 vec2 GetSequenceHalton(int i)
 {
 	vec2 result = vec2(0);
-	ivec2 base = ivec2(2, 3);
+	ivec2 base = ivec2(7, 3);
 	vec2 f = 1 / vec2(base);
   ivec2 index = ivec2(i, i);
   while (index.x > 0 || index.y > 0)
@@ -482,12 +482,16 @@ void GetShadowSoft2Initialize()
 		
 		for(int i = 0; i < occLocal; i++)
 		{
-			vec2 offset = GetSequenceHalton(i + start * occLocal ) * tan(phi);
+			// Interestingly, k strongly influences how the occluders between overlap in the sampling domain
+			// Good values I have found so far are:
+			// 1003, 117, 123, 96 ..
+			int k = 1003;
+			vec2 offset = GetSequenceHalton(i + start * occLocal * k) * tan(phi);
 			vec3 nldir = normalize(ldir + ldiro1 * offset.x + ldiro2 * offset.y);
 			
 			s_Occluders[i + start * occLocal] = vec4(p_pos.xyz - 100 * nldir, 0);
 			//s_OccludersDirs[i + start * occLocal] = nldir;
-		}
+		} 
 	}
 }
 
@@ -617,7 +621,7 @@ float GetShadowSoft2ComputeResult()
 	
 	float result = s_Occludees[locId].x;
 	float w = 1;
-	float[] h_cnt = float[10](0);
+	/*float[] h_cnt = float[10](0);
 	float[] h_val = float[10](0);
 	for(int i = -1; i <= 1; i++)
 	for(int j = -1; j <= 1; j++)

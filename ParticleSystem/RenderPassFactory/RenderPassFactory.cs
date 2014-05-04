@@ -31,16 +31,6 @@ namespace opentk
 			return new SeparateProgramPass (passName, beforeState, beforeRender, render, shaders, stateParts);
 		}
 		/// <summary>
-		/// Creates the fxaa3 filter.
-		/// </summary>
-		/// <returns>The fxaa3 filter.</returns>
-		/// <param name="source">Source.</param>
-		/// <param name="result">Result.</param>
-		public static RenderPass CreateFxaa3Filter ( TextureBase source, TextureBase result)
-		{
-			return CreateFilter("fxaa3", "RenderPassFactory", source, result);
-		}
-		/// <summary>
 		/// creates non-separable filter pass
 		/// </summary>
 		public static RenderPass CreateFilter

@@ -137,6 +137,7 @@
     <Compile Include="OpenTK\Extensions\ShaderExtensions.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Ssao2.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Bilateral.cs" />
+    <Compile Include="RenderPassFactory\RenderPassFactory.Fxaa3.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -201,6 +202,7 @@
     <EmbeddedResource Include="System5\Shaders\lighting_fragment.glsl" />
     <EmbeddedResource Include="System5\Shaders\raymarch_compute.glsl" />
     <EmbeddedResource Include="System3\Shaders\Simscheme_ParticlesWithTrails_compute.glsl" />
+    <EmbeddedResource Include="shaders\filters.fxaa3.compute.glsl" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

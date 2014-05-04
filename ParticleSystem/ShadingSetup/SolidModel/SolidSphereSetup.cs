@@ -192,10 +192,7 @@ layout(local_size_x = {3}, local_size_y = {4}) in;
 				}
 			);
 
-			var antialiasPass = RenderPassFactory.CreateFxaa3Filter
-			(
-				 BeforeAA_Texture, AA_Texture
-			);
+			var antialiasPass = RenderPassFactory.CreatePass( new Fxaa3Filter{ Source = BeforeAA_Texture, Target = AA_Texture});
 
 			var finalRender = RenderPassFactory.CreateRenderTextureToBuffer
 			(

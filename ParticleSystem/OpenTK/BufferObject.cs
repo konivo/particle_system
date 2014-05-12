@@ -164,6 +164,248 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
+	public sealed class BufferObjectSegmented<T> : BufferObjectBase where T : struct
+	{
+		[Flags]
+		private enum SegmentState
+		{
+			ReadOut = 0x1, 
+			Dirty = 0x2,
+		}
+		
+		private class Segment
+		{
+			public readonly T[] Data;
+			public readonly int Offset;
+			public SegmentState State;
+			
+			public Segment (int offset, T[] data)
+			{
+				Offset = offset;
+				Data = data;
+			}
+		}
+				
+		public const int SEGMENT_LENGTH = 50000;
+		
+		private int m_Length;
+		private readonly List<int> m_SegmentsOffsets;
+		private readonly List<Segment> m_Segments;
+		
+		public readonly int TypeSize;
+		
+		public int Length
+		{
+			get { return m_Length; }
+			set 
+			{
+				if( m_Length == value)
+					return;
+				
+				lock(m_SegmentsOffsets)
+				{
+					m_Length = value;
+					m_Segments.Clear();
+					m_SegmentsOffsets.Clear ();
+					if (m_Length != 0 && Initialized)
+					{
+						Initialize (Handle);
+					}
+				}
+			}
+		}
+		
+		public BufferObjectSegmented<T> Data
+		{
+			get{ return this;}
+		}
+		
+		public T this[int i]
+		{
+			get
+			{
+				lock (m_SegmentsOffsets) {
+					var segment = GetCreateSegment(ref i);
+					if((segment.State & SegmentState.ReadOut) == 0)
+						Readout(segment);
+						
+					return segment.Data[i];
+				}
+				
+				
+			}
+			set
+			{
+				lock (m_SegmentsOffsets) {
+					var segment = GetCreateSegment (ref i);
+					
+					if((segment.State & SegmentState.ReadOut) == 0)
+					{
+						Readout(segment);
+						
+						if((segment.State & SegmentState.Dirty) == 0)
+						{
+							segment.State |= SegmentState.Dirty;
+						}
+					}
+					else
+					{
+						segment.State |= SegmentState.Dirty;
+					}
+					
+					
+					segment.Data[i] = value;
+				}
+				
+			}
+		}
+		
+		public BufferObjectSegmented (int typesize, int length) : this(typesize)
+		{
+			m_Length = length;
+		}
+		
+		public BufferObjectSegmented (int typesize)
+		{
+			TypeSize = typesize;
+			m_Segments = new List<Segment>();
+			m_SegmentsOffsets = new List<int>();
+		}
+		
+		private Segment GetCreateSegment(ref int i)
+		{
+			lock (m_SegmentsOffsets) 
+			{
+				if (i >= m_Length)
+					throw new IndexOutOfRangeException ();
+				
+				var segIndex = m_SegmentsOffsets.BinarySearch (i);
+				var segOffset = 0;
+				if(segIndex >= 0)
+				{
+					segOffset = m_SegmentsOffsets[ segIndex];
+				}
+				else
+				{
+					segIndex = ~segIndex;
+					if (segIndex == 0) {
+						segOffset = i - i % SEGMENT_LENGTH;
+						m_SegmentsOffsets.Add (segOffset);
+						m_Segments.Add (new Segment (segOffset, new T[Math.Min (SEGMENT_LENGTH, Length - segOffset)]){ State = SegmentState.ReadOut});
+					} 
+					else{
+					  if (m_SegmentsOffsets[segIndex - 1] + SEGMENT_LENGTH <= i) {
+							segOffset = i - i % SEGMENT_LENGTH;
+							m_SegmentsOffsets.Insert (segIndex, segOffset);
+							m_Segments.Insert (segIndex, new Segment (segOffset, new T[Math.Min (SEGMENT_LENGTH, Length - segOffset)]){ State = SegmentState.ReadOut});
+						} 
+						else {
+							segOffset = m_SegmentsOffsets [--segIndex];
+						}
+					}
+				}
+				
+				i -= segOffset;
+				return m_Segments [segIndex];
+			}
+		}
+		
+		protected override void Initialize (int handle)
+		{
+			if (Length <= 0)
+			{
+				throw new InvalidOperationException ();
+			}
+			
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);
+			GL.BufferData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * Length), IntPtr.Zero, Usage);
+			Console.WriteLine ("buffer (segmented) {3}: {0}, {1}, {2}", typeof(T), TypeSize, Length, Name);
+		}
+		
+		public void Publish ()
+		{
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+			
+			int pcount = 0;
+			for (int i = 0; i < m_Segments.Count; i++) 
+			{
+				var seg = m_Segments[i];
+				if((seg.State & SegmentState.Dirty) > 0)
+				{
+					seg.State &= ~(SegmentState.Dirty | SegmentState.ReadOut);
+					GL.BufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * seg.Offset), (IntPtr)(TypeSize * seg.Data.Length), seg.Data);
+					
+					pcount++;
+				}
+			}
+		}
+		
+		public void PublishPart (int start, int count)
+		{
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+			
+			for (int i = 0; i < m_Segments.Count; i++) 
+			{
+				var seg = m_Segments[i];
+				if((seg.State & SegmentState.Dirty) > 0 && (seg.Offset < start + count) && (seg.Offset + seg.Data.Length > start))
+				{
+					seg.State &= ~(SegmentState.Dirty | SegmentState.ReadOut);
+					GL.BufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * seg.Offset), (IntPtr)(TypeSize * seg.Data.Length), seg.Data);
+				}
+			}
+		}
+		/// <summary>
+		/// Publishs the part.
+		/// </summary>
+		/// <param name="start">Start.</param>
+		/// <param name="count">Count.</param>
+		public void Readout()
+		{
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+			
+			for (int i = 0; i < m_Segments.Count; i++) 
+			{
+				var seg = m_Segments[i];
+				if((seg.State & SegmentState.ReadOut) == 0)
+				{
+					seg.State |= SegmentState.ReadOut;
+					seg.State &= ~(SegmentState.Dirty);
+					GL.GetBufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * seg.Offset), (IntPtr)(TypeSize * seg.Data.Length), seg.Data);
+				}
+			}
+		}
+		/// <summary>
+		/// 
+		/// </summary>
+		private void Readout (Segment seg)
+		{
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+			GL.GetBufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * seg.Offset), (IntPtr)(TypeSize * seg.Data.Length), seg.Data);
+			seg.State |= SegmentState.ReadOut;
+			seg.State &= ~(SegmentState.Dirty);
+		}
+		//todo:
+		// GetManagedSize() returns the size of a structure whose type
+		// is 'type', as stored in managed memory. For any referenec type
+		// this will simply return the size of a pointer (4 or 8).
+		private static int GetManagedSize (Type type)
+		{
+			// all this just to invoke one opcode with no arguments!
+			//typeof(BufferObjectBase),
+			var method = new DynamicMethod ("GetManagedSizeImpl", typeof(int), new Type[0], true);
+			
+			ILGenerator gen = method.GetILGenerator ();
+			
+			gen.Emit (OpCodes.Sizeof, type);
+			gen.Emit (OpCodes.Ret);
+			
+			return (int)method.Invoke (null, new object[0]);
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
 	public class ObjectBinding
 	{	}
 

@@ -47,8 +47,6 @@ namespace opentk.System3
 			Speed,
 		}
 
-		private float m_SpeedUpperBound;
-
 		public MapModeType MapMode {
 			get;
 			set;
@@ -85,7 +83,6 @@ namespace opentk.System3
 
 		void ISimulationScheme.Simulate (System3 system, DateTime simulationTime, long simulationStep)
 		{
-			//var trailSize = Math.Max(system.TrailSize, 1);
 			var trailBundleSize = Math.Max(TrailBundleSize, 1);
 			
 			if (m_State == null) {
@@ -122,8 +119,8 @@ namespace opentk.System3
 					};
 			}
 			
-			//system.MetaBuffer.Publish();
-			//system.PositionBuffer.Publish();
+			system.MetaBuffer.Publish();
+			system.PositionBuffer.Publish();
 			
 			m_Parameters.Data = system.ChaoticMap.a;
 			m_Parameters.Publish();
@@ -131,8 +128,8 @@ namespace opentk.System3
 			m_State.Activate ();
 			GLExtensions.DispatchCompute (system.PARTICLES_COUNT/(8 * trailBundleSize)  + 1, 1, 1);
 			
-			//system.MetaBuffer.Readout();
-			//system.PositionBuffer.Readout();
+			system.MetaBuffer.Readout();
+			system.PositionBuffer.Readout();
 			//system.RotationBuffer.Readout();
 			//system.DimensionBuffer.Readout();
 			//system.ColorBuffer.Readout();

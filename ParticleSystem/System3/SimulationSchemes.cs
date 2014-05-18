@@ -117,17 +117,22 @@ namespace opentk.System3
 				{
 					for (int i = firsttrail ; i < lasttrail ; i += 1)
 					{
-						//i is the trail's first element
-						var pi = i + meta[i].Leader;
 						var K = dt;
+						//i is the trail's first element
+						var _i = i;
+						var metai = meta.MapReadWrite(ref _i);
+						
+						var pi = i + metai[_i].Leader;
+						var _pi = pi;
+						var metapi = meta.MapRead(ref _pi);
 
-						size = Math.Max(meta[pi].Size, float.Epsilon);
+						size = Math.Max(metapi[_pi].Size, float.Epsilon);
 
 						if(MapMode == MapModeType.ForceField)
 						{
-							dp = new Vector4 (meta[i].Velocity, 0);
+							dp = new Vector4 (metai[_i].Velocity, 0);
 							fun (ref position[pi], ref delta2);
-							meta[i].Velocity += delta2.Xyz * dt;
+							metai[_i].Velocity += delta2.Xyz * dt;
 						}
 						else
 						{
@@ -171,13 +176,13 @@ namespace opentk.System3
 
 						for(int li = 0; li < localCount; li++)
 						{
-							meta[i].Leader = (meta[i].Leader + trailBundleSize) % (trailSize * trailBundleSize);
+							metai[_i].Leader = (metai[_i].Leader + trailBundleSize) % (trailSize * trailBundleSize);
 
-							var ii = i + meta[i].Leader;
+							var ii = i + metai[_i].Leader;
 							if (ii >= particleCount)
 							{
 								ii = i;
-								meta[i].Leader = 0;
+								metai[_i].Leader = 0;
 							}
 
 							if(Interpolation == InterpolationType.Cubic)
@@ -263,8 +268,11 @@ namespace opentk.System3
 			m_SpeedUpperBound = Math.Max(m_SpeedUpperBound * 0.75f, 1);
 
 			var step = 150;
-			var ld = (meta[0].Leader + 1) % step;
-			meta[0].Leader = ld;
+			var meta0 = meta[0];
+			var ld = (meta0.Leader + 1) % step;			
+			meta0.Leader = ld;
+			meta[0] = meta0;
+			
 
 			//prepare seed points
 			if (!m_MapModeComputed)

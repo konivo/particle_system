@@ -20,13 +20,13 @@ namespace opentk.System3
 		private IParticleGenerator m_ParticleGenerator;
 		private long m_Step;
 		
-		public BufferObject<MetaInformation> MetaBuffer
+		public BufferObjectSegmented<MetaInformation> MetaBuffer
 		{
 			get;
 			private set;
 		}
 
-		public MetaInformation[] Meta
+		public BufferObjectSegmented<MetaInformation> Meta
 		{
 			get;
 			private set;
@@ -90,18 +90,18 @@ namespace opentk.System3
 		{
 			var result = new System3 
 			{
-				PARTICLES_COUNT = 2600, 
+				PARTICLES_COUNT = 26000, 
 				VIEWPORT_WIDTH = 324, 
 				NEAR = 1, 
 				FAR = 10240, 
-				DT = 1,
+				DT = 0.01,
 				Fov = 0.9, 
-				PublishMethod = PublishMethod.Never,
-				ParticleScaleFactor = 22000, 
+				PublishMethod = PublishMethod.AllAtOnce,
+				ParticleScaleFactor = 2200, 
 				SimulationScheme = new ParticlesWithTrailsGpuSimulationScheme(),
 				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
 				ParticleGenerator = new GridGenerator { AmountX = 1, AmountY = 1, AmountZ = 0.001f, StepX = 0.1f, StepY = 0.1f },
-				ChaoticMap = new Swirl2DMap()
+				ChaoticMap = new LorenzMap()//new Swirl2DMap()
 			};
 			return result;
 		}
@@ -114,7 +114,9 @@ namespace opentk.System3
 			ParticleGenerator = ParticleGenerator ?? new SimpleGenerator ();
 			TrailSize = Math.Max (TrailSize, 1);
 			
-			Meta = MetaBuffer.Data = new MetaInformation[Position.Length];
+			MetaBuffer.Length = Position.Length;
+			Meta = MetaBuffer;
+			//Meta = MetaBuffer.Data = new MetaInformation[Position.Length];
 			for (int i = 0; i < Position.Length; i++) {
 				ParticleGenerator.MakeBubble (this, i, i);
 			}
@@ -132,7 +134,7 @@ namespace opentk.System3
 		{
 			unsafe
 			{
-				MetaBuffer = new BufferObject<MetaInformation> (sizeof(MetaInformation), 0) { Name = "metadata_buffer", Usage = BufferUsageHint.DynamicDraw };
+				MetaBuffer = new BufferObjectSegmented<MetaInformation> (sizeof(MetaInformation), 0) { Name = "metadata_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 		}
 		

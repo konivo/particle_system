@@ -150,7 +150,7 @@ namespace opentk.System3
 		{
 			var Meta = system.Meta;
 			var r = (float)MathHelper2.GetThreadLocalRandom().NextDouble();
-			return Math.Max((1 - SizeRandomness * r) * Meta [bundleFirstItem].Size, ScaleRatioMaxDifference * SizeScaleRatio);
+			return Math.Max((1 - SizeRandomness * r) * Meta.MapRead(ref bundleFirstItem)[bundleFirstItem].Size, ScaleRatioMaxDifference * SizeScaleRatio);
 		}
 		
 		protected virtual Vector3 NewPosition(System3 system, int bundleFirstItem, int i)

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OpenTK
 {
@@ -175,24 +176,28 @@ namespace OpenTK
 		
 		private class Segment
 		{
+			public readonly int Version;
 			public readonly T[] Data;
 			public readonly int Offset;
 			public SegmentState State;
 			
-			public Segment (int offset, T[] data)
+			public Segment (int offset, int version, T[] data)
 			{
 				Offset = offset;
 				Data = data;
+				Version = version;
 			}
 		}
 				
-		public const int SEGMENT_LENGTH = 50000;
+		public const int SEGMENT_LENGTH = 500;
 		
 		private int m_Length;
 		private readonly List<int> m_SegmentsOffsets;
 		private readonly List<Segment> m_Segments;
+		private volatile int m_Version;
+		private ThreadLocal<Segment> m_LastSegment;
 		
-		public readonly int TypeSize;
+		public readonly int TypeSize;		
 		
 		public int Length
 		{
@@ -207,6 +212,7 @@ namespace OpenTK
 					m_Length = value;
 					m_Segments.Clear();
 					m_SegmentsOffsets.Clear ();
+					m_Version++;
 					if (m_Length != 0 && Initialized)
 					{
 						Initialize (Handle);
@@ -224,39 +230,11 @@ namespace OpenTK
 		{
 			get
 			{
-				lock (m_SegmentsOffsets) {
-					var segment = GetCreateSegment(ref i);
-					if((segment.State & SegmentState.ReadOut) == 0)
-						Readout(segment);
-						
-					return segment.Data[i];
-				}
-				
-				
+				return MapRead(ref i)[i];			
 			}
 			set
 			{
-				lock (m_SegmentsOffsets) {
-					var segment = GetCreateSegment (ref i);
-					
-					if((segment.State & SegmentState.ReadOut) == 0)
-					{
-						Readout(segment);
-						
-						if((segment.State & SegmentState.Dirty) == 0)
-						{
-							segment.State |= SegmentState.Dirty;
-						}
-					}
-					else
-					{
-						segment.State |= SegmentState.Dirty;
-					}
-					
-					
-					segment.Data[i] = value;
-				}
-				
+				MapReadWrite (ref i)[i] = value;
 			}
 		}
 		
@@ -268,16 +246,61 @@ namespace OpenTK
 		public BufferObjectSegmented (int typesize)
 		{
 			TypeSize = typesize;
-			m_Segments = new List<Segment>();
-			m_SegmentsOffsets = new List<int>();
+			m_Segments = new List<Segment>(1000);
+			m_SegmentsOffsets = new List<int>(1000);
+			m_LastSegment = new ThreadLocal<Segment>();
+		}
+		
+		public T[] MapReadWrite(ref int i)
+		{
+			var segment = GetCreateSegment (ref i);				
+			if((segment.State & SegmentState.ReadOut) == 0)
+			{
+				lock (segment) {
+					
+					if((segment.State & SegmentState.ReadOut) == 0)
+						Readout(segment);
+				}
+			}
+			
+			segment.State |= SegmentState.Dirty;			
+			return segment.Data;
+		}
+		
+		public T[] MapRead(ref int i)
+		{
+			var segment = GetCreateSegment(ref i);				
+			if((segment.State & SegmentState.ReadOut) == 0)
+			{
+				lock (segment) {
+					
+					if((segment.State & SegmentState.ReadOut) == 0)
+						Readout(segment);
+				}
+			}
+			return segment.Data;
 		}
 		
 		private Segment GetCreateSegment(ref int i)
 		{
+			var ls = m_LastSegment.Value;
+			if(ls != null && ls.Version == m_Version && ls.Offset <= i && ls.Offset + SEGMENT_LENGTH > i)
+			{
+				i -= ls.Offset;
+				return ls;
+			}
+		
 			lock (m_SegmentsOffsets) 
 			{
 				if (i >= m_Length)
 					throw new IndexOutOfRangeException ();
+				
+				ls = m_LastSegment.Value;	
+				if(ls != null && ls.Version == m_Version && ls.Offset <= i && ls.Offset + SEGMENT_LENGTH > i)
+				{
+					i -= ls.Offset;
+					return ls;
+				}
 				
 				var segIndex = m_SegmentsOffsets.BinarySearch (i);
 				var segOffset = 0;
@@ -291,13 +314,13 @@ namespace OpenTK
 					if (segIndex == 0) {
 						segOffset = i - i % SEGMENT_LENGTH;
 						m_SegmentsOffsets.Add (segOffset);
-						m_Segments.Add (new Segment (segOffset, new T[Math.Min (SEGMENT_LENGTH, Length - segOffset)]){ State = SegmentState.ReadOut});
+						m_Segments.Add (new Segment (segOffset, m_Version, new T[Math.Min (SEGMENT_LENGTH, Length - segOffset)]){ State = SegmentState.ReadOut});
 					} 
 					else{
 					  if (m_SegmentsOffsets[segIndex - 1] + SEGMENT_LENGTH <= i) {
 							segOffset = i - i % SEGMENT_LENGTH;
 							m_SegmentsOffsets.Insert (segIndex, segOffset);
-							m_Segments.Insert (segIndex, new Segment (segOffset, new T[Math.Min (SEGMENT_LENGTH, Length - segOffset)]){ State = SegmentState.ReadOut});
+							m_Segments.Insert (segIndex, new Segment (segOffset, m_Version, new T[Math.Min (SEGMENT_LENGTH, Length - segOffset)]){ State = SegmentState.ReadOut});
 						} 
 						else {
 							segOffset = m_SegmentsOffsets [--segIndex];
@@ -305,8 +328,9 @@ namespace OpenTK
 					}
 				}
 				
-				i -= segOffset;
-				return m_Segments [segIndex];
+				m_LastSegment.Value = ls = m_Segments [segIndex];				
+				i -= ls.Offset;
+				return ls;
 			}
 		}
 		

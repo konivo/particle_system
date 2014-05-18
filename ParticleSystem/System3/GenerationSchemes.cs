@@ -55,13 +55,40 @@ namespace opentk.System3
 						}
 						
 						if(j != 0 || trailSize == 1)
-							meta[ii].Size = Math.Max (system.ParticleGenerator.UpdateSize (system, i, ii), float.Epsilon);
+						{
+							/*
+							//
+							var metaii = meta.MapReadWrite(ref ii);
+							metaii[ii].Size = 0;
+							
+							meta.MapReadWrite(ref ii)[ii].Size = 0;
+							meta[ref ii][ii].Size = 0;
+							meta.ReadWrite[ref ii][ii]
+							(meta > ref ii)[ii]
+							(meta > ii)[ii]
+							//
+							meta[ii].Size = 0;
+							//
+							meta.Oper(ii, ptr => ptr->Size = 0);
+							//
+							var metaii = meta[ii];
+							metaii.Size = 0;
+							meta[ii] = metaii;
+						*/
+							var _ii = ii;
+							meta.MapReadWrite(ref _ii)[_ii].Size = Math.Max (system.ParticleGenerator.UpdateSize (system, i, ii), float.Epsilon);
+						}
 						
 						if (j == trailSize - 1) {
-							if (meta [i].LifeLen <= 0) {
+							var _i = i;
+							var metai = meta.MapReadWrite(ref _i);
+							if (metai[_i].LifeLen <= 0) {
 								system.ParticleGenerator.NewBundle (system, i);
-							} else
-								meta [i].LifeLen--;
+							} 
+							else
+							{
+								metai[_i].LifeLen--;
+							}
 						}
 					}
 				}

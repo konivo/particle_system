@@ -9,6 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>opentk</RootNamespace>
     <AssemblyName>opentk</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>True</DebugSymbols>
@@ -30,7 +31,19 @@
     <WarningLevel>4</WarningLevel>
     <Externalconsole>True</Externalconsole>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <Commandlineparameters>--llvm</Commandlineparameters>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release-Profile|AnyCPU' ">
+    <DebugType>none</DebugType>
+    <Optimize>False</Optimize>
+    <OutputPath>bin\Release-Profile</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="AfterExecute" command="mprof-report  output.mlpd" externalConsole="True" />
+      </CustomCommands>
+    </CustomCommands>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Externalconsole>True</Externalconsole>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

@@ -8,6 +8,7 @@ using opentk.Manipulators;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace opentk.System3
 {
@@ -16,83 +17,94 @@ namespace opentk.System3
 	/// </summary>
 	public class ParticlesWithTrailsGenerationScheme: IGenerationScheme
 	{
+		private IEnumerator<long> m_GIndices;
+		private int m_Length;
+	
 		string IGenerationScheme.Name 
 		{
 			get {
 				return "ParticlesWithTrails";
 			}
 		}
-
-		void IGenerationScheme.Generate (System3 system, DateTime simulationTime, long simulationStep)
+		
+		IEnumerable<long> GenerationIndices(System3 system)
 		{
 			var trailSize = Math.Max (system.TrailSize, 1);
 			var trailCount = (system.Position.Length + trailSize - 1) / trailSize;
 			var trailBundleSize = Math.Max (system.SimulationScheme is ParticlesWithTrails ? ((ParticlesWithTrails)system.SimulationScheme).TrailBundleSize : 1, 1);
 			var trailBundleCount = (trailCount + trailBundleSize - 1) / trailBundleSize;
-
-			var fun = system.ChaoticMap.Map;
-			var position = system.Position;
-			var dimension = system.Dimension;
-			var meta = system.Meta;
-			var rotation = system.Rotation;
-			var attribute1 = system.Color;
-
-			var particleCount = position.Length;
-			var particleScale = system.ParticleScaleFactor;
-			var dt = (float)system.DT;
-
+			
+			var position = system.Position;			
 			for (int bundleIndex = 0; bundleIndex < trailBundleCount; bundleIndex++) 
 			{
 				var firsttrail = bundleIndex * trailBundleSize * trailSize;
-				var lasttrail = Math.Min (firsttrail + trailBundleSize, particleCount);
+				var lasttrail = Math.Min (firsttrail + trailBundleSize, system.Position.Length);
 				
 				for (int j = 0; j < trailSize; j++) {
 					for (int i = firsttrail; i < lasttrail; i++) {
 						//i is the trail's first element						
 						var ii = i + j * trailBundleSize;
-						if (ii >= particleCount) {
-							break;
+						if (ii >= system.Position.Length) {
+							yield break;
 						}
 						
-						if(j != 0 || trailSize == 1)
-						{
-							/*
-							//
-							var metaii = meta.MapReadWrite(ref ii);
-							metaii[ii].Size = 0;
-							
-							meta.MapReadWrite(ref ii)[ii].Size = 0;
-							meta[ref ii][ii].Size = 0;
-							meta.ReadWrite[ref ii][ii]
-							(meta > ref ii)[ii]
-							(meta > ii)[ii]
-							//
-							meta[ii].Size = 0;
-							//
-							meta.Oper(ii, ptr => ptr->Size = 0);
-							//
-							var metaii = meta[ii];
-							metaii.Size = 0;
-							meta[ii] = metaii;
-						*/
-							var _ii = ii;
-							meta.MapReadWrite(ref _ii)[_ii].Size = Math.Max (system.ParticleGenerator.UpdateSize (system, i, ii), float.Epsilon);
-						}
-						
-						if (j == trailSize - 1) {
-							var _i = i;
-							var metai = meta.MapReadWrite(ref _i);
-							if (metai[_i].LifeLen <= 0) {
-								system.ParticleGenerator.NewBundle (system, i);
-							} 
-							else
-							{
-								metai[_i].LifeLen--;
-							}
-						}
+						yield return (long)i << 32 | (uint)j;
 					}
 				}
 			}
+		}
+
+		void IGenerationScheme.Generate (System3 system, DateTime simulationTime, long simulationStep)
+		{
+			var trailBundleSize = Math.Max (system.SimulationScheme is ParticlesWithTrails ? ((ParticlesWithTrails)system.SimulationScheme).TrailBundleSize : 1, 1);
+			var dt = (float)system.DT;
+			
+			m_GIndices = m_GIndices ?? GenerationIndices(system).GetEnumerator();
+			var sw = new System.Diagnostics.Stopwatch();
+			
+			sw.Start();
+			while(m_GIndices.MoveNext())
+			{
+				var pack = m_GIndices.Current;
+				var i = (int)(pack >> 32);
+				var j = (int)(pack);
+				
+				var ii = i + j * trailBundleSize;
+				if (ii >= system.Position.Length) {
+					break;
+				}
+				
+				var _i = i;
+				var metai = system.Meta.MapReadWrite(ref _i);						
+				if(j == 0)
+				{
+					if (m_Length != system.Position.Length)
+					{
+						system.ParticleGenerator.NewBundle (system, i);
+					}
+					else if (metai[_i].LifeLen <= 0) {
+						system.ParticleGenerator.NewBundle (system, i);
+					}
+					else
+					{
+						metai[_i].LifeLen--;
+						metai[_i].Size = Math.Max (system.ParticleGenerator.UpdateSize (system, i, i), float.Epsilon);
+					}
+				}
+				else
+				{
+					var _ii = ii;
+					system.Meta.MapReadWrite(ref _ii)[_ii].Size = Math.Max (system.ParticleGenerator.UpdateSize (system, i, ii), float.Epsilon);
+				}
+				
+				if(m_Length == system.Position.Length)
+					if(sw.Elapsed > TimeSpan.FromMilliseconds(5))
+						return;
+			}
+			
+			m_GIndices.Dispose ();
+			m_GIndices = null;
+			m_Length = system.Position.Length;
 		}
 	}
 

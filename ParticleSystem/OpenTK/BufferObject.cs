@@ -165,6 +165,7 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
+	// TODO: ReadOUt might be called from multiple threads at once, add some delegation to thread with Opengl context
 	public sealed class BufferObjectSegmented<T> : BufferObjectBase where T : struct
 	{
 		[Flags]
@@ -295,12 +296,12 @@ namespace OpenTK
 				if (i >= m_Length)
 					throw new IndexOutOfRangeException ();
 				
-				ls = m_LastSegment.Value;	
-				if(ls != null && ls.Version == m_Version && ls.Offset <= i && ls.Offset + SEGMENT_LENGTH > i)
-				{
-					i -= ls.Offset;
-					return ls;
-				}
+//				ls = m_LastSegment.Value;	
+//				if(ls != null && ls.Version == m_Version && ls.Offset <= i && ls.Offset + SEGMENT_LENGTH > i)
+//				{
+//					i -= ls.Offset;
+//					return ls;
+//				}
 				
 				var segIndex = m_SegmentsOffsets.BinarySearch (i);
 				var segOffset = 0;

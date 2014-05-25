@@ -10,12 +10,12 @@ namespace opentk.System2
 {
 	public partial class System2
 	{
-		protected Vector4[] Position;
+		protected BufferObject<Vector4> Position;
 		protected Vector2[] Oscilation;
 		protected Vector4[] Velocity;
 		protected Vector4[] VelocityUpdate;
 		protected float[] Phase;
-		protected Vector4[] ColorAndSize;
+		protected BufferObject<Vector4> ColorAndSize;
 		protected Vector4[] Bmin;
 		protected Vector4[] Bmax;
 
@@ -37,17 +37,11 @@ namespace opentk.System2
 			var min = Position[0].Xy;
 			var max = Position[0].Xy;
 
-			unsafe
+			for (int i = 0; i < InitializedCount; i++)
 			{
-				fixed (Vector4* p = Position)
-				{
-					for (int i = 0; i < InitializedCount; i++)
-					{
-						Vector2* pp = (Vector2*)(p + i);
-						Vector2.ComponentMin (ref min, ref *pp, out min);
-						Vector2.ComponentMax (ref max, ref *pp, out max);
-					}
-				}
+				Vector2 pp = Position[i].Xy;
+				Vector2.ComponentMin (ref min, ref pp, out min);
+				Vector2.ComponentMax (ref max, ref pp, out max);
 			}
 			
 			Qtree = new QuadTree<int> { Min = min - Vector2.One, Max = max + Vector2.One };
@@ -107,8 +101,8 @@ namespace opentk.System2
 
 		private void InitializeSystem ()
 		{
-			ColorAndSize = ColorAndSizeBuffer.Data;
-			Position = PositionBuffer.Data;
+			ColorAndSize = ColorAndSizeBuffer;
+			Position = PositionBuffer;
 			Oscilation = new Vector2[Position.Length];
 			Phase = new float[Position.Length];
 			Velocity = new Vector4[Position.Length];

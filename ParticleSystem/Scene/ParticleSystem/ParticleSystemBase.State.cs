@@ -48,14 +48,13 @@ namespace opentk.Scene.ParticleSystem
 		{
 			if (m_Initialized)
 			{
-				if (PARTICLES_COUNT != m_PositionBuffer.Data.Length)
+				if (PARTICLES_COUNT != m_PositionBuffer.Length)
 				{
-					Position = m_PositionBuffer.Data = new Vector4[PARTICLES_COUNT];
-					Dimension = m_DimensionBuffer.Data = new Vector4[PARTICLES_COUNT];
-					Color = m_ColorBuffer.Data = new Vector4[PARTICLES_COUNT];
-					Rotation = m_RotationBuffer.Data = new Matrix4[PARTICLES_COUNT];
-					RotationLocal = m_RotationLocalBuffer.Data = new Matrix4[PARTICLES_COUNT];
-
+					m_RotationLocalBuffer.Length =
+					m_RotationBuffer.Length = 
+					m_ColorBuffer.Length =
+					m_DimensionBuffer.Length =
+					m_PositionBuffer.Length = PARTICLES_COUNT;
 					InitializeSystem ();
 				}
 
@@ -99,11 +98,11 @@ namespace opentk.Scene.ParticleSystem
 			
 			unsafe
 			{
-				m_PositionBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
-				m_DimensionBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
-				m_ColorBuffer = new BufferObject<Vector4> (sizeof(Vector4), 0) { Name = "color_buffer", Usage = BufferUsageHint.DynamicDraw };
-				m_RotationBuffer = new BufferObject<Matrix4> (sizeof(Matrix4), 0) { Name = "rotation_buffer", Usage = BufferUsageHint.DynamicDraw };
-				m_RotationLocalBuffer = new BufferObject<Matrix4> (sizeof(Matrix4), 0) { Name = "rotation_local_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_PositionBuffer = new BufferObjectSegmented<Vector4> (sizeof(Vector4), 0) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_DimensionBuffer = new BufferObjectSegmented<Vector4> (sizeof(Vector4), 0) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_ColorBuffer = new BufferObjectSegmented<Vector4> (sizeof(Vector4), 0) { Name = "color_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_RotationBuffer = new BufferObjectSegmented<Matrix4> (sizeof(Matrix4), 0) { Name = "rotation_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_RotationLocalBuffer = new BufferObjectSegmented<Matrix4> (sizeof(Matrix4), 0) { Name = "rotation_local_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
 			ParticleStateArrayObject =

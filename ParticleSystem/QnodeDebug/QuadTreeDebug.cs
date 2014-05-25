@@ -59,8 +59,8 @@ namespace opentk.QnodeDebug
 				var top = q[0];
 				q.RemoveAt(0);
 
-				PositionBuffer.Data[m_ActSize] = new Vector3((top.Max + top.Min) * 0.5f);
-				DimensionBuffer.Data[m_ActSize] = new Vector3((top.Max - top.Min));
+				PositionBuffer[m_ActSize] = new Vector3((top.Max + top.Min) * 0.5f);
+				DimensionBuffer[m_ActSize] = new Vector3((top.Max - top.Min));
 
 				q.AddRange(top.Children);
 			}
@@ -80,8 +80,8 @@ namespace opentk.QnodeDebug
 
 			unsafe
 			{
-				PositionBuffer = new BufferObject<Vector3> (sizeof(Vector3), m_MaxSize) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
-				DimensionBuffer = new BufferObject<Vector3> (sizeof(Vector3), m_MaxSize) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
+				PositionBuffer = new BufferObjectCompact<Vector3> (sizeof(Vector3), m_MaxSize) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
+				DimensionBuffer = new BufferObjectCompact<Vector3> (sizeof(Vector3), m_MaxSize) { Name = "dimension_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
 			m_UniformState = new UniformState ()

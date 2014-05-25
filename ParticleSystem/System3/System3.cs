@@ -114,10 +114,10 @@ namespace opentk.System3
 			ParticleGenerator = ParticleGenerator ?? new SimpleGenerator ();
 			TrailSize = Math.Max (TrailSize, 1);
 			
-			MetaBuffer.Length = Position.Length;
+			MetaBuffer.Length = PositionBuffer.Length;
 			Meta = MetaBuffer;
 			//Meta = MetaBuffer.Data = new MetaInformation[Position.Length];
-			for (int i = 0; i < Position.Length; i++) {
+			for (int i = 0; i < PositionBuffer.Length; i++) {
 				ParticleGenerator.MakeBubble (this, i, i);
 			}
 		}

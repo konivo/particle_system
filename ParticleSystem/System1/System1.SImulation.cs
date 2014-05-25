@@ -6,12 +6,12 @@ namespace opentk.System1
 {
 	public partial class System1
 	{
-		protected Vector4[] Position;
+		protected BufferObject<Vector4> Position;
 		protected Vector4[] OrigPosition;
 		protected Vector2[] Oscilation;
 		protected Vector4[] Velocity;
 		protected float[] Phase;
-		protected Vector4[] ColorAndSize;
+		protected BufferObject<Vector4> ColorAndSize;
 		protected Vector4 Leader;
 		protected BezierCurveCubic? LeaderPath;
 		protected float LeaderPathPosition;
@@ -20,9 +20,9 @@ namespace opentk.System1
 
 		private void InitializeSystem ()
 		{
-			ColorAndSize = ColorAndSizeBuffer.Data;
-			Position = PositionBuffer.Data;
-			OrigPosition = (Vector4[])Position.Clone ();
+			ColorAndSize = ColorAndSizeBuffer;
+			Position = PositionBuffer;
+			OrigPosition = Position.ToArray ();
 
 			//initialize particle system
 			for (int i = 0; i < Position.Length; i++)

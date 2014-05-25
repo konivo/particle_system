@@ -92,7 +92,7 @@ namespace opentk.System3
 					RenderPass.GetShaders ("System3", "ParticlesWithTrails"),
 					RenderPass.GetShaders ("System3", "PWTSub")
 				};
-				m_Parameters = new BufferObject<float>(sizeof(float), 0) { Name = "map_parameters_buffer", Usage = BufferUsageHint.DynamicDraw };
+				m_Parameters = new BufferObjectCompact<float>(sizeof(float), 0) { Name = "map_parameters_buffer", Usage = BufferUsageHint.DynamicDraw };
 				
 				m_State = 
 					new State (null)
@@ -121,15 +121,20 @@ namespace opentk.System3
 			
 			system.MetaBuffer.Publish();
 			system.PositionBuffer.Publish();
+			system.DimensionBuffer.Publish();
+			system.RotationBuffer.Publish();
+			system.ColorBuffer.Publish();
+			system.RotationLocalBuffer.Publish();
 			
-			m_Parameters.Data = system.ChaoticMap.a;
+			m_Parameters.Length = system.ChaoticMap.a.Length;
+			m_Parameters.CopyFrom(system.ChaoticMap.a, 0);
 			m_Parameters.Publish();
 			
 			m_State.Activate ();
 			GLExtensions.DispatchCompute (system.PARTICLES_COUNT/(8 * trailBundleSize)  + 1, 1, 1);
 			
-			system.MetaBuffer.Readout();
-			system.PositionBuffer.Readout();
+			//system.MetaBuffer.Readout();
+			//system.PositionBuffer.Readout();
 			//system.RotationBuffer.Readout();
 			//system.DimensionBuffer.Readout();
 			//system.ColorBuffer.Readout();

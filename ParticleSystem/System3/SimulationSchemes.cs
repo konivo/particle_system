@@ -131,12 +131,12 @@ namespace opentk.System3
 						if(MapMode == MapModeType.ForceField)
 						{
 							dp = new Vector4 (metai[_i].Velocity, 0);
-							fun (ref position[pi], ref delta2);
+							var pos = position[pi]; fun (ref pos, ref delta2); position[pi] = pos;
 							metai[_i].Velocity += delta2.Xyz * dt;
 						}
 						else
 						{
-							fun (ref position[pi], ref dp);
+							var pos = position[pi]; fun (ref pos, ref dp); position[pi] = pos;
 						}
 
 						//
@@ -289,8 +289,11 @@ namespace opentk.System3
 			ld += step;
 			for (int i = ld; i < position.Length; i += step)
 			{
-				fun (ref position[i - step], ref position[i] );
-				position[i].W = 1;
+				var posi = position[i];
+				var posis = position[i - step];
+				fun (ref posis, ref posi );
+				posi.W = 1;
+				position[i] = posi;
 				dimension[i] = new Vector4(meta[i].Size);
 
 				switch (ColorScheme)
@@ -346,8 +349,11 @@ namespace opentk.System3
 				for (int i = 0; i < position.Length; i++)
 				{
 					system.ParticleGenerator.MakeBubble(system, i, i);
-					fun (ref position[i], ref position[i]);
-					position[i].W = 1;
+					var p1 = position[i];
+					var p2 = position[i];
+					fun (ref p1, ref p2);
+					p2.W = 1;
+					position[i] = p2;
 				}
 				m_MapModeComputed = true;
 			}

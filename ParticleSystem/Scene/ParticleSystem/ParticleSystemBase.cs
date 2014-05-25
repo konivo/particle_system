@@ -86,33 +86,33 @@ namespace opentk.Scene.ParticleSystem
 		}
 
 		[Browsable(false)]
-		public Vector4[] Position
+		public BufferObject<Vector4> Position
 		{
-			get; private set;
+			get { return m_PositionBuffer; }
 		}
 
 		[Browsable(false)]
-		public Vector4[] Dimension
+		public BufferObject<Vector4> Dimension
 		{
-			get; private set;
+			get { return m_DimensionBuffer; }
 		}
 
 		[Browsable(false)]
-		public Vector4[] Color
+		public BufferObject<Vector4> Color
 		{
-			get; private set;
+			get { return m_ColorBuffer; }
 		}
 
 		[Browsable(false)]
-		public Matrix4[] Rotation
+		public BufferObject<Matrix4> Rotation
 		{
-			get; private set;
+			get { return m_RotationBuffer; }
 		}
 
 		[Browsable(false)]
-		public Matrix4[] RotationLocal
+		public BufferObject<Matrix4> RotationLocal
 		{
-			get; private set;
+			get { return m_RotationLocalBuffer; }
 		}
 
 		public int PublishSize

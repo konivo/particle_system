@@ -40,8 +40,8 @@ namespace opentk.System2
 			unsafe
 			{
 				//VelocityBuffer = new BufferObject<Vector4> (sizeof(Vector4), size) { Name = "velocity_buffer", Usage = BufferUsageHint.DynamicDraw };
-				PositionBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
-				ColorAndSizeBuffer = new BufferObject<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "colorandsize_buffer", Usage = BufferUsageHint.DynamicDraw };
+				PositionBuffer = new BufferObjectCompact<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
+				ColorAndSizeBuffer = new BufferObjectCompact<Vector4> (sizeof(Vector4), PARTICLES_COUNT) { Name = "colorandsize_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
 			m_Projection = new MatrixStack ().Push (Matrix4.CreateOrthographic (14, 14, -1, 1));
@@ -50,9 +50,8 @@ namespace opentk.System2
 
 			m_UniformState = new UniformState ().Set ("color", new Vector4 (0, 0, 1, 1)).Set ("red", 1.0f).Set ("green", 0.0f).Set ("blue", 1.0f).Set ("colors", new float[] { 0, 1, 0, 1 }).Set ("colors2", new Vector4[] { new Vector4 (1, 0.1f, 0.1f, 0), new Vector4 (1, 0, 0, 0), new Vector4 (1, 1, 0.1f, 0) }).Set ("modelview_transform", m_TransformationStack);
 			
-			var sprite = new[] { new Vector3 (-1, -1, 0), new Vector3 (-1, 1, 0), new Vector3 (1, 1, 0), new Vector3 (1, -1, 0) };
-			
-			var vdata_buffer = new BufferObject<Vector3> (sizeof(Vector3)) { Name = "vdata_buffer", Usage = BufferUsageHint.DynamicDraw, Data = sprite };
+			var vdata_buffer = new BufferObjectCompact<Vector3> (sizeof(Vector3), 4) { Name = "vdata_buffer", Usage = BufferUsageHint.DynamicDraw};
+			vdata_buffer.CopyFrom(new[] { new Vector3 (-1, -1, 0), new Vector3 (-1, 1, 0), new Vector3 (1, 1, 0), new Vector3 (1, -1, 0) }, 0);
 			
 			
 			m_ParticleRenderingState = new ArrayObject (new VertexAttribute { AttributeName = "vertex_pos", Buffer = vdata_buffer, Size = 3, Type = VertexAttribPointerType.Float }, new VertexAttribute { AttributeName = "sprite_pos", Buffer = PositionBuffer, Divisor = 1, Size = 4, Stride = 0, Type = VertexAttribPointerType.Float }, new VertexAttribute { AttributeName = "sprite_colorandsize", Buffer = ColorAndSizeBuffer, Divisor = 1, Size = 4, Type = VertexAttribPointerType.Float });

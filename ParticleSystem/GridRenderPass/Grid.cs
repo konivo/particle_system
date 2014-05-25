@@ -40,9 +40,9 @@ namespace opentk.GridRenderPass
 
 		private void UpdateGrid ()
 		{
-			var vbuf = PositionBuffer.Data;
-			var pbuf = ParameterBuffer.Data;
-
+			var vbuf = PositionBuffer;
+			var pbuf = ParameterBuffer;
+			
 			Vector3 diagpoint = new Vector3 (-m_GridDiameter / 2.0f, -m_GridDiameter / 2.0f, 0);
 			Vector3 min = diagpoint;
 			Vector3 max = -diagpoint;
@@ -88,8 +88,8 @@ namespace opentk.GridRenderPass
 
 			unsafe
 			{
-				PositionBuffer = new BufferObject<Vector3> (sizeof(Vector3), 4 * m_Count + 2) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
-				ParameterBuffer = new BufferObject<float> (sizeof(float), 4 * m_Count + 2) { Name = "parameter_buffer", Usage = BufferUsageHint.DynamicDraw };
+				PositionBuffer = new BufferObjectCompact<Vector3> (sizeof(Vector3), 4 * m_Count + 2) { Name = "position_buffer", Usage = BufferUsageHint.DynamicDraw };
+				ParameterBuffer = new BufferObjectCompact<float> (sizeof(float), 4 * m_Count + 2) { Name = "parameter_buffer", Usage = BufferUsageHint.DynamicDraw };
 			}
 
 			m_UniformState = new UniformState ().Set ("modelview_transform", m_CameraMvp.ModelViewProjection);

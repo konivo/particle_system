@@ -36,17 +36,11 @@ namespace opentk.System21
 			var min = Position[0].Xy;
 			var max = Position[0].Xy;
 
-			unsafe
+			for (int i = 0; i < InitializedCount; i++)
 			{
-				fixed (Vector4* p = Position)
-				{
-					for (int i = 0; i < InitializedCount; i++)
-					{
-						Vector2* pp = (Vector2*)(p + i);
-						Vector2.ComponentMin (ref min, ref *pp, out min);
-						Vector2.ComponentMax (ref max, ref *pp, out max);
-					}
-				}
+				Vector2 pp = Position[i].Xy;
+				Vector2.ComponentMin (ref min, ref pp, out min);
+				Vector2.ComponentMax (ref max, ref pp, out max);
 			}
 			
 			Qtree = new QuadTree<int> { Min = min - Vector2.One, Max = max + Vector2.One };

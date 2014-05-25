@@ -98,7 +98,7 @@ namespace opentk.System3
 				}
 				
 				if(m_Length == system.Position.Length)
-					if(sw.Elapsed > TimeSpan.FromMilliseconds(5))
+					if(sw.Elapsed > TimeSpan.FromMilliseconds(50))
 						return;
 			}
 			

@@ -28,9 +28,28 @@ namespace OpenTK
 	public abstract class BufferObjectBase : IHandle, IDisposable
 	{
 		private Lazy<int> m_Handle;
+		private int m_Length;
 
 		public string Name;
 		public BufferUsageHint Usage;
+		
+		public readonly int TypeSize;
+		
+		public virtual int Length
+		{
+			get { return m_Length; }
+			set 
+			{
+				if( m_Length == value)
+					return;
+					
+				m_Length = value;
+				if (m_Length != 0 && Initialized)
+				{
+					Initialize (Handle);
+				}
+			}
+		}
 
 		public bool Initialized
 		{
@@ -43,8 +62,10 @@ namespace OpenTK
 			get { return m_Handle.Value; }
 		}
 
-		public BufferObjectBase ()
+		public BufferObjectBase (int typesize)
 		{
+			TypeSize = typesize;
+		
 			m_Handle = new Lazy<int> (() =>
 			{
 				int result;
@@ -57,8 +78,7 @@ namespace OpenTK
 		}
 
 		protected virtual void Initialize (int handle)
-		{
-		}
+		{	}
 
 		#region IDisposable implementation
 		public void Dispose ()
@@ -68,86 +88,104 @@ namespace OpenTK
 		}
 		#endregion
 	}
-
-	/// <summary>
-	///
-	/// </summary>
-	public sealed class BufferObject<T> : BufferObjectBase where T : struct
+	
+	public abstract class BufferObject<T> : BufferObjectBase where T : struct
 	{
-		public readonly int TypeSize;
-		private T[] m_Data;
-
-		public T[] Data
+		/// <summary>
+		/// Gets or sets the <see cref="OpenTK.BufferObject`1"/> with the specified i.
+		/// </summary>
+		/// <param name="i">The index.</param>
+		public abstract T this[int i]
 		{
-			get { return m_Data; }
-			set
-			{
-				if (m_Data == value)
-					return;
-				
-				m_Data = value;
-				
-				if (m_Data != null && Initialized)
-				{
-					Initialize (Handle);
-				}
-			}
+			get;
+			set;
 		}
-
-		public BufferObject (int typesize, int length) : this(typesize)
-		{
-			Data = new T[length];
-		}
-
-		public BufferObject (int typesize)
-		{
-			TypeSize = typesize;
-		}
-
-		protected override void Initialize (int handle)
-		{
-			if (m_Data == null)
-			{
-				throw new InvalidOperationException ();
-			}
-			
-			GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);
-			GL.BufferData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * Data.Length), Data, Usage);
-			Console.WriteLine ("buffer {3}: {0}, {1}, {2}", typeof(T), TypeSize, m_Data.Length, Name);
-		}
-
-		public void Publish ()
-		{
-			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
-			GL.BufferSubData (BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * Data.Length), Data);
-		}
-
-		public void PublishPart (int start, int count)
-		{
-			var pptr = System.Runtime.InteropServices.GCHandle.Alloc(m_Data, GCHandleType.Pinned);
-			try
-			{
-				GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
-				GL.BufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * start), (IntPtr)(TypeSize * count), pptr.AddrOfPinnedObject());
-			}
-			finally
-			{
-				pptr.Free ();
-			}
-		}
+		/// <summary>
+		/// Initializes a new instance of the <see cref="OpenTK.BufferObject`1"/> class.
+		/// </summary>
+		/// <param name="typesize">Typesize.</param>
+		public BufferObject (int typesize):base(typesize)
+		{		}
+		/// <summary>
+		/// Maps the read write.
+		/// </summary>
+		/// <returns>The read write.</returns>
+		/// <param name="i">The index.</param>
+		public abstract T[] MapReadWrite(ref int i);
+		/// <summary>
+		/// Maps the read.
+		/// </summary>
+		/// <returns>The read.</returns>
+		/// <param name="i">The index.</param>
+		public abstract T[] MapRead(ref int i);
+		/// <summary>
+		/// Publish this instance.
+		/// </summary>
+		public abstract void Publish ();
+		/// <summary>
+		/// Publishs the part.
+		/// </summary>
+		/// <param name="start">Start.</param>
+		/// <param name="count">Count.</param>
+		public abstract void PublishPart (int start, int count);
 		/// <summary>
 		/// 
 		/// </summary>
-		public void Readout ()
+		public abstract void Readout ();
+		/// <summary>
+		/// Copies to.
+		/// </summary>
+		/// <param name="target">Target.</param>
+		/// <param name="index">Index.</param>
+		public void CopyTo(T[] target, int index)
 		{
-			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
-			GL.GetBufferSubData (BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * Data.Length), Data);
+			
+		}
+		/// <summary>
+		/// Copies from.
+		/// </summary>
+		/// <param name="source">Source.</param>
+		/// <param name="index">Index.</param>
+		public void CopyFrom(T[] source, int index)
+		{
+			if(source.Length + index > Length)
+				throw new ArgumentOutOfRangeException();
+		
+			var l = source.Length;
+			while(l > 0)
+			{
+				var _index = index;
+				var m = MapReadWrite(ref _index);
+				var _l = Math.Min (l, m.Length - _index);
+				Array.Copy(source, 0, m, _index, _l);
+				
+				l -= _l;
+			}
+		}
+		/// <summary>
+		/// Tos the array.
+		/// </summary>
+		/// <returns>The array.</returns>
+		public T[] ToArray()
+		{
+			var result = new T[Length];
+			
+			var index = 0;
+			while(index < Length)
+			{
+				var _index = index;
+				var m = MapReadWrite(ref _index);
+				Array.Copy(m, 0, result, index, m.Length);
+				index += m.Length;
+			}
+			
+			return result;
 		}
 		//todo:
 		// GetManagedSize() returns the size of a structure whose type
 		// is 'type', as stored in managed memory. For any referenec type
 		// this will simply return the size of a pointer (4 or 8).
-		private static int GetManagedSize (Type type)
+		protected static int GetManagedSize (Type type)
 		{
 			// all this just to invoke one opcode with no arguments!
 			//typeof(BufferObjectBase),
@@ -165,8 +203,100 @@ namespace OpenTK
 	/// <summary>
 	///
 	/// </summary>
+	public sealed class BufferObjectCompact<T> : BufferObject<T> where T: struct
+	{
+		private T[] m_Data;
+
+		public override int Length 
+		{
+			get {
+				return base.Length;
+			}
+			set {
+				if (Length == value)
+					return;
+				
+				m_Data = new T[value];				
+				base.Length = value;
+			}
+		}
+		
+		public override T this[int i]
+		{
+			get
+			{
+				return m_Data[i];
+			}
+			set
+			{
+				m_Data[i] = value;
+			}
+		}
+
+		public BufferObjectCompact (int typesize, int length) : this(typesize)
+		{
+			Length = length;
+		}
+
+		public BufferObjectCompact (int typesize) : base(typesize)
+		{	}
+		
+		public override T[] MapReadWrite(ref int i)
+		{
+			return m_Data;
+		}
+		
+		public override T[] MapRead(ref int i)
+		{
+			return m_Data;
+		}
+
+		protected override void Initialize (int handle)
+		{
+			if (m_Data == null)
+			{
+				throw new InvalidOperationException ();
+			}
+			
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, handle);
+			GL.BufferData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * m_Data.Length), m_Data, Usage);
+			Console.WriteLine ("buffer {3}: {0}, {1}, {2}", typeof(T), TypeSize, m_Data.Length, Name);
+		}
+
+		public override void Publish ()
+		{
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+			GL.BufferSubData (BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * m_Data.Length), m_Data);
+		}
+
+		public override void PublishPart (int start, int count)
+		{
+			var pptr = System.Runtime.InteropServices.GCHandle.Alloc(m_Data, GCHandleType.Pinned);
+			try
+			{
+				GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+				GL.BufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * start), (IntPtr)(TypeSize * count), pptr.AddrOfPinnedObject());
+			}
+			finally
+			{
+				pptr.Free ();
+			}
+		}
+		/// <summary>
+		/// 
+		/// </summary>
+		public override void Readout ()
+		{
+			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
+			GL.GetBufferSubData (BufferTarget.CopyReadBuffer, IntPtr.Zero, (IntPtr)(TypeSize * m_Data.Length), m_Data);
+		}
+	}
+
+	/// <summary>
+	///
+	/// </summary>
 	// TODO: ReadOUt might be called from multiple threads at once, add some delegation to thread with Opengl context
-	public sealed class BufferObjectSegmented<T> : BufferObjectBase where T : struct
+	public sealed class BufferObjectSegmented<T> : BufferObject<T> where T : struct
 	{
 		[Flags]
 		private enum SegmentState
@@ -192,42 +322,29 @@ namespace OpenTK
 				
 		public const int SEGMENT_LENGTH = 500;
 		
-		private int m_Length;
 		private readonly List<int> m_SegmentsOffsets;
 		private readonly List<Segment> m_Segments;
 		private volatile int m_Version;
 		private ThreadLocal<Segment> m_LastSegment;
 		
-		public readonly int TypeSize;		
-		
-		public int Length
-		{
-			get { return m_Length; }
+		public override int Length
+		{			
 			set 
 			{
-				if( m_Length == value)
+				if(Length == value)
 					return;
 				
 				lock(m_SegmentsOffsets)
 				{
-					m_Length = value;
 					m_Segments.Clear();
 					m_SegmentsOffsets.Clear ();
-					m_Version++;
-					if (m_Length != 0 && Initialized)
-					{
-						Initialize (Handle);
-					}
+					m_Version++;					
+					base.Length = value;
 				}
 			}
 		}
 		
-		public BufferObjectSegmented<T> Data
-		{
-			get{ return this;}
-		}
-		
-		public T this[int i]
+		public override T this[int i]
 		{
 			get
 			{
@@ -241,18 +358,17 @@ namespace OpenTK
 		
 		public BufferObjectSegmented (int typesize, int length) : this(typesize)
 		{
-			m_Length = length;
+			Length = length;
 		}
 		
-		public BufferObjectSegmented (int typesize)
+		public BufferObjectSegmented (int typesize): base(typesize)
 		{
-			TypeSize = typesize;
 			m_Segments = new List<Segment>(1000);
 			m_SegmentsOffsets = new List<int>(1000);
 			m_LastSegment = new ThreadLocal<Segment>();
 		}
 		
-		public T[] MapReadWrite(ref int i)
+		public override T[] MapReadWrite(ref int i)
 		{
 			var segment = GetCreateSegment (ref i);				
 			if((segment.State & SegmentState.ReadOut) == 0)
@@ -268,7 +384,7 @@ namespace OpenTK
 			return segment.Data;
 		}
 		
-		public T[] MapRead(ref int i)
+		public override T[] MapRead(ref int i)
 		{
 			var segment = GetCreateSegment(ref i);				
 			if((segment.State & SegmentState.ReadOut) == 0)
@@ -293,7 +409,7 @@ namespace OpenTK
 		
 			lock (m_SegmentsOffsets) 
 			{
-				if (i >= m_Length)
+				if (i >= Length)
 					throw new IndexOutOfRangeException ();
 				
 //				ls = m_LastSegment.Value;	
@@ -347,7 +463,7 @@ namespace OpenTK
 			Console.WriteLine ("buffer (segmented) {3}: {0}, {1}, {2}", typeof(T), TypeSize, Length, Name);
 		}
 		
-		public void Publish ()
+		public override void Publish ()
 		{
 			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
 			
@@ -365,7 +481,7 @@ namespace OpenTK
 			}
 		}
 		
-		public void PublishPart (int start, int count)
+		public override void PublishPart (int start, int count)
 		{
 			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
 			
@@ -384,7 +500,7 @@ namespace OpenTK
 		/// </summary>
 		/// <param name="start">Start.</param>
 		/// <param name="count">Count.</param>
-		public void Readout()
+		public override void Readout()
 		{
 			GL.BindBuffer (BufferTarget.CopyReadBuffer, Handle);
 			
@@ -408,23 +524,6 @@ namespace OpenTK
 			GL.GetBufferSubData (BufferTarget.CopyReadBuffer, (IntPtr)(TypeSize * seg.Offset), (IntPtr)(TypeSize * seg.Data.Length), seg.Data);
 			seg.State |= SegmentState.ReadOut;
 			seg.State &= ~(SegmentState.Dirty);
-		}
-		//todo:
-		// GetManagedSize() returns the size of a structure whose type
-		// is 'type', as stored in managed memory. For any referenec type
-		// this will simply return the size of a pointer (4 or 8).
-		private static int GetManagedSize (Type type)
-		{
-			// all this just to invoke one opcode with no arguments!
-			//typeof(BufferObjectBase),
-			var method = new DynamicMethod ("GetManagedSizeImpl", typeof(int), new Type[0], true);
-			
-			ILGenerator gen = method.GetILGenerator ();
-			
-			gen.Emit (OpCodes.Sizeof, type);
-			gen.Emit (OpCodes.Ret);
-			
-			return (int)method.Invoke (null, new object[0]);
 		}
 	}
 

@@ -31,7 +31,7 @@ const int c_OccludersRimSize = 1;
 const int c_OccludersGroupSizeX = int(gl_WorkGroupSize.x + c_OccludersRimSize * 2);
 const int c_OccludersGroupSizeY = int(gl_WorkGroupSize.y + c_OccludersRimSize * 2);
 const int c_OccludersGroupSize = c_OccludersGroupSizeX * c_OccludersGroupSizeY;
-const int c_MaxLocalOccluders = 4;
+const int c_MaxLocalOccluders = 1;
 const int c_MaxOccludersCount = c_MaxLocalOccluders * c_OccludersGroupSize;
 const int c_MaxSamplesCount = min(256, c_MaxOccludersCount);
 const float c_PI = 3.141592654f;
@@ -256,6 +256,18 @@ float GetShadowNoFilter(vec4 pos)
 
 /////////////////////
 subroutine(GetShadow)
+float GetShadowFilter2x2(vec4 pos)
+{
+	vec3 r_pos = (Reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
+	vec4 comp = r_pos.zzzz - 0.001;
+	vec4 acc = vec4(0);
+	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(0, 0), 0) ));
+
+	return dot(acc, vec4(1/4.0));
+}
+
+/////////////////////
+subroutine(GetShadow)
 float GetShadowFilter4x4(vec4 pos)
 {
 	vec3 r_pos = (Reproject(light_modelviewprojection_transform, pos).xyz + 1) * 0.5;
@@ -267,6 +279,64 @@ float GetShadowFilter4x4(vec4 pos)
 	acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(1, 1), 0) ));
 
 	return dot(acc, vec4(1/16.0));
+}
+
+/////////////////////
+subroutine(GetShadow)
+float GetShadowFilter4x4JitterBlur(vec4 __pos)
+{	
+	int samplesCount = clamp(u_ShadowSampleCount, 1, c_MaxSamplesCount);
+	int occCount = clamp(samplesCount * c_OccludersGroupSize, 1, c_MaxOccludersCount);
+	int occLocal = occCount / c_OccludersGroupSize;
+	
+	float phi = u_LightSize;
+	vec3 ldir = normalize(c_DefaultLight.dir);
+	vec3 ldiro1 = normalize(cross(ldir, vec3(1, 0, 1)));
+	vec3 ldiro2 = normalize(cross(ldir, ldiro1));
+	int k = 123;
+	vec2 jittOfs = GetSequenceHalton(int(gl_LocalInvocationIndex) * k) / local_Target.Size;
+	int locId = int(c_OccludersGroupSizeX * (gl_LocalInvocationID.y + c_OccludersRimSize) + gl_LocalInvocationID.x + c_OccludersRimSize);
+	
+	for(int start = int(gl_LocalInvocationIndex); start < c_OccludersGroupSize; start += c_WorkGroupSize)
+	{
+		vec2 pos_index = vec2(start % c_OccludersGroupSizeX, start / c_OccludersGroupSizeX) + gl_GlobalInvocationID.xy - gl_LocalInvocationID.xy - vec2(c_OccludersRimSize);
+		vec2 pos_param = pos_index/local_Target.Size;
+		
+		vec4 p_nd = GetNormalDepth(pos_param);
+		vec4 p_clip = GetClipCoord(pos_param, p_nd.w);
+		vec4 p_pos = Reproject(modelviewprojection_inv_transform, p_clip);
+		vec3 r_pos = (Reproject(light_modelviewprojection_transform, p_pos).xyz + 1) * 0.5;		
+		r_pos.xy += jittOfs;
+		r_pos.z += jittOfs.x ;
+		
+		vec4 comp = r_pos.zzzz - 0.001;
+		vec4 acc = vec4(0);
+		acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-1, -1), 0) ));
+		acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(1, -1), 0) ));
+		acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(-1, 1), 0) ));
+		acc += vec4(greaterThan(comp, textureGatherOffset(u_ShadowTexture, r_pos.xy, ivec2(1, 1), 0) ));
+		
+		// this makes sure an part out of the light's projective space unitary box is shadowed
+		if(r_pos.xy != clamp(r_pos.xy, 0, 1))
+		{
+			acc = vec4(16);
+		}
+		
+		s_Occluders[start].x = dot(acc, vec4(1/16.0));
+		s_Occludees[start] = p_pos;
+	}
+	
+	barrier();
+	
+	float result = s_Occluders[locId].x;
+	for(int i = -1; i <= 1; i++)
+	for(int j = -1; j <= 1; j++)
+	{
+		float s = s_Occluders[(locId + i * c_OccludersGroupSizeX + j) % c_OccludersGroupSize].x;
+		result += s;
+	}
+
+	return clamp(result/9 - 0.1, 0, 1);
 }
 
 /////////////////////

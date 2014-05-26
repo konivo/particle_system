@@ -101,7 +101,8 @@ namespace opentk.System3
 				SimulationScheme = new ParticlesWithTrailsGpuSimulationScheme(),
 				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
 				ParticleGenerator = new GridGenerator { AmountX = 1, AmountY = 1, AmountZ = 0.001f, StepX = 0.1f, StepY = 0.1f },
-				ChaoticMap = new LorenzMap()//new Swirl2DMap()
+				ChaoticMap = new LorenzMap(),//new Swirl2DMap(),
+				TrailSize = 100
 			};
 			return result;
 		}

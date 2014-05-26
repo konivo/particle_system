@@ -14,6 +14,7 @@ namespace opentk.Scene
 		NoFilter,
 		Filter2x2,
 		Filter4x4,
+		Filter4x4JitterBlur,
 		Filter8x8,
 		Filter16x16,
 		Soft1,

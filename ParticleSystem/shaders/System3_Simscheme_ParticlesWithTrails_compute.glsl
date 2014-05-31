@@ -32,9 +32,6 @@ const int c_ChunkSize_x = 4;
 const int c_ChunkSize_y = 1;
 const ivec2 u_ChunkSize = {c_ChunkSize_x, c_ChunkSize_y};
 
-//SpiralBMap map
-const int c_CenterCount = 30, c_CenterParamCount = 6;
-
 ////////////////////////////////////////////////////////////////////////////////
 //buffer//
 buffer Position
@@ -92,6 +89,29 @@ vec4 Lorenz(vec4 p)
 		0);
 }
 
+
+///////////////
+subroutine(Map)
+vec4 HopfMap(vec4 p)
+{
+	float A = a[0];
+	float a = a[1];
+	float x = p.x;
+	float y = p.y;
+	float z = p.z;
+	float k = A * pow(dot(p, p), -2);
+	
+	vec4 result = 
+	{
+		k * 2 * (-a * y + x *z),
+		k * 2 * (a *x + y * z),
+		k * (a * a - x * x - y * y + z * z),
+		0
+	};
+	
+	return result;
+}
+
 ///////////////
 vec4 SpiralBMapInternal(float k, float acc, vec4 center, vec4 vin, vec4 vout)
 {
@@ -123,8 +143,12 @@ vec4 SpiralBMapInternal(float k, float acc, vec4 center, vec4 vin, vec4 vout)
 subroutine(Map)
 vec4 SpiralBMap(vec4 vin)
 {
+	//
+	const int c_CenterParamCount = 6;
+	const int c_CenterCount = a.length()/ c_CenterParamCount;
+	
 	vec4 o = vec4(0, 0, 0, 0);
-	for(int i = 0; i < c_CenterCount * c_CenterParamCount; i+= c_CenterParamCount)
+	for(int i = 0; i < a.length(); i+= c_CenterParamCount)
 	{
 		vec4 center = vec4(a[i], a[i + 1], a[i + 2], 0);
 		o = SpiralBMapInternal(a[i + 3], a[i + 4], center, vin, o);
@@ -155,11 +179,45 @@ vec4 Swirl2DMapInternal(float k, float acc, vec4 center, vec4 vin)
 subroutine(Map)
 vec4 Swirl2DMap(vec4 vin)
 {
+	//
+	const int c_CenterParamCount = 6;
+	const int c_CenterCount = a.length()/ c_CenterParamCount;
+	
 	vec4 o = vec4(0, 0, 0, 0);
-	for(int i = 0; i < c_CenterCount * c_CenterParamCount; i+= c_CenterParamCount)
+	for(int i = 0; i < a.length(); i+= c_CenterParamCount)
 	{
 		vec4 center = vec4(a[i], a[i + 1], a[i + 2], 0);
 		o += Swirl2DMapInternal(a[i + 3], a[i + 4] * a[i + 5], center, vin);
+	}
+
+	o /= c_CenterCount * 3;
+	return o;
+}
+
+///////////////
+vec4 Swirl3DMapInternal(float k, float acc, vec4 center, vec4 n, vec4 vin)
+{
+	vec4 tmp = vin - center;
+	float dist = length(tmp.xyz);
+	
+	vec3 d = cross (tmp.xyz, n.xyz);
+	d *= 1/length(d) * acc/max(pow(dist, k), 0.1);
+	return vec4(d, 0);
+}
+
+subroutine(Map)
+vec4 Swirl3DMap(vec4 vin)
+{
+	//
+	const int c_CenterParamCount = 9;
+	const int c_CenterCount = a.length()/ c_CenterParamCount;
+	
+	vec4 o = vec4(0, 0, 0, 0);
+	for(int i = 0; i < a.length(); i+= c_CenterParamCount)
+	{
+		vec4 center = vec4(a[i], a[i + 1], a[i + 2], 0);
+		vec4 n = vec4(a[i + 3], a[i + 4], a[i + 5], 0);
+		o += Swirl3DMapInternal(a[i + 6], a[i + 7] * a[i + 8], n, center, vin);
 	}
 
 	o /= c_CenterCount * 3;

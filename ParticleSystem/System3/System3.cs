@@ -94,14 +94,14 @@ namespace opentk.System3
 				VIEWPORT_WIDTH = 324, 
 				NEAR = 1, 
 				FAR = 10240, 
-				DT = 0.01,
+				DT = 1,
 				Fov = 0.9, 
 				PublishMethod = PublishMethod.AllAtOnce,
 				ParticleScaleFactor = 2200, 
 				SimulationScheme = new ParticlesWithTrailsGpuSimulationScheme(),
 				GenerationScheme = new ParticlesWithTrailsGenerationScheme(),
 				ParticleGenerator = new GridGenerator { AmountX = 1, AmountY = 1, AmountZ = 0.001f, StepX = 0.1f, StepY = 0.1f },
-				ChaoticMap = new LorenzMap(),//new Swirl2DMap(),
+				ChaoticMap = new Swirl3DMap(),//new Swirl2DMap(),
 				TrailSize = 100
 			};
 			return result;

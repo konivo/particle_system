@@ -1437,10 +1437,10 @@ namespace opentk.System3
 	/// </summary>
 	public class Swirl3DMap : ChaoticMap
 	{
-		private int m_CenterCount = 20;
+		private int m_CenterCount = 10;
 		private int m_CenterParamCount = 9;
-		float m_MaxAcc = 100;
-		float m_MaxAccBias = 1500;
+		float m_MaxAcc = 50;
+		float m_MaxAccBias = 150;
 		float m_MaxDistX = 50;
 		float m_MaxDistY = 50;
 		float m_MaxDistZ = 50;
@@ -1532,7 +1532,7 @@ namespace opentk.System3
 			for(int i = 0; i < m_CenterCount * m_CenterParamCount; i += m_CenterParamCount)
 			{
 				var center = new Vector3 { X = a[i], Y = a[i + 1], Z = a[i + 2] };
-				var n = new Vector3 { X = a[i + 3], Y = a[i + 4], Z = a[i + 5] };
+				var n = new Vector3 { X = a[i + 3], Y = a[i + 4], Z = a[i + 5] };					
 				Spiral(a[i + 6], a[i + 7] * a[i + 8], ref center, ref n, ref input, ref output);
 			}
 			
@@ -1542,11 +1542,16 @@ namespace opentk.System3
 		private void Spiral(float k, float acc, ref Vector3 center, ref Vector3 n, ref Vector4 input, ref Vector4 output)
 		{
 			var tmp = input.Xyz - center;
-			var dist = tmp.Xy.Length;
+			var dist = tmp.Length;
+			
+			if(dist < 0.1)
+				return;
 						
 			var d = Vector3.Cross (tmp, n);
-			d *= 1/d.Length * acc/(float)Math.Max(Math.Pow(dist, k), 0.1);
-			output += new Vector4(d);
+			d.Normalize ();
+			
+			d *= acc/(float)Math.Max(Math.Pow(dist, k), 0.1);
+			output += new Vector4(d, 0);
 		}
 		
 		public override void UpdateMap (DateTime simtime, long step)
@@ -1561,15 +1566,74 @@ namespace opentk.System3
 				var output = Vector4.Zero;
 				Map(ref input, ref output);
 				
-				a[i] = output.X;
-				a[i + 1] = output.Y;
-				a[i + 2] = output.Z;
+				a[i] += output.X;
+				a[i + 1] += output.Y;
+				a[i + 2] += output.Z;
 			}
 			
 			for (int i = 0; i < a.Length; i++) {
 				target_state[i] = (a[i] - bias_state[i])/mask_state[i];
 			}
 		}		
+	}
+	
+	/// <summary>
+	/// 
+	/// </summary>
+	public class HopfMap : ChaoticMap
+	{
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return 2;
+			}
+		}
+		#endregion
+		
+		public float A
+		{
+			get{ return mask_state[0];}
+			set{ mask_state[0] = value;}
+		}
+		
+		public float Abias
+		{
+			get{ return bias_state[0];}
+			set{ bias_state[0] = value;}
+		}
+		
+		public new float a
+		{
+			get{ return mask_state[1];}
+			set{ mask_state[1] = value;}
+		}
+		
+		public float abias
+		{
+			get{ return bias_state[1];}
+			set{ bias_state[1] = value;}
+		}
+		
+		public HopfMap () : base("HopfMap")
+		{
+			Map = Implementation;
+		}
+		
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			var A = base.a[0];
+			var a = base.a[1];
+			var x = input.X;
+			var y = input.Y;
+			var z = input.Z;
+			var k = A * (float)Math.Pow(1/input.LengthSquared, 2);
+			
+			output.X = k * 2 * (-a * y + x *z);
+			output.Y = k * 2 * (a *x + y * z);
+			output.Z = k * (a * a - x * x - y * y + z * z);
+		}
 	}
 }
 

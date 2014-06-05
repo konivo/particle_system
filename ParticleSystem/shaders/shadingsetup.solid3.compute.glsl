@@ -424,59 +424,33 @@ vec4 FindOccluder(const DepthMapInfo dmi, vec4 pos, vec4 defaultpos, vec3 nldir,
 {
 	vec4 result = defaultpos;
 	
-	for(float j = 0; j < 5; j++)
+	for(float j = 0; j < 15; j++)
 	{			
 		vec4 ppp = vec4(nldir * (j * step * stepmult  + est + estbias) + pos.xyz, 1);
 		vec2 p_param = Reproject(dmi.Mvp, ppp).xy * 0.5 + 0.5;
 		vec4 p_clip = GetClipCoord(p_param, GetDepth(dmi.Index, clamp(p_param, 0, 1)));
 		vec4 p_pos = Reproject(dmi.MvpInv, p_clip);
 		
-		if(length(ppp - p_pos) < 0.1096361 * length(ppp - pos) || 
-				dot(normalize(p_pos - ppp).xyz, nldir) > .9)
+		if(length(ppp - p_pos) < .1 * length(ppp - pos) || 
+				dot(normalize(p_pos - pos).xyz, nldir) > .9)
 		{
-			est = (j * step * stepmult + est + estbias) ;
-			step = 0.043105 * est;
-			est *= 0.9;
-			estbias = 0;
-			stepmult = 1;
-			
-			if(estFound)
-			{
-				result = p_pos;
-				break;
-			}
-			else
-			{
-				j = 1;
-				estFound = true;
-			}
+			ppp = normalize(ppp - pos) * dot(ppp - pos, p_pos - pos)/length(ppp - pos) + pos;			
+			result = ppp;
+			break;
 		}
-		else if(estFound)
+		else if(defaultpos.w != 0)
 		{
 			vec4 ppp = vec4(nldir * (-j * step * stepmult  + est + estbias) + pos.xyz, 1);
 			vec2 p_param = Reproject(dmi.Mvp, ppp).xy * 0.5 + 0.5;
 			vec4 p_clip = GetClipCoord(p_param, GetDepth(dmi.Index, clamp(p_param, 0, 1)));
 			vec4 p_pos = Reproject(dmi.MvpInv, p_clip);
 			
-			if(length(ppp - p_pos) < 0.096 * length(ppp - pos) || 
-				dot(normalize(p_pos - ppp).xyz, nldir) > .9)
+			if(length(ppp - p_pos) < .1 * length(ppp - pos) || 
+				dot(normalize(p_pos - pos).xyz, nldir) > .9)
 			{
-				est = (-j * step * stepmult + est + estbias) ;
-				step = 0.043105 * est;
-				est *= 0.9;
-				estbias = 0;
-				stepmult = 1;
-				
-				if(estFound)
-				{
-					result = p_pos;
-					break;
-				}
-				else
-				{
-					j = 1;
-					estFound = true;
-				}
+				ppp = normalize(ppp - pos) * dot(ppp - pos, p_pos - pos)/length(ppp - pos) + pos;			
+				result = ppp;
+				break;
 			}
 		}
 	}
@@ -555,7 +529,7 @@ void GetShadowSoft2Initialize()
 			// Interestingly, k strongly influences how the occluders between overlap in the sampling domain
 			// Good values I have found so far are:
 			// 1003, 117, 123, 96 ..
-			int k = 1003;
+			int k = 117;
 			vec2 offset = GetSequenceHalton(i + start * occLocal * k) * tan(phi);
 			vec3 nldir = normalize(ldir + ldiro1 * offset.x + ldiro2 * offset.y);
 			
@@ -582,15 +556,26 @@ void GetShadowSoft2Estimate(const in DepthMapInfo dmi)
 			vec4 defpos = s_Occluders[i + start * occLocal];
 			vec3 nldir = - normalize(defpos - p_pos).xyz;//s_OccludersDirs[i + start * occLocal];
 			
-			if(defpos.w != 0)
-				continue;
+			if(dot(nldir, ldir) < 0)
+				nldir = -nldir;
 			
-			if(!estFound)
+			//if(defpos.w != 0)
+				//continue;
+			
+			if(defpos.w != 0)
 			{
-				estbias = i % 12;
-				est = 1.951;
+				est = length(defpos.xyz - p_pos.xyz);
+				step = 0.05 * est;
+				est *= 0.9;
+				estbias = 0;
+				stepmult = 1;
+			}
+			else// if(!estFound)
+			{
+				estbias = 0;//i % 1;
+				est = 1.0951;
 				step = 1;
-				stepmult = i + 1;
+				stepmult = 1;//i + 1;
 			}
 			
 			s_Occluders[i + start * occLocal] =
@@ -691,16 +676,26 @@ float GetShadowSoft2ComputeResult()
 	
 	float result = s_Occludees[locId].x;
 	float w = 1;
-	/*float[] h_cnt = float[10](0);
+	float[] h_cnt = float[10](0);
 	float[] h_val = float[10](0);
-	for(int i = -1; i <= 1; i++)
-	for(int j = -1; j <= 1; j++)
+	for(int i = -2; i <= 2; i++)
+	for(int j = -2; j <= 2; j++)
 	{
 		float s = s_Occludees[(locId + i * c_OccludersGroupSizeX + j) % c_OccludersGroupSize].x;
-		h_cnt[int(s * 9)]++;
-		h_val[int(s * 9)] += s;
 		
-		//if(GetSamplingIndex(i, 9) > 99)
+		if(gl_LocalInvocationID.y + c_OccludersRimSize + i <= 0 ||
+			gl_LocalInvocationID.x + c_OccludersRimSize + j <= 0)
+			s = s_Occludees[locId].x;
+			
+		if(gl_LocalInvocationID.y + c_OccludersRimSize + i >=  c_OccludersGroupSizeY - c_OccludersRimSize||
+			gl_LocalInvocationID.x + c_OccludersRimSize + j >= c_OccludersGroupSizeX - c_OccludersRimSize)
+			s = s_Occludees[locId].x;
+		
+		
+		//h_cnt[int(s * 9)]++;
+		//h_val[int(s * 9)] += s;
+		
+		//if(GetSamplingIndex(i, 9) > 8)
 		{
 			w++;
 			result += s;

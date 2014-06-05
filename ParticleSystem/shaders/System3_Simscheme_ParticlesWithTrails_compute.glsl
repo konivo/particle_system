@@ -113,6 +113,30 @@ vec4 HopfMap(vec4 p)
 }
 
 ///////////////
+subroutine(Map)
+vec4 HadleyMap(vec4 p)
+{
+	float b = a[1];
+	float c = a[2];
+	float d = a[3];
+	float a = a[0];
+	
+	float x = p.x;
+	float y = p.y;
+	float z = p.z;
+	
+	vec4 result = 
+	{
+		- y * y - z* z - a * x + a * c,
+		x * y - b * x * z - y + d,
+		b * x * y + x * z - z,
+		0
+	};
+	
+	return result;
+}
+
+///////////////
 vec4 SpiralBMapInternal(float k, float acc, vec4 center, vec4 vin, vec4 vout)
 {
 	vec4 tmp = vin - center;

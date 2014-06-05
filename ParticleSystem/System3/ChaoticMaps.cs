@@ -1635,5 +1635,91 @@ namespace opentk.System3
 			output.Z = k * (a * a - x * x - y * y + z * z);
 		}
 	}
+	
+	/// <summary>
+	/// 
+	/// </summary>
+	public class HadleyMap : ChaoticMap
+	{
+		#region implemented abstract members of opentk.System3.ChaoticMap
+		public override int ParamCount
+		{
+			get
+			{
+				return 4;
+			}
+		}
+		#endregion
+				
+		public new float a
+		{
+			get{ return mask_state[0];}
+			set{ mask_state[0] = value;}
+		}
+		
+		public float abias
+		{
+			get{ return bias_state[0];}
+			set{ bias_state[0] = value;}
+		}
+		
+		public float b
+		{
+			get{ return mask_state[1];}
+			set{ mask_state[1] = value;}
+		}
+		
+		public float bbias
+		{
+			get{ return bias_state[1];}
+			set{ bias_state[1] = value;}
+		}
+		
+		public float c
+		{
+			get{ return mask_state[2];}
+			set{ mask_state[2] = value;}
+		}
+		
+		public float cbias
+		{
+			get{ return bias_state[2];}
+			set{ bias_state[2] = value;}
+		}
+		
+		public float d
+		{
+			get{ return mask_state[3];}
+			set{ mask_state[3] = value;}
+		}
+		
+		public float dbias
+		{
+			get{ return bias_state[3];}
+			set{ bias_state[3] = value;}
+		}
+		
+		public HadleyMap () : base("HadleyMap")
+		{
+			Map = Implementation;
+		}
+		
+		private void Implementation (ref Vector4 input, ref Vector4 output)
+		{
+			float a = base.a[0];
+			float b = base.a[1];
+			float c = base.a[2];
+			float d = base.a[3];
+			
+			float x = input.X;
+			float y = input.Y;
+			float z = input.Z;
+			
+			output.X = - y * y - z* z - a * x + a * c;
+			output.Y = x * y - b * x * z - y + d;
+			output.Z = b * x * y + x * z - z;
+			output.W = 0;
+		}
+	}
 }
 

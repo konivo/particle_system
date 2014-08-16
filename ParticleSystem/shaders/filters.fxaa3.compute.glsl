@@ -7,7 +7,7 @@
 //#define T_PIXEL uvec4
 //#line 1
 
-#extension GL_ARB_gpu_shader5 : enable
+//#extension GL_ARB_gpu_shader5 : enable
 
 #define FXAA_PC 1
 #define FXAA_GLSL_130 1

@@ -151,6 +151,8 @@
     <Compile Include="RenderPassFactory\RenderPassFactory.Ssao2.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Bilateral.cs" />
     <Compile Include="RenderPassFactory\RenderPassFactory.Fxaa3.cs" />
+    <Compile Include="System6\System6.cs" />
+    <Compile Include="System6\System6.State.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -179,6 +181,7 @@
     <Folder Include="Resources\" />
     <Folder Include="shaders\" />
     <Folder Include="System3\Shaders\" />
+    <Folder Include="System6\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="System1\Shaders\fragment.glsl" />

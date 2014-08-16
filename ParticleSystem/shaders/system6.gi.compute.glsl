@@ -1,11 +1,13 @@
 #version 440
 layout(local_size_x=8, local_size_y=8) in;
+#define T_LAYOUT_OUT_DEPTH r32f
+#define T_LAYOUT_OUT_COLORLUMA rgba32f
 
 ////////////////////////////////////////////////////////////////////////////////
 //types//
 //
-#define Spectrum vec4;
-#define c_MaxRayDepth 5;
+#define Spectrum vec4
+#define c_MaxRayDepth 8
 
 struct Light
 {
@@ -29,17 +31,6 @@ struct Camera
 	vec4 y_delta;
 };
 
-struct Primitive
-{
-	vec4 sphere_geometry;
-};
-
-struct Bsdf
-{
-	Spectrum spec;
-	Spectrum diff;
-};
-
 struct Ray
 {
 	vec4 pos;
@@ -51,9 +42,9 @@ struct Intersection
 	// throughput, f(wo, wi, p) * cos (wi)
 	Spectrum t;
 	// normal
-	vec3 n;
+	vec4 n;
 	// t and n might be computed given a ray and a primitive index
-	int p_index;
+	int pi;
 };
 
 struct RayPath
@@ -61,7 +52,7 @@ struct RayPath
 	Ray[c_MaxRayDepth] rays;
 	Intersection[c_MaxRayDepth + 1] intrs;
 	Spectrum measure;
-}
+};
 
 //subroutine float GetShadow(vec4 pos);
 
@@ -90,7 +81,27 @@ const int[] PERMUTATION_TABLE = int[](151,160,137,91,90,15,131,13);
 #define PERM(i) PERMUTATION_TABLE[(i)&0x7]
 
 vec4[] sph = vec4[](
-vec4( 0.04, -0.08, 0, 0.1366834171),
+vec4( 0.04, -0.08, 0, 0.291366834171),
+vec4( -0.1, -0.72, 0.92, 0.1756756757),
+vec4( -0.8, -0.88, -0.76, 0.169273743),
+vec4( 0.42, -0.36, -0.08, 0.2582417582),
+vec4( -0.34, -0.44, -0.4, 0.1072164948),
+vec4( 0.42, -0.82, 0.18, 0.2372093023),
+vec4( 0.54, -0.56, -0.26, 0.1782051282),
+vec4( 0.54, 0.9, -0.06, 0.2487046632),
+vec4( -0.4, 0.7, -0.92, 0.1923076923),
+vec4( -0.82, -0.14, -0.18, 0.1086419753),
+vec4( -0.16, 0.1, -0.38, 0.2370860927),
+vec4( 0.02, 0.7, 0.98, 0.196350365),
+vec4( 0.86, 0.92, -0.94, 0.2063583815),
+vec4( -0.9, 0.84, 0.1, 0.2402597403),
+vec4( -0.2, 0.7, 0.96, 0.2363636364),
+vec4( 0.72, 0.12, 0.92, 0.1846153846),
+vec4( 0.26, 0.98, -0.78, 0.1959183673),
+vec4( -0.7, 0.62, -0.56, 0.2576419214));
+
+vec4[] sph_mat = vec4[](
+vec4( 0.4, 0.08, 0, 0.1366834171),
 vec4( -0.8, -0.88, -0.76, 0.169273743),
 vec4( 0.42, -0.36, -0.08, 0.2582417582),
 vec4( -0.34, -0.44, -0.4, 0.1072164948),
@@ -107,40 +118,7 @@ vec4( -0.2, 0.7, 0.96, 0.2363636364),
 vec4( 0.72, 0.12, 0.92, 0.1846153846),
 vec4( -0.1, -0.72, 0.92, 0.1756756757),
 vec4( 0.26, 0.98, -0.78, 0.1959183673),
-vec4( -0.7, 0.62, -0.56, 0.2576419214));//,
-/*vec4( 0.14, -0.94, 0.12, 0.4470046083),
-vec4( 0.36, -0.28, 0.02, 0.4439461883),
-vec4( 0.96, 0.76, 0.56, 0.4672897196),
-vec4( -0.34, 0.82, 0.6, 0.3136363636),
-vec4( 0.78, 0.16, 0.48, 0.3157894737),
-vec4( 0.56, -0.12, -0.3, 0.2682926829),
-vec4( 0.14, 0.32, 0.78, 0.2842105263),
-vec4( -0.98, 0, -0.04, 0.2056074766),
-vec4( -0.2, -0.28, -0.86, 0.2873563218),
-vec4( 0.62, -0.96, -0.14, 0.3236714976));//,
-/*vec4( 0.56, -0.56, 0.14, 0.4425531915),
-vec4( 0.6, 0.38, 0.64, 0.3026315789),
-vec4( 0.86, -0.1, -0.38, 0.3233082707),
-vec4( -0.4, 0.96, -0.94, 0.3052631579),
-vec4( 0.42, 0.9, 0.18, 0.3992673993),
-vec4( -0.02, -0.14, 0.88, 0.3830508475),
-vec4( -0.26, 0.26, 0.54, 0.3219178082),
-vec4( 0.92, 0.18, -0.9, 0.3054662379),
-vec4( 0.46, -0.66, -0.04, 0.345323741),
-vec4( 0.88, -0.42, -0.36, 0.3867595819),
-vec4( -0.98, 0.7, -0.48, 0.3702422145),
-vec4( 1, -0.84, 0.68, 0.2664092664),
-vec4( -0.06, -0.28, -0.58, 0.3293172691),
-vec4( -0.24, -0.1, -0.46, 0.3234200743),
-vec4( 0.48, 0.74, -0.24, 0.4086956522),
-vec4( 0.34, -0.16, 0.28, 0.2666666667),
-vec4( -0.66, -0.32, 0.62, 0.3826530612),
-vec4( -0.42, 0.8, 0.9, 0.335),
-vec4( 0.48, 0.22, 0.24, 0.4736842105),
-vec4( -0.74, -0.92, -0.06, 0.2741935484),
-vec4( 0.32, -0.94, 0.96, 0.3679245283),
-vec4( -0.96, 0.24, -0.5, 0.25)
-	);*/
+vec4( -0.7, 0.62, -0.56, 0.2576419214));
 
 ////////////////////////////////////////////////////////////////////////////////
 //uniforms//
@@ -159,13 +137,13 @@ layout(T_LAYOUT_OUT_DEPTH) restrict /*coherent, volatile, restrict, readonly, wr
 // Color Luma
 layout(T_LAYOUT_OUT_COLORLUMA) restrict /*coherent, volatile, restrict, readonly, writeonly*/ uniform image2D u_TargetColorLuma;
 
-layout(rgba32f) uniform image2D u_NormalDepth;
-
 /*
  * model-view matrices 
  */
 uniform mat4 modelviewprojection_transform;
 uniform mat4 modelviewprojection_inv_transform;
+uniform mat4 modelview_transform;
+uniform mat4 modelview_inv_transform;
 uniform mat4 projection_transform;
 uniform mat4 projection_inv_transform;
 
@@ -250,14 +228,22 @@ vec2 GetSequenceHalton(int i)
 		index = index / base;
 		f = f / base; 
 	}
-  return 2 * result - 1;
+  return result;
 }
 
 //
-int GetRandomI(int min, int max)
+vec2 GetRandom2DHalton(vec2 min, vec2 max)
 {
 	local_RandomState++;
-	return int( mix(length(GetSequenceHalton(local_RandomState)), min, max + 1));
+	vec2 v = GetSequenceHalton(local_RandomState * 23 % 10000 + 23);
+	return mix(min, max, v);
+}
+
+//
+int GetRandom1DHalton(int min, int max)
+{
+	vec2 v = GetRandom2DHalton(vec2(0), vec2(1));
+	return int( mix(min, max + 1, (v.x + v.y) / 2));
 }
 
 //
@@ -279,58 +265,6 @@ vec4 Reproject (vec4 vector)
 {
 	vector /= vector.w;
 	return vector;
-}
-
-//
-vec4 GetNormalDepth (vec2 param)
-{
-	vec4 result = texture(u_NormalDepthTexture, param);
-	result = result * 2 - 1;
-
-	return result;
-}
-
-//
-float GetDepth (const int texIndex, const vec2 param)
-{
-	if(texIndex == 0)
-	{
-		vec4 result = texture(u_NormalDepthTexture, param);
-		result = result * 2 - 1;
-		return result.w;
-	}
-	else
-	{
-		vec4 result = texture(u_ShadowTexture, param);
-		result = result * 2 - 1;
-		return result.x;
-	}
-}
-
-vec4 GetDepthGather (const int texIndex, const vec2 param)
-{
-	vec4 result = vec4(0);
-	if(texIndex == 0)
-	{
-		result = textureGatherOffset(u_NormalDepthTexture, param, ivec2(0), 3);
-	}
-	else
-	{
-		result = textureGatherOffset(u_ShadowTexture, param, ivec2(0), 0) + 0.000;
-	}
-	return result * 2 - 1;
-}
-
-ivec2 GetDepthTextureSize (const int texIndex)
-{
-	if(texIndex == 0)
-	{
-		return textureSize(u_NormalDepthTexture, 0);
-	}
-	else
-	{
-		return textureSize(u_ShadowTexture, 0);
-	}
 }
 
 void InitGlobals()
@@ -367,11 +301,125 @@ bool SphereContains(in vec4 s, in vec3 point)
 	return length(s.xyz - point) < s.w;
 }
 
+vec4 GetPerpendicularVector(const in vec4 n)
+{
+	vec4 result = {-n.y - n.z, n.x, n.x, 0};
+	
+	if(all(equal(result, vec4(0))))
+	{
+		result = vec4(n.zz, -n.x - n.y, 0);
+	}
+	
+	return normalize(result);
+}
+
+void UniformSampleDisc(in vec2 uv, out vec2 xy)
+{
+	float r = sqrt(uv.x);
+	float phi = c_TWO_PI * uv.y;
+	
+	xy = vec2(r * cos(phi), r * sin(phi));
+}
+
+void CosineSampleHemisphere(in vec2 uv, out vec4 xyz)
+{
+	vec2 xy;	
+	UniformSampleDisc(uv, xy);
+	xyz = vec4(xy, sqrt(1 - dot(xy, xy)), 0);
+}
+
+void UniformSampleHemisphere(in vec2 uv, out vec4 xyz)
+{
+	float r = sqrt(max(0, 1 - uv.x * uv.x));
+	float phi = c_TWO_PI * uv.y;
+	
+	xyz = vec4(r * cos(phi), r * sin(phi), uv.x, 0);
+}
+
+void CosineSampleHemisphereAt(const in vec2 uv, const in vec4 n, out vec4 newdir)
+{
+	vec3 b1 = cross(n.xyz, GetPerpendicularVector(n).xyz);
+	vec3 b2 = cross(b1, n.xyz);
+	mat3 rotation = {	b1, b2, n.xyz };
+	
+	CosineSampleHemisphere(uv, newdir);		
+	newdir.xyz = rotation * newdir.xyz;
+}
+
+void UniformSampleHemisphereAt(const in vec2 uv, const vec4 n, out vec4 newdir)
+{
+	vec3 b1 = cross(n.xyz, GetPerpendicularVector(n).xyz);
+	vec3 b2 = cross(b1, n.xyz);
+	mat3 rotation = {	b1, b2, n.xyz };
+	
+	UniformSampleHemisphere(uv, newdir);		
+	newdir.xyz = rotation * newdir.xyz;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//scene geometry functions//
+//
+void FindIntersection(in const Ray r, out float t, out int pi, out vec4 n)
+{
+	pi = -1;
+	t = 1000000;
+	n = vec4(1, 0, 0, 0);
+	for(int i = 0; i < sph.length(); i++)
+	{
+		float newT = SphereRayIntersection(sph[i] * 50, r.pos.xyz, r.dir.xyz);
+		if(newT > 0.001 && newT < t)
+		{
+			t = newT;
+			pi = i;
+		}
+	}
+	
+	if(pi >= 0)
+	{
+		n = -normalize(vec4(sph[pi].xyz * 50, 1) - (r.pos + r.dir * t));
+	}
+}
+
+void MaterialF(in int pi, in vec4 wi, in vec4 wo, out Spectrum f, out float pdf)
+{
+	if(pi < 0)
+	{
+		f = Spectrum(0.);
+		pdf = 1;
+	}
+	else
+	{
+		f = Spectrum(1);
+		pdf = 1 / c_TWO_PI;
+	}
+}
+
+void MaterialE(in int pi, in vec4 wo, out Spectrum f, out float pdf)
+{
+	if(pi < 0)
+	{
+		f = Spectrum(0.141252915);
+		pdf = 1;
+	}
+	else if(pi == 0)
+	{
+		f = Spectrum(00.84141252915);
+		pdf = 1;
+	}
+	else
+	{
+		f = Spectrum(0);
+		pdf = 1 / c_TWO_PI;
+	}	
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // raytrace main body //
 //
 void main ()
 {
+	InitGlobals();
+	
 	//
 	ivec2 size = imageSize(u_TargetColorLuma);
 	vec2 isize = 1./imageSize(u_TargetColorLuma);
@@ -386,13 +434,17 @@ void main ()
 	
 	//local_Camera initialization
 	local_Camera.pos = modelview_inv_transform * vec4(0, 0, 0, 1);
-	local_Camera.ray_intr = reproject(modelviewprojection_inv_transform, GetClipCoord(param, -1));
+	local_Camera.ray_intr = Reproject(modelviewprojection_inv_transform, GetClipCoord(param, -1));
 	local_Camera.ray_dir = normalize(local_Camera.ray_intr - local_Camera.pos);
-	local_Camera.x_delta = (reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(isize.x, 0), -1)) - local_Camera.ray_intr);
-	local_Camera.y_delta = (reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(0, isize.y), -1)) - local_Camera.ray_intr);
+	local_Camera.x_delta = (Reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(isize.x, 0), -1)) - local_Camera.ray_intr);
+	local_Camera.y_delta = (Reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(0, isize.y), -1)) - local_Camera.ray_intr);
 	local_Camera.look_dir = modelview_inv_transform * vec4(0, 0, -1, 0);
 
 	//
+	Spectrum result = Spectrum(0);
+	int rCount = 20;
+	
+	for(int j = 0; j < rCount; j++){
 	RayPath rp;
 	int depth = 1;
 	
@@ -405,54 +457,50 @@ void main ()
 	{
 		float t = 0;
 		int pi = 0;
+		vec4 n;
 		
 		// compute ray's intersection with the scene along with index of primitive 
 		// intersected and normal at the point of intersection
-		Intersection(local_RayPath.rays[depth], t, pi, n);
+		FindIntersection(local_RayPath.rays[depth - 1], t, pi, n);
 		
-		if(isnan(t))
-		{
-			break;
-		}
-		
-		local_RayPath.rays[depth].pos = local_RayPath.rays[depth - 1].pos + local_RayPath.rays[depth - 1].dir * t;
-		local_RayPath.intrs[depth].index = pi;
+		local_RayPath.intrs[depth].pi = pi;
 		local_RayPath.intrs[depth].n = n;
 		
-		// determine next path segment 
-		vec3 newdir;
-		SampleHemisphereAt(local_RayPath.rays[depth].pos, newdir);
-		local_RayPath.rays[depth].dir = newdir;
+		if(pi < 0)
+		{
+			depth++;
+			break;
+		}
+		local_RayPath.rays[depth].pos = local_RayPath.rays[depth - 1].pos + local_RayPath.rays[depth - 1].dir * t;
+		
+		// determine next path segment
+		CosineSampleHemisphereAt(GetRandom2DHalton(vec2(0, 0), vec2(1, 1)), n, local_RayPath.rays[depth].dir);
 	}
-	while (++depth < c_MaxRayDepth)
+	while (++depth < c_MaxRayDepth);
 	
 	// shade it
 	Spectrum throughput = Spectrum(1, 1, 1, 1);
 	Spectrum L = Spectrum(0);
 	for(int i = 1; i < depth; i++)
 	{
-		int pi = local_RayPath.intrs[i].index;
-		
 		Spectrum f, e;
+		float pdff, pdfe;
+		vec4 wo = -local_RayPath.rays[i - 1].dir;
+		vec4 wi = local_RayPath.rays[i].dir;
 		
-		float pdf;
-		
+		int pi = local_RayPath.intrs[i].pi;
+		float cost = abs(dot(wi, local_RayPath.intrs[i].n));
+				
 		//FSpecular(pi, wi, wo, f, pdf);
-		F(pi, wi, wo, f, pdf);
-		E(pi, wo, e, pdf);
-		
+		MaterialF(pi, wi, wo, f, pdff);
+		MaterialE(pi, wo, e, pdfe);
 		
 		L += e * throughput;
-		throughput *= f * cost / pdf;
+		throughput *= f * cost;
+	}
+	result += L;	
 	}
 	
-	if(depth < c_MaxRayDepth)
-	{
-		Spectrum e;
-		
-		E(-1, wo, e, pdf);
-		L += e * throughput;
-	}
-	
-	imageStore(u_TargetColorLuma, startPixelID, L);
+	imageStore(u_TargetColorLuma, startPixelID, result / rCount);
+	imageStore(u_TargetDepth, startPixelID, vec4(0));
 }

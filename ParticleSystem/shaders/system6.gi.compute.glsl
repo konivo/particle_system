@@ -7,7 +7,7 @@ layout(local_size_x=8, local_size_y=8) in;
 //types//
 //
 #define Spectrum vec4
-#define c_MaxRayDepth 8
+#define c_MaxRayDepth 3
 
 struct Light
 {
@@ -81,14 +81,15 @@ const int[] PERMUTATION_TABLE = int[](151,160,137,91,90,15,131,13);
 #define PERM(i) PERMUTATION_TABLE[(i)&0x7]
 
 vec4[] sph = vec4[](
-vec4( 0.04, -0.08, 0, 0.291366834171),
-vec4( -0.1, -0.72, 0.92, 0.1756756757),
-vec4( -0.8, -0.88, -0.76, 0.169273743),
+vec4( 0.04, -0.08, 0, 0.191366834171),
+vec4( -0.1, -0.72, 0.92, 0.421756756757),
+vec4( -0.8, -0.88, -0.76, 0.6542169273743),
+vec4( -0.8, -0.88, -0.76, 0.6542169273743),
 vec4( 0.42, -0.36, -0.08, 0.2582417582),
-vec4( -0.34, -0.44, -0.4, 0.1072164948),
-vec4( 0.42, -0.82, 0.18, 0.2372093023),
+vec4( -0.34, -0.44, -0.4, 0.3072164948),
+vec4( 0.42, -0.82, 0.18, 0.32372093023),
 vec4( 0.54, -0.56, -0.26, 0.1782051282),
-vec4( 0.54, 0.9, -0.06, 0.2487046632),
+vec4( 0.54, 0.9, -0.06, 0.2487046632));/*,
 vec4( -0.4, 0.7, -0.92, 0.1923076923),
 vec4( -0.82, -0.14, -0.18, 0.1086419753),
 vec4( -0.16, 0.1, -0.38, 0.2370860927),
@@ -98,7 +99,7 @@ vec4( -0.9, 0.84, 0.1, 0.2402597403),
 vec4( -0.2, 0.7, 0.96, 0.2363636364),
 vec4( 0.72, 0.12, 0.92, 0.1846153846),
 vec4( 0.26, 0.98, -0.78, 0.1959183673),
-vec4( -0.7, 0.62, -0.56, 0.2576419214));
+vec4( -0.7, 0.62, -0.56, 0.2576419214));*/
 
 vec4[] sph_mat = vec4[](
 vec4( 0.4, 0.08, 0, 0.1366834171),
@@ -181,6 +182,18 @@ struct { vec2 Size; vec2 Param; vec2 GroupParam; }
 struct { 	vec2 RANDOMIZATION_VECTOR; 	int RANDOMIZATION_OFFSET; }
 	local_Sampling;
 	
+/* These state variables must be initialized so that they are not all zero. */
+struct { uvec4 state; }
+	local_Xorshift128;
+	
+/* These state variables must be initialized so that they are not all zero. */
+struct { uint scramble; }
+	local_02 = { 0 };
+	
+/* These state variables must be initialized so that they are not all zero. */
+struct { int[10] permutation; }
+	local_RandomizedHalton = { {-1, 1, 2, 3, 4, 5, 6, 0, 1, 2} };
+	
 RayPath local_RayPath;
 
 Camera local_Camera;
@@ -201,6 +214,8 @@ void InitSampling()
 	local_Sampling.RANDOMIZATION_VECTOR = vec2( cos(c_TWO_PI * (indexA * indexB)/360), sin(c_TWO_PI * (indexB * indexA)/360));
 	local_Sampling.RANDOMIZATION_OFFSET = indexB * indexA;
 	local_RandomState = local_Sampling.RANDOMIZATION_OFFSET * 1;
+	
+	local_Xorshift128.state = uvec4(local_RandomState, 0, 0, 0);
 }
 
 //
@@ -215,7 +230,116 @@ int GetSamplingIndex(int i, int limit)
 	return (i * 97 + local_Sampling.RANDOMIZATION_OFFSET) % limit;
 }
 
+/////////////////////
+//PRNGs//
+uint GetRandomU_Xorshift128() 
+{
+	uvec4 state = local_Xorshift128.state;
+	
+	uint t = state.x ^ (state.x << 11);
+	state.xyz = state.yzw;
+	state.w = state.w ^ (state.w >> 19) ^ t ^ (t >> 8);
+	
+	local_Xorshift128.state = state;
+	return state.w;
+}
+
+/////////////////////
+//Other radical inverse sequences//
+float GetSequenceVanDerCorput(int i, int scramble)
+{
+	i = bitfieldReverse(i);
+	i ^= scramble;
+	return ((i >> 8) & 0xffffff) / float(1 << 24);
+}
+
+float GetSequenceSobol2(int i, int scramble)
+{
+	for( uint v = 1 << 31; i != 0; i >>= 1, v ^= v >> 1)
+		if( (i & 0x1) > 0) scramble ^= int(v);
+	return ((scramble >> 8) & 0xffffff) / float( 1 << 24);
+}
+
+/////////////////////
+//02 sequence //
+vec2 GetSequence02(int i, int scramble)
+{
+	return vec2(GetSequenceSobol2(i, scramble), GetSequenceVanDerCorput(i, scramble));
+}
+
 //
+vec2 GetRandom2D02(int i, vec2 min, vec2 max)
+{
+	if(local_02.scramble == 0)
+	{
+		local_02.scramble = GetRandomU_Xorshift128();
+	}
+	
+	vec2 v = GetSequence02(i, int(local_02.scramble));
+	return mix(min, max, v);
+}
+
+//
+int GetRandom1D02(int i, int min, int max)
+{
+	vec2 v = GetRandom2D02(i, vec2(0), vec2(1));
+	return int( mix(min, max + 1, (v.x + v.y) / 2));
+}
+
+/////////////////////
+//Randomized halton//
+vec2 GetSequenceRandomizedHalton(int i)
+{
+	if(local_RandomizedHalton.permutation[0] == -1)
+	{
+		local_RandomizedHalton.permutation[0] = 0;
+		for(int i = 1; i < 7; i++)
+		{
+			uint k = GetRandomU_Xorshift128() % (7 - i);
+			int p = local_RandomizedHalton.permutation[i];
+			local_RandomizedHalton.permutation[i] = local_RandomizedHalton.permutation[k + i];
+			local_RandomizedHalton.permutation[k + i] = p;
+		}
+		
+		for(int i = 8; i < 10; i++)
+		{
+			uint k = GetRandomU_Xorshift128() % (10 - i);
+			int p = local_RandomizedHalton.permutation[i];
+			local_RandomizedHalton.permutation[i] = local_RandomizedHalton.permutation[k + i];
+			local_RandomizedHalton.permutation[k + i] = p;
+		}
+	}
+	
+	vec2 result = vec2(0);
+	ivec2 base = ivec2(7, 3);
+	vec2 f = 1 / vec2(base);
+  ivec2 index = ivec2(i, i);
+  while (index.x > 0 || index.y > 0)
+  {
+		ivec2 imb = index % base;
+		result = result + f * vec2(local_RandomizedHalton.permutation[imb.x], local_RandomizedHalton.permutation[imb.y + 7]);
+		index = index / base;
+		f = f / base; 
+	}
+  return result;
+}
+
+//
+vec2 GetRandom2DRandomizedHalton(vec2 min, vec2 max)
+{
+	vec2 v = GetSequenceRandomizedHalton(local_RandomState++);
+	return mix(min, max, v);
+}
+
+//
+int GetRandom1DRandomizedHalton(int min, int max)
+{
+	vec2 v = GetRandom2DRandomizedHalton(vec2(0), vec2(1));
+	return int( mix(min, max + 1, (v.x + v.y) / 2));
+}
+
+/////////////////////
+//halton//
 vec2 GetSequenceHalton(int i)
 {
 	vec2 result = vec2(0);
@@ -234,8 +358,7 @@ vec2 GetSequenceHalton(int i)
 //
 vec2 GetRandom2DHalton(vec2 min, vec2 max)
 {
-	local_RandomState++;
-	vec2 v = GetSequenceHalton(local_RandomState * 23 % 10000 + 23);
+	vec2 v = GetSequenceHalton(local_RandomState++);
 	return mix(min, max, v);
 }
 
@@ -398,12 +521,12 @@ void MaterialE(in int pi, in vec4 wo, out Spectrum f, out float pdf)
 {
 	if(pi < 0)
 	{
-		f = Spectrum(0.141252915);
+		f = Spectrum(0.15242141252915);
 		pdf = 1;
 	}
 	else if(pi == 0)
 	{
-		f = Spectrum(00.84141252915);
+		f = Spectrum(008.84141252915);
 		pdf = 1;
 	}
 	else
@@ -442,7 +565,7 @@ void main ()
 
 	//
 	Spectrum result = Spectrum(0);
-	int rCount = 20;
+	int rCount = 1024;
 	
 	for(int j = 0; j < rCount; j++){
 	RayPath rp;
@@ -474,7 +597,10 @@ void main ()
 		local_RayPath.rays[depth].pos = local_RayPath.rays[depth - 1].pos + local_RayPath.rays[depth - 1].dir * t;
 		
 		// determine next path segment
-		CosineSampleHemisphereAt(GetRandom2DHalton(vec2(0, 0), vec2(1, 1)), n, local_RayPath.rays[depth].dir);
+		//CosineSampleHemisphereAt(GetRandom2DRandomizedHalton(vec2(0, 0), vec2(1, 1)), n, local_RayPath.rays[depth].dir);
+		
+		// determine next path segment
+		CosineSampleHemisphereAt(GetRandom2D02(j, vec2(0, 0), vec2(1, 1)), n, local_RayPath.rays[depth].dir);
 	}
 	while (++depth < c_MaxRayDepth);
 	

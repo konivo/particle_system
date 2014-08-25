@@ -7,7 +7,7 @@ layout(local_size_x=8, local_size_y=8) in;
 //types//
 //
 #define Spectrum vec4
-#define c_MaxRayDepth 3
+#define c_MaxRayDepth 5
 
 struct Light
 {
@@ -81,7 +81,7 @@ const int[] PERMUTATION_TABLE = int[](151,160,137,91,90,15,131,13);
 #define PERM(i) PERMUTATION_TABLE[(i)&0x7]
 
 vec4[] sph = vec4[](
-vec4( 0.04, -0.08, 0, 0.191366834171),
+vec4( 0.04, -0.08, 0, 0.09391366834171),
 vec4( -0.1, -0.72, 0.92, 0.421756756757),
 vec4( -0.8, -0.88, -0.76, 0.6542169273743),
 vec4( -0.8, -0.88, -0.76, 0.6542169273743),
@@ -137,6 +137,8 @@ uniform vec2[256] u_SamplingPattern;
 layout(T_LAYOUT_OUT_DEPTH) restrict /*coherent, volatile, restrict, readonly, writeonly*/ uniform image2D u_TargetDepth;
 // Color Luma
 layout(T_LAYOUT_OUT_COLORLUMA) restrict /*coherent, volatile, restrict, readonly, writeonly*/ uniform image2D u_TargetColorLuma;
+// Color Luma
+layout(T_LAYOUT_OUT_COLORLUMA) restrict /*coherent, volatile, restrict, readonly, writeonly*/ uniform image2D u_TargetAccumLuma;
 
 /*
  * model-view matrices 
@@ -159,7 +161,7 @@ uniform float u_LightSize;
 /*
  * GI settings
  */
-
+uniform int u_FrameCount;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -213,9 +215,9 @@ void InitSampling()
 
 	local_Sampling.RANDOMIZATION_VECTOR = vec2( cos(c_TWO_PI * (indexA * indexB)/360), sin(c_TWO_PI * (indexB * indexA)/360));
 	local_Sampling.RANDOMIZATION_OFFSET = indexB * indexA;
-	local_RandomState = local_Sampling.RANDOMIZATION_OFFSET * 1;
+	local_RandomState = local_Sampling.RANDOMIZATION_OFFSET;
 	
-	local_Xorshift128.state = uvec4(local_RandomState, 0, 0, 0);
+	local_Xorshift128.state = uvec4(local_RandomState + u_FrameCount);
 }
 
 //
@@ -408,14 +410,31 @@ float SphereRayIntersection(vec4 sphere, vec3 raycenter, vec3 rayDirection)
 			dot(rayDirection,rayDirection),
 			2.0*dot(rayDirection, k),
 			dot(k,k) - sphere.w*sphere.w);
-
-
+	
 	float discr = koef.y*koef.y - 4.0*koef.x*koef.z;
 
 	if(discr < 0.0)
 		return -1.0;
-	else
-		return (-koef.y - sqrt(discr))/(2.0*koef.x);
+		
+	discr = sqrt(discr);
+	if(koef.y < 0)
+		discr = -discr;
+		
+	float q = -.5 * (koef.y + discr);
+	float t0 = q / koef.x;
+	float t1 = koef.z / q;
+	
+	if(t1 < t0)
+	{
+		float tt = t1;
+		t1 = t0;
+		t0 = tt;
+	}
+	
+	if(t0 > 0)
+		return t0;
+	else 
+		return t1;
 }
 
 //returns true when sphere contains given point
@@ -469,7 +488,7 @@ void CosineSampleHemisphereAt(const in vec2 uv, const in vec4 n, out vec4 newdir
 	newdir.xyz = rotation * newdir.xyz;
 }
 
-void UniformSampleHemisphereAt(const in vec2 uv, const vec4 n, out vec4 newdir)
+void UniformSampleHemisphereAt(const in vec2 uv, const in vec4 n, out vec4 newdir)
 {
 	vec3 b1 = cross(n.xyz, GetPerpendicularVector(n).xyz);
 	vec3 b2 = cross(b1, n.xyz);
@@ -479,10 +498,23 @@ void UniformSampleHemisphereAt(const in vec2 uv, const vec4 n, out vec4 newdir)
 	newdir.xyz = rotation * newdir.xyz;
 }
 
+void UniformSampleProjectedSphere(const in vec2 uv, const in vec4 sphere, const in vec4 projCenter, out vec4 newdir)
+{
+	vec4 dir = normalize(vec4(sphere.xyz - projCenter.xyz, 0));
+	vec3 dx = cross(dir.xyz, GetPerpendicularVector(dir).xyz);
+	vec3 dy = cross(dx, dir.xyz);
+	
+	vec2 xy;
+	UniformSampleDisc(uv, xy);
+	
+	dir = vec4(sphere.xyz - projCenter.xyz, 0) + vec4(dx * xy.x * sphere.w, 0) + vec4(dy * xy.y * sphere.w, 0);
+	newdir = normalize(dir);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //scene geometry functions//
 //
-void FindIntersection(in const Ray r, out float t, out int pi, out vec4 n)
+void FindIntersection(const in Ray r, out float t, out int pi, out vec4 n)
 {
 	pi = -1;
 	t = 1000000;
@@ -490,7 +522,7 @@ void FindIntersection(in const Ray r, out float t, out int pi, out vec4 n)
 	for(int i = 0; i < sph.length(); i++)
 	{
 		float newT = SphereRayIntersection(sph[i] * 50, r.pos.xyz, r.dir.xyz);
-		if(newT > 0.001 && newT < t)
+		if(newT > 0.01 && newT < t)
 		{
 			t = newT;
 			pi = i;
@@ -500,6 +532,22 @@ void FindIntersection(in const Ray r, out float t, out int pi, out vec4 n)
 	if(pi >= 0)
 	{
 		n = -normalize(vec4(sph[pi].xyz * 50, 1) - (r.pos + r.dir * t));
+	}
+}
+
+void SamplePrimitive(const in vec2 uv, const in int pi, const in vec4 pos, out vec4 dir, out float t, out vec4 n, out float wpdf)
+{
+	vec4 s = sph[pi] * 50;
+	UniformSampleProjectedSphere(uv, s, pos, dir);
+	t = SphereRayIntersection(s, pos.xyz, dir.xyz);
+	n = vec4(1, 0, 0, 0);
+	wpdf = 0;
+	
+	if(t > 0.001)
+	{
+		vec4 dist = dir * t;
+		n = -normalize(vec4(s.xyz, 1) - (pos + dir * t));
+		wpdf = dot(dist, dist) / (4 * c_PI * pow(s.w, 2) * abs(dot(n, dir)));
 	}
 }
 
@@ -521,13 +569,18 @@ void MaterialE(in int pi, in vec4 wo, out Spectrum f, out float pdf)
 {
 	if(pi < 0)
 	{
-		f = Spectrum(0.15242141252915);
+		f = Spectrum(0.49914015242141252915);
 		pdf = 1;
 	}
 	else if(pi == 0)
 	{
-		f = Spectrum(008.84141252915);
-		pdf = 1;
+		f = Spectrum(0, 2, 0, 0);
+		pdf = 1 / c_TWO_PI;
+	}
+	else if(pi == 0)
+	{
+		f = Spectrum(0, 2, 0, 0);
+		pdf = 1 / c_TWO_PI;
 	}
 	else
 	{
@@ -559,17 +612,20 @@ void main ()
 	local_Camera.pos = modelview_inv_transform * vec4(0, 0, 0, 1);
 	local_Camera.ray_intr = Reproject(modelviewprojection_inv_transform, GetClipCoord(param, -1));
 	local_Camera.ray_dir = normalize(local_Camera.ray_intr - local_Camera.pos);
-	local_Camera.x_delta = (Reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(isize.x, 0), -1)) - local_Camera.ray_intr);
-	local_Camera.y_delta = (Reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(0, isize.y), -1)) - local_Camera.ray_intr);
-	local_Camera.look_dir = modelview_inv_transform * vec4(0, 0, -1, 0);
+	//local_Camera.x_delta = (Reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(isize.x, 0), -1)) - local_Camera.ray_intr);
+	//local_Camera.y_delta = (Reproject(modelviewprojection_inv_transform, GetClipCoord(param + vec2(0, isize.y), -1)) - local_Camera.ray_intr);
+	//local_Camera.look_dir = modelview_inv_transform * vec4(0, 0, -1, 0);
 
 	//
 	Spectrum result = Spectrum(0);
-	int rCount = 1024;
+	int rCount = 64;
 	
 	for(int j = 0; j < rCount; j++){
 	RayPath rp;
 	int depth = 1;
+	
+	local_Camera.ray_intr = Reproject(modelviewprojection_inv_transform, GetClipCoord(param + GetRandom2D02(j+ rCount * u_FrameCount, vec2(0, 0), vec2(1, 1)) * isize, -1));
+	local_Camera.ray_dir = normalize(local_Camera.ray_intr - local_Camera.pos);
 	
 	// initialize the path	
 	local_RayPath.rays[0].pos = local_Camera.pos;
@@ -600,7 +656,7 @@ void main ()
 		//CosineSampleHemisphereAt(GetRandom2DRandomizedHalton(vec2(0, 0), vec2(1, 1)), n, local_RayPath.rays[depth].dir);
 		
 		// determine next path segment
-		CosineSampleHemisphereAt(GetRandom2D02(j, vec2(0, 0), vec2(1, 1)), n, local_RayPath.rays[depth].dir);
+		CosineSampleHemisphereAt(GetRandom2D02(j + u_FrameCount * rCount, vec2(0, 0), vec2(1, 1)), n, local_RayPath.rays[depth].dir);
 	}
 	while (++depth < c_MaxRayDepth);
 	
@@ -621,12 +677,41 @@ void main ()
 		MaterialF(pi, wi, wo, f, pdff);
 		MaterialE(pi, wo, e, pdfe);
 		
+		// emmission
 		L += e * throughput;
-		throughput *= f * cost;
+		
+		// direct lighting
+		
+		vec4 ddir; float dt, ddt; vec4 dn; float wpdf; int dpi;
+		SamplePrimitive(GetRandom2D02(j, vec2(0, 0), vec2(1, 1)), 0, local_RayPath.rays[i].pos, ddir, dt, dn, wpdf);
+		Ray dr = {local_RayPath.rays[i].pos, ddir};
+		FindIntersection(dr, ddt, dpi, dn);
+		if(dpi == 0 && wpdf > 0  && dot(ddir, local_RayPath.intrs[i].n) > 0)
+		{
+			float cost = abs(dot(ddir, local_RayPath.intrs[i].n));
+			
+			MaterialE(0, -ddir, e, pdfe);
+			L += f * cost * e * throughput / wpdf;
+		}
+		
+		//
+		throughput *= f * cost / c_PI;
+		
 	}
 	result += L;	
 	}
 	
-	imageStore(u_TargetColorLuma, startPixelID, result / rCount);
+	vec4 accum = imageLoad(u_TargetAccumLuma, startPixelID);
+	if(u_FrameCount == 1)
+	{
+		accum = result / rCount;
+	}
+	else
+	{
+		accum += result / rCount;
+	}
+	
+	imageStore(u_TargetAccumLuma, startPixelID, accum);
+	imageStore(u_TargetColorLuma, startPixelID, vec4(accum.xyz/ u_FrameCount, sqrt(dot(accum.xyz/ u_FrameCount, vec3(0.299, 0.587, 0.114)))));
 	imageStore(u_TargetDepth, startPixelID, vec4(0));
 }

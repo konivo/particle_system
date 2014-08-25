@@ -22,6 +22,8 @@ namespace opentk.System6
 		//
 		private TextureBase BeforeAATexture;
 		//
+		private TextureBase AccumTexture;
+		//
 		private TextureBase AATexture;
 		//
 		private TextureBase Depth_Texture;
@@ -58,6 +60,18 @@ namespace opentk.System6
 						MagFilter = TextureMagFilter.Nearest,
 				}};
 				
+				AccumTexture =
+				new DataTexture<Vector4> {
+					Name = "AccumTexture",
+					InternalFormat = PixelInternalFormat.Rgba32f,
+					Data2D = new Vector4[m_SolidModeTextureSize, m_SolidModeTextureSize],
+					Params = new TextureBase.Parameters
+					{
+						GenerateMipmap = false,
+						MinFilter = TextureMinFilter.Nearest,
+						MagFilter = TextureMagFilter.Nearest,
+					}};
+				
 				AATexture = new Texture
 				{
 					Name = "AATexture",
@@ -92,6 +106,7 @@ namespace opentk.System6
 			m_Projection = new MatrixStack ().Push (ortho);
 			m_TransformationStack = new MatrixStack ().Push (m_Projection);
 			
+			var frameCount = 1;
 			m_UniformState = new UniformState
 			{
 				{"pRayMarchStepFactor", () => this.RayMarchStepFactor},
@@ -100,6 +115,7 @@ namespace opentk.System6
 				{"k3", () => this.K3},
 				{"k4", () => this.K4},
 				{"time", () => this.Time},
+				{"u_FrameCount", () => frameCount},
 			};
 			
 			var workgroupSize = 8;
@@ -114,14 +130,15 @@ namespace opentk.System6
 				{
 					{"u_TargetDepth", () => Depth_Texture },
 					{"u_TargetColorLuma", () => BeforeAATexture },
+				  {"u_TargetAccumLuma", () => AccumTexture },
 				},
 			  m_UniformState);
 			
-			var antialiasPass = RenderPassFactory.CreatePass( new Fxaa3Filter{ Source = BeforeAATexture, Target = AATexture});
+			//var antialiasPass = RenderPassFactory.CreatePass( new Fxaa3Filter{ Source = BeforeAATexture, Target = AATexture});
 			
 			var finalRender = RenderPassFactory.CreateRenderTextureToBuffer
 			(
-				AATexture,
+				BeforeAATexture,
 				Depth_Texture,
 				ValueProvider.Create(() => m_Viewport),
 				(window) =>
@@ -133,13 +150,14 @@ namespace opentk.System6
 					GL.Clear (ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 					GL.Disable (EnableCap.DepthTest);
 					GL.Disable (EnableCap.Blend);
+					frameCount++;
 				},
 				FramebufferBindingSet.Default);
 
-			m_Passes = new RenderPass[]{ giPass, antialiasPass, finalRender };
+			m_Passes = new RenderPass[]{ giPass, /*antialiasPass, */finalRender };
 			m_Manip = new OrbitManipulator (m_Projection);
 			//m_Grid = new Grid (m_TransformationStack);
-			
+						
 			m_TransformationStack.Push (m_Manip.RT);
 			m_UniformState.Set ("modelview_transform", m_Manip.RT);
 			m_UniformState.Set ("modelviewprojection_transform", m_TransformationStack);
@@ -147,6 +165,9 @@ namespace opentk.System6
 			m_UniformState.Set ("projection_inv_transform", new MatrixInversion(m_Projection));
 			m_UniformState.Set ("modelview_inv_transform", new MatrixInversion(m_Manip.RT));
 			m_UniformState.Set ("modelviewprojection_inv_transform", new MatrixInversion(m_TransformationStack));
+			
+			m_Manip.RT.PropertyChanged +=
+			(s, args) => { frameCount = 0; };
 
 			PrepareState ();
 		}

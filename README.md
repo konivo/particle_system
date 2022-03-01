@@ -1,4 +1,4 @@
-##Smalld's particle system
+## Toy particle system
 
 This is my pet project which serves the sole purpose of learning new versions of OpenGL (currently 4.4), how to do programming on gpus and exploring capabilities of the concept of particle system itself (for example learn how to do a physics simulation in various ways, or explore a concept of an IFS or a dynamic system)
 
@@ -11,12 +11,12 @@ Code consists of some OO wrappers over the pure OpenGL, which is imported by mea
 
 Particle systems are and should be written from scratch (I didn't put any effort to develop a general framework). The biggest effort has been put into System3, which is somehow extensible and there are a few things you can play with and into System4, which is actually for doing experiments with implicit surfaces.
 
-##Screenshots
+## Screenshots
 <img src='doc/scr6_07.png' alt='...' width='400'/>
 <img src='doc/scr9_22.png' alt='...' width='400'/>
 <img src='doc/scr3_47.png' alt='...' width='400'/>
 
-##Further plans
+## Further plans
 I have some plans to play more, and there are few things I have come across and which gained my attention:
 
 * (http://www.fractalforums.com/3d-fractal-generation/true-3d-mandlebrot-type-fractal/#lastPost)
